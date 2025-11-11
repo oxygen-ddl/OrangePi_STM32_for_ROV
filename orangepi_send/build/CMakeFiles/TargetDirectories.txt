@@ -1,0 +1,3 @@
+/home/orangepi/orangepi_send/build/CMakeFiles/rebuild_cache.dir
+/home/orangepi/orangepi_send/build/CMakeFiles/edit_cache.dir
+/home/orangepi/orangepi_send/build/CMakeFiles/pwm_udp_sender.dir

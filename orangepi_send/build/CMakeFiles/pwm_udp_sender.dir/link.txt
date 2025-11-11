@@ -1,0 +1,1 @@
+/usr/bin/c++  -O2 -g -DNDEBUG -flto -fno-fat-lto-objects  -Wl,-z,noexecstack CMakeFiles/pwm_udp_sender.dir/src/main.cpp.o CMakeFiles/pwm_udp_sender.dir/src/UdpSender.cpp.o CMakeFiles/pwm_udp_sender.dir/src/protocol_pack.c.o  -o pwm_udp_sender  -lrt -lpthread 

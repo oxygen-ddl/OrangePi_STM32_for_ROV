@@ -4,7 +4,7 @@
 # 项目交接说明书（STM32 与香橙派 PWM 控制系统）
 
 **版本号：** v1.0
-**最后修改日期：** 2025-11-04
+**最后修改日期：** 2025-11-11
 **编写人：** 王雨舒
 **交接对象：** 王立，孙之媛
 
@@ -15,7 +15,7 @@
 本项目实现了 **香橙派（上位机）与 STM32（下位机）之间的通信与电机驱动控制**，核心功能包括：
 
 * 香橙派通过 UDP 协议周期性发送 8 路 PWM 控制指令及心跳包；
-* STM32 通过 UART5（RS485）接收数据帧，解析协议、校验 CRC；
+* STM32 通过 UART5 接收数据帧，解析协议、校验 CRC；
 * STM32 根据指令驱动 8 路 PWM 输出；
 * 若通信超时（心跳丢失），自动进入失联保护模式，将 PWM 置中位。
 
@@ -25,29 +25,13 @@
 
 ## 2️⃣ 系统架构
 
-### STM32 项目目录结构
+### STM32 说明
+* `Source/Src/Uart_service.c`:包含满足vofa+协议的数据传输函数
+* `Source/Src/Driver_pwm.c`:pwm底层驱动函数
+* `Source/Src/protocal_v1`:适用于v1版本协议PWM数据包，心跳包格式的解析
+* `Source/Src/crc16_ccit.c`:crc16计算函数
+* `Source/Src/Parse_pwm`：老版本数据解析函数
 
-```
-Core/
-├── Inc/
-│   ├── config.h         // 系统运行参数配置
-│   ├── board.h          // 硬件接口定义与映射
-│   ├── protocol/
-│   │   └── protocol_v1.h
-│   ├── drivers/
-│   │   └── Driver_pwm.h
-│   └── services/
-│       └── Uart_service.h
-│
-└── Src/
-    ├── main.c           // 主程序
-    ├── protocol/
-    │   └── protocol_v1.c
-    ├── drivers/
-    │   └── Driver_pwm.c
-    └── services/
-        └── Uart_service.c
-```
 
 #### 上位机（香橙派）说明
 
@@ -103,32 +87,46 @@ Core/
 1. 系统启动后：
 
    ```c
-   MX_GPIO_Init();
-   MX_TIM_Init();
-   MX_UART5_Init();
-   Driver_PWM_Init();
-   Uart5_Init();
-   protocol_init();
+  /* USER CODE BEGIN 2 */
+  Driver_PWM_Init();  //初始化PWM通道
+  protocol_force_failsafe(); //进入保护状态，所有通道回中位
+  protocol_process_init(); //协议处理初始化
+
+  /* USER CODE END 2 */
    ```
 
 2. 主循环：
 
    ```c
-   while (1) {
-       protocol_poll();      // 必须周期调用（建议1–5ms）
-       HAL_Delay(1);
-   }
+  while (1)
+  {
+    //process_uart5_message();
+    
+    protocol_process(); //协议处理，在主循环中调用
+    protocol_poll();    //协议轮询钩子
+    HAL_Delay(1);
+    /* USER CODE END WHILE */
+		
+    /* USER CODE BEGIN 3 */
+  }
    ```
 
 3. 中断回调（在 `stm32f4xx_it.c`）：
 
    ```c
-   void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
-       if (huart->Instance == UART5) {
-           extern void Uart5_OnRxToIdle(uint8_t* data, uint16_t len);
-           extern uint8_t s_rx_dma_buf[];
-           Uart5_OnRxToIdle(s_rx_dma_buf, Size);
-       }
+   /**
+   * @brief This function handles UART5 global interrupt.
+   */
+   void UART5_IRQHandler(void)
+   {
+   /* USER CODE BEGIN UART5_IRQn 0 */
+   //UART5_IT_TASK();
+   protocol_it_process();
+   /* USER CODE END UART5_IRQn 0 */
+   HAL_UART_IRQHandler(&huart5);
+   /* USER CODE BEGIN UART5_IRQn 1 */
+
+   /* USER CODE END UART5_IRQn 1 */
    }
    ```
 
@@ -180,8 +178,7 @@ Core/
 
 * 若修改硬件引脚：
 
-  * 仅修改 `board.h`；
-  * 不应在驱动层或协议层出现 HAL_HandleTypeDef 变量。
+  * 在stm32cube中进行修改
 
 * 若加入 RTOS：
 
@@ -204,10 +201,6 @@ Core/
 ---
 
 ## 🔚 附录
-
-* 项目仓库建议命名：`receive_pwm_stm32_v1`
-* 上位机同步仓库：`pwm_udp_sender`
-* 推荐使用 `docs/` 文件夹记录：
 
   * `handover_guide.md`（本文件）
   * `protocol_v1.md`（协议说明）

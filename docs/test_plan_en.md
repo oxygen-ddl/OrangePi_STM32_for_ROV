@@ -5,8 +5,8 @@
 
 **项目名称：** 香橙派与 STM32 双机 PWM 控制系统
 **版本号：** v1.0
-**作者：** 王雨舒
-**更新日期：** 2025-11-04
+**作者：** 王雨舒,王立
+**更新日期：** 2025-11-11
 
 ---
 
@@ -38,18 +38,12 @@
 
 ### 3.1 STM32 侧
 
-* **开发工具：** STM32CubeIDE（推荐） 或 Keil uVision5
-* **编译器：** ARM GCC 9.x / ARMCC 5.x
+* **开发工具：**  Keil uVision5
+* **编译器：** version 5
 * **固件包版本：** STM32 HAL v1.26+
-* **目标芯片：** STM32F407/STM32F446
-* **通信接口：** UART5（经下层STM32转网口）
+* **目标芯片：** STM32F407
+* **通信接口：** UART5（经下层串口转网口）
 
-在 CubeIDE 中打开工程：
-
-```
-File → Open Projects from File System...
-选择 receive_pwm_stm32/
-```
 
 确保配置：
 
@@ -62,7 +56,7 @@ File → Open Projects from File System...
 
 ### 3.2 香橙派 侧
 
-**操作系统：** Armbian / Ubuntu 22.04
+**操作系统：** Armbian / Ubuntu 20.04
 **编译工具链：**
 
 ```bash
@@ -71,6 +65,14 @@ sudo apt install cmake g++ git
 ```
 
 **编译步骤：**
+清理原工程中的编译中间文件
+``` bash
+cd ~/orangepi_send
+rm -rf build
+mkdir build
+cd build
+cmake ..
+```
 
 ```bash
 cd orangepi_send
@@ -88,14 +90,14 @@ build/orangepi_send
 运行方式：
 
 ```bash
-./orangepi_send 192.168.2.16 8000 50 1
+./orangepi_send 192.168.2.16 8000 51 1
 ```
 
 含义：
 
 * 目标 IP：STM32 网口地址
 * UDP端口：8000
-* 控制频率：50Hz
+* 控制频率：51Hz
 * 心跳频率：1Hz
 
 ---
@@ -104,7 +106,7 @@ build/orangepi_send
 
 ### 4.1 编译步骤
 
-在 STM32CubeIDE：
+在 keil5
 
 1. 打开项目 `receive_pwm_stm32`
 2. 菜单栏选择 **Project → Build Project**
@@ -113,7 +115,7 @@ build/orangepi_send
 ### 4.2 烧录步骤
 
 * 使用 ST-Link 连接开发板；
-* 在 CubeIDE 中点击 **Run → Run As → STM32 Cortex-M C/C++ Application**
+* 在 keil5 中点击 **Download**
 * 烧录后开发板自动运行。
 
 ### 4.3 串口调试
@@ -201,20 +203,20 @@ build/orangepi_send
 | `firmware_change_log.md` | 每次固件修改记录（版本、日期、说明）    |
 | `troubleshooting.md`     | 常见问题与解决方案（如波形异常、通信中断） |
 
-### 示例模板（test_log_20251105.md）
+### Test_log
 
 ```
 ## 测试日期
-2025-11-05
+2025-11-11
 
 ## 测试内容
 验证PWM输出与心跳机制
 
 ## 环境
-- STM32F407VET6
-- 香橙派5 (IP 192.168.2.2)
+- STM32F407VET6(串转网模块IP：192.168.2.16：8000)
+- 香橙派5 (IP 192.168.2.24)
 - 电源 12V
-- CubeIDE v1.16.0
+- keil uVision5
 
 ## 结果
 - 心跳RTT: 3~6ms
@@ -223,11 +225,7 @@ build/orangepi_send
 - 无CRC错误
 
 ## 问题
-- 第一次上电PWM需延迟1.5s才稳定（疑似初始化时序问题）
-
-## 建议
-- 增加TIM初始化延时
-```
+- pwm频率需要设置为51hz，心跳包设置为1hz。目的是避开Pwm数据与心跳包数据同一时刻发送
 
 ---
 

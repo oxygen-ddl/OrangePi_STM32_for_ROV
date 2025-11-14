@@ -1,0 +1,3 @@
+/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build/CMakeFiles/rebuild_cache.dir
+/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build/CMakeFiles/edit_cache.dir
+/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build/CMakeFiles/pwm_host.dir

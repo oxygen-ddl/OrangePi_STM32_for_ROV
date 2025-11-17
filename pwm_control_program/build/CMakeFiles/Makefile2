@@ -53,7 +53,6 @@ CMAKE_BINARY_DIR = /home/orangepi/ROV/pwm_control_program/build
 # Directory level rules for the build root directory
 
 # The main recursive "all" target.
-all: CMakeFiles/pwm_teleop.dir/all
 all: CMakeFiles/pwm_control_program.dir/all
 
 .PHONY : all
@@ -64,37 +63,9 @@ preinstall:
 .PHONY : preinstall
 
 # The main recursive "clean" target.
-clean: CMakeFiles/pwm_teleop.dir/clean
 clean: CMakeFiles/pwm_control_program.dir/clean
 
 .PHONY : clean
-
-#=============================================================================
-# Target rules for target CMakeFiles/pwm_teleop.dir
-
-# All Build rule for target.
-CMakeFiles/pwm_teleop.dir/all:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/depend
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/orangepi/ROV/pwm_control_program/build/CMakeFiles --progress-num=3,4 "Built target pwm_teleop"
-.PHONY : CMakeFiles/pwm_teleop.dir/all
-
-# Build rule for subdir invocation for target.
-CMakeFiles/pwm_teleop.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/orangepi/ROV/pwm_control_program/build/CMakeFiles 2
-	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/pwm_teleop.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/orangepi/ROV/pwm_control_program/build/CMakeFiles 0
-.PHONY : CMakeFiles/pwm_teleop.dir/rule
-
-# Convenience name for target.
-pwm_teleop: CMakeFiles/pwm_teleop.dir/rule
-
-.PHONY : pwm_teleop
-
-# clean rule for target.
-CMakeFiles/pwm_teleop.dir/clean:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/clean
-.PHONY : CMakeFiles/pwm_teleop.dir/clean
 
 #=============================================================================
 # Target rules for target CMakeFiles/pwm_control_program.dir
@@ -103,12 +74,12 @@ CMakeFiles/pwm_teleop.dir/clean:
 CMakeFiles/pwm_control_program.dir/all:
 	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/depend
 	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/orangepi/ROV/pwm_control_program/build/CMakeFiles --progress-num=1,2 "Built target pwm_control_program"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/orangepi/ROV/pwm_control_program/build/CMakeFiles --progress-num=1,2,3 "Built target pwm_control_program"
 .PHONY : CMakeFiles/pwm_control_program.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/pwm_control_program.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/orangepi/ROV/pwm_control_program/build/CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/orangepi/ROV/pwm_control_program/build/CMakeFiles 3
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/pwm_control_program.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/orangepi/ROV/pwm_control_program/build/CMakeFiles 0
 .PHONY : CMakeFiles/pwm_control_program.dir/rule

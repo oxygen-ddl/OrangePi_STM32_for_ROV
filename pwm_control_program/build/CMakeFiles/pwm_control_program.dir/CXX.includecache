@@ -6,6 +6,10 @@
 
 #IncludeRegexTransform: 
 
+../include/pwm_teleop_keys.h
+cstdint
+-
+
 /home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include/libpwm_host.h
 stdint.h
 -
@@ -25,6 +29,8 @@ libpwm_host.h
 /home/orangepi/ROV/pwm_control_program/src/libpwm_host.h
 pwm_control.h
 /home/orangepi/ROV/pwm_control_program/src/pwm_control.h
+pwm_teleop_keys.h
+/home/orangepi/ROV/pwm_control_program/src/pwm_teleop_keys.h
 atomic
 -
 chrono
@@ -33,10 +39,22 @@ csignal
 -
 cstdio
 -
+cstdlib
+-
 cstring
 -
 iostream
 -
 thread
+-
+termios.h
+-
+unistd.h
+-
+fcntl.h
+-
+cerrno
+-
+string
 -
 

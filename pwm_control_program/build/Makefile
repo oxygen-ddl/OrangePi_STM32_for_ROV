@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named pwm_teleop
-
-# Build rule for target.
-pwm_teleop: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 pwm_teleop
-.PHONY : pwm_teleop
-
-# fast build rule for target.
-pwm_teleop/fast:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/build
-.PHONY : pwm_teleop/fast
-
-#=============================================================================
 # Target rules for targets named pwm_control_program
 
 # Build rule for target.
@@ -163,32 +150,32 @@ src/main.cpp.s:
 	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
-src/pwm_teleop.o: src/pwm_teleop.cpp.o
+src/pwm_teleop_keys.o: src/pwm_teleop_keys.cpp.o
 
-.PHONY : src/pwm_teleop.o
+.PHONY : src/pwm_teleop_keys.o
 
 # target to build an object file
-src/pwm_teleop.cpp.o:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/src/pwm_teleop.cpp.o
-.PHONY : src/pwm_teleop.cpp.o
+src/pwm_teleop_keys.cpp.o:
+	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/src/pwm_teleop_keys.cpp.o
+.PHONY : src/pwm_teleop_keys.cpp.o
 
-src/pwm_teleop.i: src/pwm_teleop.cpp.i
+src/pwm_teleop_keys.i: src/pwm_teleop_keys.cpp.i
 
-.PHONY : src/pwm_teleop.i
+.PHONY : src/pwm_teleop_keys.i
 
 # target to preprocess a source file
-src/pwm_teleop.cpp.i:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/src/pwm_teleop.cpp.i
-.PHONY : src/pwm_teleop.cpp.i
+src/pwm_teleop_keys.cpp.i:
+	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/src/pwm_teleop_keys.cpp.i
+.PHONY : src/pwm_teleop_keys.cpp.i
 
-src/pwm_teleop.s: src/pwm_teleop.cpp.s
+src/pwm_teleop_keys.s: src/pwm_teleop_keys.cpp.s
 
-.PHONY : src/pwm_teleop.s
+.PHONY : src/pwm_teleop_keys.s
 
 # target to generate assembly for a file
-src/pwm_teleop.cpp.s:
-	$(MAKE) -f CMakeFiles/pwm_teleop.dir/build.make CMakeFiles/pwm_teleop.dir/src/pwm_teleop.cpp.s
-.PHONY : src/pwm_teleop.cpp.s
+src/pwm_teleop_keys.cpp.s:
+	$(MAKE) -f CMakeFiles/pwm_control_program.dir/build.make CMakeFiles/pwm_control_program.dir/src/pwm_teleop_keys.cpp.s
+.PHONY : src/pwm_teleop_keys.cpp.s
 
 # Help Target
 help:
@@ -197,15 +184,14 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... pwm_teleop"
 	@echo "... edit_cache"
 	@echo "... pwm_control_program"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
-	@echo "... src/pwm_teleop.o"
-	@echo "... src/pwm_teleop.i"
-	@echo "... src/pwm_teleop.s"
+	@echo "... src/pwm_teleop_keys.o"
+	@echo "... src/pwm_teleop_keys.i"
+	@echo "... src/pwm_teleop_keys.s"
 .PHONY : help
 
 

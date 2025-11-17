@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/pwm_control_program.dir/src/main.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/pwm_teleop_keys.cpp.o"
   "pwm_control_program"
   "pwm_control_program.pdb"
 )

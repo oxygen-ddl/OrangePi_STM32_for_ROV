@@ -12,39 +12,36 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-# ---------- 路径按你的实际位置 ----------
+# ---------- 路径：改成你 OrangePi 上实际的路径 ----------
+# 这里假设你在 orangepi 上的路径是：
+#   /home/orangepi/ROV/orangepi_send/build
+#   /home/orangepi/ROV/orangepi_send/include
+# 如果不一样，就按实际情况调整
 set(PWM_LIB_DIR   "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build")
 set(PWM_INCLUDE_DIR "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include")
 
+# ============ 可执行程序 ============
 add_executable(pwm_control_program
   src/main.cpp
+  src/pwm_teleop_keys.cpp    # ← 把 teleop 的实现文件加进来
 )
 
 target_include_directories(pwm_control_program PRIVATE
-  ${PWM_INCLUDE_DIR}
+  ${PWM_INCLUDE_DIR}             # libpwm_host / pwm_control 的头文件
+  ${CMAKE_CURRENT_SOURCE_DIR}/include  # 本工程自己的头文件（pwm_teleop_keys.h）
 )
 
-# 链接我们的静态库
+# 线程 + rt（clock_gettime 在某些 Linux 上需要）
+find_package(Threads REQUIRED)
+
 target_link_libraries(pwm_control_program PRIVATE
   ${PWM_LIB_DIR}/libpwm_host.a
+  Threads::Threads
+  rt
 )
-
-# 线程 + rt（clock_gettime）
-find_package(Threads REQUIRED)
-target_link_libraries(pwm_control_program PRIVATE Threads::Threads rt)
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-add_executable(pwm_teleop
-  src/pwm_teleop.cpp
-)
 
-target_include_directories(pwm_teleop PRIVATE
-  ${PWM_INCLUDE_DIR}
-)
-
-target_link_libraries(pwm_teleop PRIVATE
-  ${PWM_LIB_DIR}/libpwm_host.a
-)
-
-find_package(Threads REQUIRED)
-target_link_libraries(pwm_teleop PRIVATE Threads::Threads rt)
+# # ---------- 路径按你的实际位置 ----------
+# set(PWM_LIB_DIR   "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build")
+# set(PWM_INCLUDE_DIR "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include")

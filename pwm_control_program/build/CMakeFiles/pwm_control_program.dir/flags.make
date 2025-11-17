@@ -6,5 +6,5 @@ CXX_FLAGS = -O2 -g -DNDEBUG   -Wall -Wextra -Wpedantic -Wconversion -Wsign-conve
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include 
+CXX_INCLUDES = -I/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include -I/home/orangepi/ROV/pwm_control_program/include 
 

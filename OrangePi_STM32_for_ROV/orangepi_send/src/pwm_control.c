@@ -40,7 +40,7 @@ static void sleep_ms(double ms)
 /* 推荐周期 ms（用于阻塞函数 sleep） */
 static double ctrl_period_ms(void)
 {
-    float hz = (s_cfg.ctrl_hz > 0.0f) ? s_cfg.ctrl_hz : 50.0f;
+    float hz = (s_cfg.ctrl_hz > 0.0f) ? s_cfg.ctrl_hz : 100.0f;
     return 1000.0 / (double)hz;
 }
 

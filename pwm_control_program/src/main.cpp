@@ -2,8 +2,8 @@
 #include "pwm_control.h"
 #include "pwm_teleop_keys.h"
 
-// 统一时间基
-#include "external/timebase/timebase.h"
+// 统一时间基（与导航项目共享）
+#include "timebase.h"
 
 #include <atomic>
 #include <chrono>
@@ -241,8 +241,14 @@ int main(int argc, char** argv)
     std::cout << "[INFO] Teleop target=" << ip << ":" << port
               << " ctrl=" << ctrl_hz << "Hz hb=" << hb_hz << "Hz\n";
 
-    // 初始化统一时间基（内部记录 monotonic 起点等）
-    timebase_init();
+    /* 0) 初始化统一时间基 */
+    // 如果你的 timebase_init 有返回值，可以像这样检查：
+    int tb_rc = timebase_init();
+    if (tb_rc != 0) {
+        std::cerr << "[WARN] timebase_init failed rc=" << tb_rc
+                  << " ; timestamps may be invalid.\n";
+        // 这里不强制退出，让你在现场也能应急用一下 PWM
+    }
 
     /* 1) 初始化 libpwm_host（UDP 通信） */
     pwm_host_config_t host_cfg{};

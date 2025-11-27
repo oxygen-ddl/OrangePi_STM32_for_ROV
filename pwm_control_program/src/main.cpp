@@ -2,6 +2,9 @@
 #include "pwm_control.h"
 #include "pwm_teleop_keys.h"
 
+// 统一时间基
+#include "external/timebase/timebase.h"
+
 #include <atomic>
 #include <chrono>
 #include <csignal>
@@ -17,13 +20,96 @@
 #include <cerrno>
 #include <string>
 
+// 日志 + 目录创建 + 时间
+#include <fstream>
+#include <iomanip>
+#include <filesystem>
+#include <ctime>
+#include <cstdint>
+
 using Clock = std::chrono::steady_clock;
 using Ms    = std::chrono::milliseconds;
 
 static std::atomic<bool> g_running{true};
 static void on_sigint(int){ g_running = false; }
 
-/* ----------- 终端 raw 模式工具（加安全检查） ----------- */
+/* ======================================================================
+ *                          PWM 日志相关
+ * ====================================================================== */
+
+static std::ofstream g_pwm_log;
+
+// 系统时间字符串，用于生成文件名：YYYY-MM-DD_HH-MM-SS
+static std::string make_datetime_string()
+{
+    using std::chrono::system_clock;
+    auto now = system_clock::now();
+    std::time_t t = system_clock::to_time_t(now);
+    std::tm tm{};
+
+    // OrangePi / Linux 使用 localtime_r
+    localtime_r(&t, &tm);
+
+    char buf[32];
+    std::snprintf(buf, sizeof(buf),
+                  "%04d-%02d-%02d_%02d-%02d-%02d",
+                  tm.tm_year + 1900,
+                  tm.tm_mon  + 1,
+                  tm.tm_mday,
+                  tm.tm_hour,
+                  tm.tm_min,
+                  tm.tm_sec);
+    return std::string(buf);
+}
+
+static bool init_pwm_log_file()
+{
+    namespace fs = std::filesystem;
+
+    try {
+        fs::create_directories("logs");
+    } catch (const std::exception& e) {
+        std::cerr << "[WARN] create_directories(\"logs\") failed: "
+                  << e.what() << "\n";
+        return false;
+    }
+
+    std::string fname = "logs/pwm_teleop_" + make_datetime_string() + ".csv";
+    g_pwm_log.open(fname, std::ios::out | std::ios::trunc);
+    if (!g_pwm_log.is_open()) {
+        std::cerr << "[WARN] open log file failed: " << fname << "\n";
+        return false;
+    }
+
+    std::cout << "[INFO] PWM log file: " << fname << "\n";
+
+    // 写表头：和 IMU/DVL 对齐，统一时间基协议
+    g_pwm_log << "t_epoch_s"   // Unix 时间戳（秒，double）
+              << ",t_mono_ns"  // 单调时间（纳秒，int64，用于排序/插值）
+              << ",ch1_pct"
+              << ",ch2_pct"
+              << ",ch3_pct"
+              << ",ch4_pct"
+              << ",ch5_pct"
+              << ",ch6_pct"
+              << ",ch7_pct"
+              << ",ch8_pct"
+              << "\n";
+    g_pwm_log.flush();
+    return true;
+}
+
+static void close_pwm_log_file()
+{
+    if (g_pwm_log.is_open()) {
+        g_pwm_log.flush();
+        g_pwm_log.close();
+    }
+}
+
+/* ======================================================================
+ *                      终端 raw 模式工具（安全版）
+ * ====================================================================== */
 
 static struct termios g_old_tio;
 static bool g_term_inited = false;
@@ -105,7 +191,9 @@ static void term_restore()
     g_term_inited = false;
 }
 
-/* ----------- 简单统计输出 ----------- */
+/* ======================================================================
+ *                          简单统计输出
+ * ====================================================================== */
 
 static void print_stats(const char* tag)
 {
@@ -120,7 +208,9 @@ static void print_stats(const char* tag)
               << " rtt=" << (rtt >= 0 ? rtt : -1.0) << " ms\n";
 }
 
-/* ----------- 非阻塞读键工具 ----------- */
+/* ======================================================================
+ *                        非阻塞读键工具
+ * ====================================================================== */
 
 static int read_key_nonblock()
 {
@@ -135,7 +225,9 @@ static int read_key_nonblock()
     return (int)c;     // 返回 ASCII
 }
 
-/* ----------- 主程序：键盘 teleop 循环 ----------- */
+/* ======================================================================
+ *                    主程序：键盘 teleop 循环
+ * ====================================================================== */
 
 int main(int argc, char** argv)
 {
@@ -143,13 +235,16 @@ int main(int argc, char** argv)
 
     const char* ip   = (argc > 1) ? argv[1] : "192.168.2.16";
     const int   port = (argc > 2) ? std::stoi(argv[2]) : 8000;
-    const float ctrl_hz = (argc > 3) ? std::stof(argv[3]) : 51.0f;
+    const float ctrl_hz = (argc > 3) ? std::stof(argv[3]) : 100.0f;  // 100Hz → AB 后每路约 50Hz
     const int   hb_hz   = (argc > 4) ? std::stoi(argv[4]) : 1;
 
     std::cout << "[INFO] Teleop target=" << ip << ":" << port
               << " ctrl=" << ctrl_hz << "Hz hb=" << hb_hz << "Hz\n";
 
-    // 1) 初始化底层 UDP 驱动（libpwm_host）
+    // 初始化统一时间基（内部记录 monotonic 起点等）
+    timebase_init();
+
+    /* 1) 初始化 libpwm_host（UDP 通信） */
     pwm_host_config_t host_cfg{};
     host_cfg.stm32_ip      = ip;
     host_cfg.stm32_port    = static_cast<uint16_t>(port);
@@ -164,7 +259,7 @@ int main(int argc, char** argv)
     }
     std::cout << "[INFO] libpwm_host version=" << pwm_host_version() << "\n";
 
-    // 2) 初始化控制层（pwm_control）
+    /* 2) 初始化 pwm_control 控制层 */
     pwm_ctrl_config_t ctrl_cfg{};
     ctrl_cfg.ctrl_hz      = ctrl_hz;
     ctrl_cfg.max_step_pct = 0.2f;                // 每步 0.2%
@@ -182,7 +277,7 @@ int main(int argc, char** argv)
     // 初始：全通道中位
     (void)pwm_ctrl_set_all_target_mid();
 
-    // 3) 终端 raw 模式 + 打印一次帮助
+    /* 3) 终端 raw 模式 + 帮助信息 */
     int trc = term_set_raw();
     if (trc != 0) {
         std::cerr << "[WARN] term_set_raw failed/skip (rc=" << trc
@@ -190,7 +285,13 @@ int main(int argc, char** argv)
     }
     pwm_teleop_print_help();
 
-    const double pwm_period_ms = 1000.0 / (ctrl_hz > 0.0f ? ctrl_hz : 51.0f);
+    /* 4) 初始化 PWM 日志 */
+    bool log_ok = init_pwm_log_file();
+    if (!log_ok) {
+        std::cerr << "[WARN] PWM logging disabled due to file/dir error.\n";
+    }
+
+    const double pwm_period_ms = 1000.0 / (ctrl_hz > 0.0f ? ctrl_hz : 100.0f);
     const double hb_period_ms  = 1000.0 / (hb_hz > 0 ? hb_hz : 1);
     auto t_next_pwm   = Clock::now();
     auto t_next_hb    = Clock::now();
@@ -200,61 +301,94 @@ int main(int argc, char** argv)
 
         auto now = Clock::now();
 
-        // 1) 读键（非阻塞），交给 teleop 模块解释
+        /* 1) 非阻塞读键，交给 teleop 模块 */
         int ch = read_key_nonblock();
-        if (ch != EOF) 
+        if (ch != EOF)
         {
             int r = pwm_teleop_handle_key(ch);
-            if (r < 0) 
+            if (r < 0)
             {
                 std::cerr << "[ERR] pwm_teleop_handle_key rc=" << r << "\n";
             }
             if (r == 2)  // ESC 请求退出
-            {  
+            {
                 g_running = false;
                 continue;
             }
             // r>0 表示已处理该按键，r==0 表示按键未被本模块使用
         }
 
-        // 2) 控制步：根据目标占空比 + 限斜率 + 分组策略，下发一帧 PWM
-        if (now >= t_next_pwm) 
+        /* 2) 控制步：根据目标占空比 + 限斜率 + 分组策略，下发一帧 PWM */
+        if (now >= t_next_pwm)
         {
-            t_next_pwm += Ms((int)pwm_period_ms);
+            t_next_pwm += Ms(static_cast<int>(pwm_period_ms));
+
             int rc_step = pwm_ctrl_step();
-            if (rc_step < 0) 
+            if (rc_step < 0)
             {
-            std::cerr << "[ERR] pwm_ctrl_step rc=" << rc_step << "\n";
-            break;
+                std::cerr << "[ERR] pwm_ctrl_step rc=" << rc_step << "\n";
+                break;
+            }
+
+            // 记录“已经下发”的 PWM 状态（统一时间基）
+            if (log_ok && g_pwm_log.is_open()) {
+                pwm_ctrl_state_t st{};
+                pwm_ctrl_get_state(&st);
+
+                double  t_epoch_s = 0.0;
+                int64_t t_mono_ns = 0;
+                timebase_now(&t_epoch_s, &t_mono_ns);
+
+                g_pwm_log << std::fixed << std::setprecision(6)
+                          << t_epoch_s
+                          << ',' << t_mono_ns
+                          << ',' << st.current_pct[0]
+                          << ',' << st.current_pct[1]
+                          << ',' << st.current_pct[2]
+                          << ',' << st.current_pct[3]
+                          << ',' << st.current_pct[4]
+                          << ',' << st.current_pct[5]
+                          << ',' << st.current_pct[6]
+                          << ',' << st.current_pct[7]
+                          << '\n';
+                // 每秒会在统计时 flush 一次，这里不强制
             }
         }
-        // 3) 心跳发送
+
+        /* 3) 心跳发送 */
         if (now >= t_next_hb) {
-            t_next_hb += Ms((int)hb_period_ms);
+            t_next_hb += Ms(static_cast<int>(hb_period_ms));
             pwmh_result_t rc_hb = pwm_host_send_heartbeat();
             if (rc_hb != PWMH_OK) {
-                std::cerr << "[WARN] send_heartbeat: "<< pwm_host_strerror(rc_hb) << "\n";
+                std::cerr << "[WARN] send_heartbeat: "
+                          << pwm_host_strerror(rc_hb) << "\n";
             }
         }
 
-        // 4) 轮询接收心跳 ACK / RTT（完全非阻塞，更安全）
+        /* 4) 轮询接收心跳 ACK / RTT（完全非阻塞） */
         (void)pwm_host_poll(1);
 
-        // 5) 统计输出（每秒一次）
+        /* 5) 统计输出（每秒一次） */
         if (now >= t_next_stat) {
             t_next_stat += Ms(1000);
             print_stats("teleop");
-        }
 
+            // 顺便做一次日志 flush，降低数据丢失风险
+            if (log_ok && g_pwm_log.is_open()) {
+                g_pwm_log.flush();
+            }
+        }
 
         std::this_thread::sleep_for(Ms(1));
     }
 
-    // 收尾
+    /* 收尾 */
     term_restore();
     pwm_ctrl_emergency_stop(1.0f);  // 离开前平滑归中
     pwm_ctrl_deinit();
     pwm_host_close();
+    close_pwm_log_file();
+
     std::cout << "[INFO] pwm_teleop exit.\n";
     return 0;
 }

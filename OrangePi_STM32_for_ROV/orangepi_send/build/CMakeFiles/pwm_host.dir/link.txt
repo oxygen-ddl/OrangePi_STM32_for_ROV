@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpwm_host.a  CMakeFiles/pwm_host.dir/src/libpwm_host.c.o CMakeFiles/pwm_host.dir/src/pwm_control.c.o
+/usr/bin/ranlib libpwm_host.a

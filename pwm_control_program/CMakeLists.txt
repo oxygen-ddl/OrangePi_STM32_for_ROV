@@ -12,27 +12,41 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   endif()
 endif()
 
-# ---------- 路径：改成你 OrangePi 上实际的路径 ----------
-# 这里假设你在 orangepi 上的路径是：
-#   /home/orangepi/ROV/orangepi_send/build
-#   /home/orangepi/ROV/orangepi_send/include
-# 如果不一样，就按实际情况调整
-set(PWM_LIB_DIR   "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/build")
-set(PWM_INCLUDE_DIR "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/include")
+# ---------- libpwm_host 静态库路径（按你在 OrangePi 上的路径） ----------
+# 注意：这里假定目录结构与 PC 上一致：
+#   /home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/build
+#   /home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/include
+# 如有变动，只需要改下面两个变量
+set(PWM_LIB_DIR
+    "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/build"
+)
+set(PWM_INCLUDE_DIR
+    "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/include"
+)
 
-# ============ 可执行程序 ============
-add_executable(pwm_control_program
+# ---------- 源码列表：按子目录组织 ----------
+set(PWMCTRL_SOURCES
   src/main.cpp
-  src/pwm_teleop_keys.cpp    # ← 把 teleop 的实现文件加进来
-  src/timebase.cpp
+
+  # 平台封装层：时间基准 + PWM 客户端
+  src/platform/timebase.cpp
+  src/platform/pwm_client.cpp
+
+  # 输入层：键盘 Teleop
+  src/platform/io/teleop_keyboard.cpp
 )
 
+add_executable(pwm_control_program
+  ${PWMCTRL_SOURCES}
+)
+
+# ---------- 头文件搜索路径 ----------
 target_include_directories(pwm_control_program PRIVATE
-  ${PWM_INCLUDE_DIR}             # libpwm_host / pwm_control 的头文件
-  ${CMAKE_CURRENT_SOURCE_DIR}/include  # 本工程自己的头文件（pwm_teleop_keys.h）
+  ${PWM_INCLUDE_DIR}                    # libpwm_host.h / pwm_control.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/include   # 本工程头文件：platform/*, platform/io/*
 )
 
-# 线程 + rt（clock_gettime 在某些 Linux 上需要）
+# ---------- 线程 + rt（部分 Linux 上 clock_gettime 需要） ----------
 find_package(Threads REQUIRED)
 
 target_link_libraries(pwm_control_program PRIVATE
@@ -42,7 +56,5 @@ target_link_libraries(pwm_control_program PRIVATE
 )
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
-
-# # ---------- 路径按你的实际位置 ----------
-# set(PWM_LIB_DIR   "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/build")
-# set(PWM_INCLUDE_DIR "/home/orangepi/ROV/OrangePi_STM32_for_ROV/orangepi_send/include")
+message(STATUS "Using PWM include dir: ${PWM_INCLUDE_DIR}")
+message(STATUS "Using PWM lib dir:     ${PWM_LIB_DIR}")

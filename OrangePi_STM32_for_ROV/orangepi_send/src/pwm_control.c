@@ -44,7 +44,7 @@ static void sleep_ms(double ms)
 /* 推荐周期 ms（用于阻塞函数 sleep） */
 static double ctrl_period_ms(void)
 {
-    float hz = (s_cfg.ctrl_hz > 0.0f) ? s_cfg.ctrl_hz : 50.0f;
+    float hz = (s_cfg.ctrl_hz > 0.0f) ? s_cfg.ctrl_hz : 100.0f;
     return 1000.0 / (double)hz;
 }
 
@@ -59,6 +59,14 @@ static float max_step_pct_effective(void)
         step = 20.0f;             /* 工程上限，避免误配置 */
     }
     return step;
+}
+
+/* 把 DOF 命令限制在 [-1,1]，用于 4-DOF 接口 */
+static float clamp_unit(float v)
+{
+    if (v < -1.0f) v = -1.0f;
+    if (v >  1.0f) v =  1.0f;
+    return v;
 }
 
 /* 判断某通道是否在 mask 中（ch 是逻辑电机号 1..N） */
@@ -346,6 +354,85 @@ int pwm_ctrl_set_all_target_mid(void)
         s_target_pct[i] = s_cfg.mid_pct;
     }
     return PWM_CTRL_OK;
+}
+
+/**
+ * 4-DOF → 8 通道逻辑电机目标占空比
+ *
+ * 这里内部固定了一套与现有 Teleop 风格一致的混控：
+ *   - CH1~CH4 水平面：surge/sway/yaw 的线性组合
+ *   - CH5~CH8 垂向：heave 十字/对角布置
+ */
+int pwm_ctrl_set_targets_from_dof4(const pwm_ctrl_dof4_cmd_t* cmd)
+{
+    if (!s_inited) return PWM_CTRL_ERR_NOT_INIT;
+    if (!cmd)      return PWM_CTRL_ERR_INVALID_ARG;
+
+    float mid = (s_cfg.mid_pct > 0.0f) ? s_cfg.mid_pct : PWM_HOST_PCT_MID;
+    float minp = (s_cfg.min_pct > 0.0f) ? s_cfg.min_pct : PWM_HOST_PCT_MIN;
+    float maxp = (s_cfg.max_pct > 0.0f) ? s_cfg.max_pct : PWM_HOST_PCT_MAX;
+
+    /* 取上下方向的最小裕度，防止一侧顶满一侧不满 */
+    float span_up   = maxp - mid;
+    float span_down = mid  - minp;
+    float span      = (span_up < span_down) ? span_up : span_down;
+    if (span <= 0.0f) {
+        span = (maxp - minp) * 0.5f;
+    }
+
+    /* 经验系数：当前 Teleop 水平增量约 1.5%，对应 0.6 * 2.5% */
+    const float H_GAIN = 0.6f;   /* 水平 DOF 利用 60% 的可用行程 */
+    const float V_GAIN = 0.6f;   /* 垂向同理，可独立调整 */
+
+    float delta_h = H_GAIN * span;
+    float delta_v = V_GAIN * span;
+
+    /* 归一化并限幅到 [-1,1] */
+    float su = clamp_unit(cmd->surge);
+    float sw = clamp_unit(cmd->sway);
+    float hv = clamp_unit(cmd->heave);
+    float yw = clamp_unit(cmd->yaw);
+
+    /* 先全部中位（逻辑电机空间） */
+    float motor_pct[PWM_HOST_CH_NUM];
+    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
+        motor_pct[i] = mid;
+    }
+
+    /* 水平面 4 通道 CH1~CH4：与 teleop 映射一致的线性组合 */
+    float d1 = 0.0f; // CH1
+    float d2 = 0.0f; // CH2
+    float d3 = 0.0f; // CH3
+    float d4 = 0.0f; // CH4
+
+    // surge：+1 前进 → CH3、CH4 正向
+    d3 += su;
+    d4 += su;
+
+    // sway：+1 右移 → CH1、CH3 正向
+    d1 += sw;
+    d3 += sw;
+
+    // yaw：+1 左转 → CH1、CH4 正向
+    d1 += yw;
+    d4 += yw;
+
+    motor_pct[0] = clamp_pct(mid + d1 * delta_h); // CH1
+    motor_pct[1] = clamp_pct(mid + d2 * delta_h); // CH2
+    motor_pct[2] = clamp_pct(mid + d3 * delta_h); // CH3
+    motor_pct[3] = clamp_pct(mid + d4 * delta_h); // CH4
+
+    /* 垂向 4 通道 CH5~CH8，保持十字/对角模式：
+     *   hv > 0  上升：
+     *     CH5/CH8 稍减，CH6/CH7 稍增
+     */
+    motor_pct[4] = clamp_pct(mid + hv * (-delta_v)); // CH5
+    motor_pct[5] = clamp_pct(mid + hv * (+delta_v)); // CH6
+    motor_pct[6] = clamp_pct(mid + hv * (+delta_v)); // CH7
+    motor_pct[7] = clamp_pct(mid + hv * (-delta_v)); // CH8
+
+    /* 仅更新目标，不立即下发；实际下发仍由 pwm_ctrl_step 完成 */
+    return pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, motor_pct);
 }
 
 /* ====================================================================== */

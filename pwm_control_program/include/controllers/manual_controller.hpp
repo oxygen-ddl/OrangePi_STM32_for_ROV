@@ -1,13 +1,19 @@
 #pragma once
+#ifndef ROVCTRL_CONTROLLERS_MANUAL_CONTROLLER_HPP
+#define ROVCTRL_CONTROLLERS_MANUAL_CONTROLLER_HPP
 
 /**
  * @file    manual_controller.hpp
- * @brief   手动模式控制器 —— 不做闭环控制，直接传递输入
+ * @brief   手动模式控制器：将 DOF 命令映射为 8 路推进器指令
  *
- * MANUAL 模式的本质：
- *   - 用户输入就是控制输出；
- *   - 不涉及 PID/MPC；
- *   - 仅在内部做限幅、过滤（可选）。
+ * 职责：
+ *   - 读取 ControlReference 中的手动 DOF 命令（通常来自键盘 Teleop）；
+ *   - 将 surge / sway / heave / yaw / roll / pitch 映射到 8 个推进器归一化指令 [-1, 1]；
+ *   - 填写 ControlOutput::thruster_command，并设置 has_thruster_command = true；
+ *
+ * 不负责：
+ *   - 读取键盘 / 上位机（由 InputProvider 完成）；
+ *   - PWM 下发 / 限斜率 / AB 分组（由 PwmClient + pwm_control 完成）。
  */
 
 #include "controllers/controller_base.hpp"
@@ -15,48 +21,49 @@
 
 namespace rovctrl::controllers {
 
-using rovctrl::control_core::ControlState;
-using rovctrl::control_core::ControlReference;
-using rovctrl::control_core::ControlOutput;
-using rovctrl::control_core::ControlMode;
-
-class ManualController : public IController {
+class ManualControllerConfig {
 public:
-    ManualController()  = default;
+    // 各 DOF → 推进器映射时的增益（可在 config/controller_manual.yaml 里配）
+    double surge_gain  = 1.0;   ///< 前进/后退
+    double sway_gain   = 1.0;   ///< 左右侧移
+    double heave_gain  = 1.0;   ///< 上浮/下潜
+    double yaw_gain    = 1.0;   ///< 航向
+    double roll_gain   = 1.0;   ///< 横滚（主要用于纯 roll 测试）
+    double pitch_gain  = 1.0;   ///< 俯仰（主要用于纯 pitch 测试）
+
+    // 输出归一化指令的限幅（通常保持 1.0 即 [-1,1]）
+    double max_cmd_abs = 1.0;
+};
+
+class ManualController : public ControllerBase {
+public:
+    explicit ManualController(const ManualControllerConfig& cfg = ManualControllerConfig());
     ~ManualController() override = default;
 
-    ControlMode mode() const override {
-        return ControlMode::MANUAL;
-    }
-
-    void reset() override {
-        // Manual 模式通常不需要 reset
-    }
-
     /**
-     * @brief 直接将 ControlReference 中的虚拟 DOF 映射到 ControlOutput
+     * @brief 计算推进器指令
      *
-     * @note Manual 模式的核心：不做控制律，只做传递。
+     * 输入：
+     *   - state : 当前导航状态（本控制器暂不使用，可为将来扩展预留）
+     *   - ref   : 控制参考（这里主要使用 ref.surge/sway/heave/yaw/roll/pitch）
+     *   - dt    : 控制周期（秒），当前实现中未使用
+     *
+     * 输出：
+     *   - out.thruster_command   : 归一化 8 推进器指令 [-1,1]；
+     *   - out.has_thruster_command = true；
      */
-    bool update(const ControllerContext& ctx,
-                ControlOutput& out) override
-    {
-        const auto& ref = ctx.ref;
+    bool compute(const rovctrl::control_core::ControlState&     state,
+                 const rovctrl::control_core::ControlReference& ref,
+                 rovctrl::control_core::ControlOutput&          out,
+                 double                                          dt) override;
 
-        out.mode  = ControlMode::MANUAL;
-        out.t_ns  = ctx.state.t_ns;
+private:
+    ManualControllerConfig cfg_;
 
-        // 直接传递虚拟 DOF 指令
-        out.surge_cmd = ref.vel_ref[0];   // 或者 surge_ref（取决于键盘输入设计）
-        out.sway_cmd  = ref.vel_ref[1];
-        out.heave_cmd = ref.vel_ref[2];
-        out.yaw_cmd   = ref.rpy_ref[2];   // yaw 输入通常单独处理
-
-        out.valid = true;
-        return true;
-    }
-
-    const char* name() const override { return "ManualController"; }
+    // 对 thruster_command 做统一限幅
+    void clamp_output(rovctrl::control_core::ControlOutput& out) const;
 };
 
 } // namespace rovctrl::controllers
+
+#endif // ROVCTRL_CONTROLLERS_MANUAL_CONTROLLER_HPP

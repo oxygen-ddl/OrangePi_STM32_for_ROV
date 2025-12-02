@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <cstring>
+#include <iostream>
 
 // C 接口头文件只在实现层可见
 extern "C" {
@@ -11,6 +12,36 @@ extern "C" {
 
 namespace rovctrl::platform {
 
+namespace {
+
+// 简单工具：检查并规范 motorch_to_pwmch / motor_reverse
+void sanitize_motor_mapping(const PwmClientConfig& cfg, pwm_ctrl_config_t& ctrl_cfg)
+{
+    // 说明：
+    //  - motorch_to_pwmch[i] 语义：逻辑电机 (i+1) → 物理 PWM 通道号
+    //  - 合法范围：1..PWM_HOST_CH_NUM；0 表示“默认映射 i+1，由 pwm_control 自行处理”
+    //  - motor_reverse[i]：0 正向，非 0 视为反向（统一归一为 0/1）
+
+    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
+        int map_val = cfg.motorch_to_pwmch[i];
+
+        if (map_val < 0 || map_val > PWM_HOST_CH_NUM) {
+            // 非法映射：打印告警并回退为 0（由 pwm_control 使用默认 1..N）
+            std::cerr << "[PwmClient] WARN: motorch_to_pwmch[" << i
+                      << "] = " << map_val
+                      << " out of range, fallback to 0 (default mapping)\n";
+            ctrl_cfg.motorch_to_pwmch[i] = 0;  // 0 -> 由 pwm_control 解释为默认
+        } else {
+            ctrl_cfg.motorch_to_pwmch[i] = map_val; // 0 或 1..N
+        }
+
+        // 归一 motor_reverse：0 正向，其它都视为 1
+        ctrl_cfg.motor_reverse[i] = (cfg.motor_reverse[i] ? 1 : 0);
+    }
+}
+
+} // anonymous namespace
+
 PwmClient::~PwmClient() {
     // RAII：对象析构时自动做一次安全关闭
     if (inited_) {
@@ -19,14 +50,14 @@ PwmClient::~PwmClient() {
 }
 
 void PwmClient::set_error(int err_code, const std::string& msg) {
-    status_.ok            = false;
-    status_.last_error    = err_code;
+    status_.ok             = false;
+    status_.last_error     = err_code;
     status_.last_error_msg = msg;
 }
 
 void PwmClient::clear_error() {
-    status_.ok            = true;
-    status_.last_error    = 0;
+    status_.ok             = true;
+    status_.last_error     = 0;
     status_.last_error_msg.clear();
 }
 
@@ -40,12 +71,14 @@ bool PwmClient::init(const PwmClientConfig& cfg) {
     clear_error();
 
     // 1) 初始化 libpwm_host（使用默认配置，后续如需自定义 IP/端口再扩展）
-    pwm_host_config_t host_cfg;
+    pwm_host_config_t host_cfg{};
     pwm_host_default_config(&host_cfg);
 
-    // TODO（如有需要）：这里可以从 cfg_ 补充 host_cfg.stm32_ip / stm32_port
+    // 如有需要，可在这里根据 cfg_ 设置 host_cfg.stm32_ip / stm32_port 等
+    // host_cfg.stm32_port = ...;
+    // std::snprintf(host_cfg.stm32_ip, sizeof(host_cfg.stm32_ip), "%s", cfg_.stm32_ip.c_str());
 
-    pwmh_result_t rc_host = pwm_host_init(&host_cfg);
+    const pwmh_result_t rc_host = pwm_host_init(&host_cfg);
     if (rc_host != PWMH_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_host_init failed, rc=" << rc_host
@@ -70,13 +103,10 @@ bool PwmClient::init(const PwmClientConfig& cfg) {
     ctrl_cfg.groupB_mask = static_cast<pwm_channel_mask_t>(cfg_.groupB_mask);
     ctrl_cfg.group_mode  = static_cast<pwm_ctrl_group_mode_t>(cfg_.group_mode);
 
-    // 逻辑电机映射 / 反向标志
-    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
-        ctrl_cfg.motorch_to_pwmch[i] = cfg_.motorch_to_pwmch[i];
-        ctrl_cfg.motor_reverse[i]    = cfg_.motor_reverse[i];
-    }
+    // 逻辑电机 ↔ 物理通道映射 + 方向反转归一
+    sanitize_motor_mapping(cfg_, ctrl_cfg);
 
-    int rc_ctrl = pwm_ctrl_init(&ctrl_cfg);
+    const int rc_ctrl = pwm_ctrl_init(&ctrl_cfg);
     if (rc_ctrl != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_init failed, rc=" << rc_ctrl;
@@ -113,7 +143,7 @@ int PwmClient::setAllMid() {
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    int rc = pwm_ctrl_set_all_target_mid();
+    const int rc = pwm_ctrl_set_all_target_mid();
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_set_all_target_mid failed, rc=" << rc;
@@ -131,7 +161,16 @@ int PwmClient::setTarget(int ch, float pct) {
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    int rc = pwm_ctrl_set_target_pct(ch, pct);
+    // 通道号保护：底层 API 以 1..PWM_HOST_CH_NUM 为合法范围
+    if (ch < 1 || ch > PWM_HOST_CH_NUM) {
+        std::ostringstream oss;
+        oss << "[PwmClient] setTarget: invalid channel " << ch
+            << " (must be 1.." << PWM_HOST_CH_NUM << ")";
+        set_error(PWM_CTRL_ERR_INVALID_ARG, oss.str());
+        return PWM_CTRL_ERR_INVALID_ARG;
+    }
+
+    const int rc = pwm_ctrl_set_target_pct(ch, pct);
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_set_target_pct(ch=" << ch
@@ -155,7 +194,7 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct) {
         arr[i] = pct[static_cast<std::size_t>(i)];
     }
 
-    int rc = pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, arr);
+    const int rc = pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, arr);
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_set_targets_mask failed, rc=" << rc;
@@ -174,17 +213,17 @@ int PwmClient::step() {
     }
 
     // 先处理一下心跳 ACK / 统计信息（非阻塞）
-    int poll_rc = pwm_host_poll(0);
+    const int poll_rc = pwm_host_poll(0);
     if (poll_rc < 0) {
-        // 这里视为“软性告警”：记录错误信息，但不直接把客户端标为失效
+        // 软性告警：记录错误但不直接标记为失效，交给上层决定是否终止
         std::ostringstream oss;
         oss << "[PwmClient] pwm_host_poll error, rc=" << poll_rc;
         status_.last_error     = poll_rc;
         status_.last_error_msg = oss.str();
-        // status_.ok 保持当前值，让控制层 step 尽量继续执行
+        // status_.ok 保持当前值
     }
 
-    int rc = pwm_ctrl_step();
+    const int rc = pwm_ctrl_step();
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_step failed, rc=" << rc;
@@ -203,7 +242,7 @@ int PwmClient::emergencyStop(float seconds) {
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    int rc = pwm_ctrl_emergency_stop(seconds);
+    const int rc = pwm_ctrl_emergency_stop(seconds);
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_emergency_stop failed, rc=" << rc;
@@ -221,7 +260,16 @@ int PwmClient::setMotorReverse(int motor_id, bool enable) {
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    int rc = pwm_ctrl_set_motor_reverse(motor_id, enable ? 1 : 0);
+    // motor_id 语义：逻辑电机编号 1..8
+    if (motor_id < 1 || motor_id > PWM_HOST_CH_NUM) {
+        std::ostringstream oss;
+        oss << "[PwmClient] setMotorReverse: invalid motor_id " << motor_id
+            << " (must be 1.." << PWM_HOST_CH_NUM << ")";
+        set_error(PWM_CTRL_ERR_INVALID_ARG, oss.str());
+        return PWM_CTRL_ERR_INVALID_ARG;
+    }
+
+    const int rc = pwm_ctrl_set_motor_reverse(motor_id, enable ? 1 : 0);
     if (rc != PWM_CTRL_OK) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_ctrl_set_motor_reverse(motor_id=" << motor_id

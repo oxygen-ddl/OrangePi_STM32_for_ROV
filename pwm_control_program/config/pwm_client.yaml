@@ -1,0 +1,28 @@
+# config/pwm_client.yaml
+
+# ========== 基本频率与斜率 ==========
+ctrl_hz: 100.0          # 与控制循环 loop_hz 一般保持一致
+max_step_pct: 0.2       # 每步最大占空比变化百分比
+
+# ========== 占空比范围 ==========
+min_pct: 5.0            # 约 1000 us
+mid_pct: 7.5            # 约 1500 us
+max_pct: 10.0           # 约 2000 us
+
+enable_reverse_protection: true   # 防止瞬间反向
+
+# ========== 分组配置 ==========
+# 约定：逻辑 1–4 = 水平推进器，逻辑 5–8 = 垂向推进器
+groupA_mask: 0x0F       # CH1-4
+groupB_mask: 0xF0       # CH5-8
+group_mode: 1           # PWM_CTRL_GROUP_MODE_AB_ALTERNATE（AB 交替）
+
+# ========== 逻辑电机 → 物理 PWM 通道映射 ==========
+# motorch_to_pwmch[i] = 逻辑电机 (i+1) 对应的物理 PWM 通道号
+# 你当前的接线关系：1↔5, 2↔6, 3↔7, 4↔8
+motorch_to_pwmch: [5, 6, 7, 8, 1, 2, 3, 4]
+
+# ========== 电机方向 ==========
+# 0 正向，非 0 视为反向。具体要按你试出来的“正转/反转”体感再调整。
+# 先全部设为 0，实测发现个别反向，再改对应逻辑通道为 1 即可。
+motor_reverse: [0, 0, 0, 0, 0, 0, 0, 0]

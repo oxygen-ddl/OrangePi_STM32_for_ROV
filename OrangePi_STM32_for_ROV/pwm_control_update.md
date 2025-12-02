@@ -20,7 +20,7 @@
 - `pwm_control.h / pwm_control.cpp`  
 - `libpwm_host`（底层 UDP 通讯库）  
 - STM32 端 PWM 输出程序（协议接收 + 8 路 PWM）  
-- 键盘控制模块 `platform/io/teleop_keyboard.*`（间接受影响）
+- 键盘控制模块 `io/teleop_keyboard.*`（间接受影响）
 
 ---
 

@@ -1,155 +1,165 @@
 #pragma once
 
-/**
- * @file    control_types.hpp
- * @brief   控制主循环中的核心数据类型定义
- *
- * 设计目标：
- *   - 作为控制栈的“公共语言”，避免各模块各自定义结构体；
- *   - 对上可以由导航状态 / 轨迹规划 / 手动输入填充；
- *   - 对下可以被 PID / MPC / SMC / 推力分配模块复用；
- *   - 从“虚拟 4-DOF 指令”一直贯通到“单个电机 PWM 指令”。
- *
- * 当前阶段（仅保留手动 + PID）：
- *   - ControlState 可以只填一部分字段（姿态 / 深度等）；
- *   - ControlReference 可以由键盘输入或简单目标值构造；
- *   - ControlOutput 至少保证 4-DOF 指令可用，其余字段由推力分配层逐步填充。
- */
-
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 namespace rovctrl::control_core {
 
-/// 统一约定最大推进器数量（便于数组尺寸）
-/// 若后续换成 6/10/12 推进器，只需要改这一处并同步调整推力分配矩阵。
-constexpr std::size_t MAX_THRUSTERS = 8;
-
-/// 控制模式（后续可以扩展更多）
-enum class ControlMode : std::uint8_t {
-    MANUAL = 0,     ///< 纯手动（键盘 → 直接 DOF 指令）
-    PID_POSITION,   ///< PID 位置/姿态控制（本阶段目标）
-    PID_VELOCITY,   ///< 仅速度控制（预留）
-    MPC,            ///< 模型预测控制（预留）
-    SMC             ///< 滑模控制（预留）
+/**
+ * @brief 6 自由度 DOF 索引（线速度/加速度用前 3 项，角速度/角加速度用后 3 项）
+ *
+ * 约定:
+ *   - 0: Surge  (前后 / x)
+ *   - 1: Sway   (左右 / y)
+ *   - 2: Heave  (上下 / z)
+ *   - 3: Roll   (横滚)
+ *   - 4: Pitch  (俯仰)
+ *   - 5: Yaw    (偏航)
+ */
+enum class DofIndex : std::size_t {
+    Surge = 0,
+    Sway  = 1,
+    Heave = 2,
+    Roll  = 3,
+    Pitch = 4,
+    Yaw   = 5
 };
 
-/// 当前系统状态（由导航模块 / 传感器融合提供）
-/// 注意：目前导航侧还没真正 IPC 接上，可以只填一部分字段。
+inline constexpr std::size_t kNumDof        = 6;
+inline constexpr std::size_t kNumThrusters  = 8;   ///< 目前默认 8 推进器 ROV
+
+using DofVector      = std::array<double, kNumDof>;
+using ThrusterArray  = std::array<float,  kNumThrusters>;
+
+/**
+ * @brief 位姿（位置 + 姿态）
+ *
+ * 坐标系约定:
+ *   - 位置 (x, y, z) 建议使用 NED / ENU 之一，在文档与实现中统一；
+ *   - 姿态 (roll, pitch, yaw) 单位为弧度 [rad]，采用 Z-Y-X 欧拉角顺序。
+ */
+struct Pose {
+    double x     = 0.0;
+    double y     = 0.0;
+    double z     = 0.0;
+
+    double roll  = 0.0;
+    double pitch = 0.0;
+    double yaw   = 0.0;
+};
+
+/**
+ * @brief 6 自由度速度（线速度 + 角速度）
+ *
+ * 线速度单位通常 m/s，角速度单位 rad/s。
+ */
+struct Twist {
+    double surge = 0.0;  ///< 线速度 x
+    double sway  = 0.0;  ///< 线速度 y
+    double heave = 0.0;  ///< 线速度 z
+
+    double roll_rate  = 0.0;  ///< 角速度 x
+    double pitch_rate = 0.0;  ///< 角速度 y
+    double yaw_rate   = 0.0;  ///< 角速度 z
+};
+
+/**
+ * @brief 6 自由度加速度（线加速度 + 角加速度）
+ *
+ * 线加速度单位 m/s^2，角加速度单位 rad/s^2。
+ */
+struct Accel {
+    double surge = 0.0;
+    double sway  = 0.0;
+    double heave = 0.0;
+
+    double roll_acc  = 0.0;
+    double pitch_acc = 0.0;
+    double yaw_acc   = 0.0;
+};
+
+/**
+ * @brief 归一化 6-DOF 指令（用于 Teleop / 上位机输入等）
+ *
+ * 典型约定:
+ *   - 取值范围 [-1, 1]，表示各 DOF 的相对推力指令；
+ *   - 由推力分配模块（ThrustAllocator）映射为各推进器推力/占空比。
+ */
+struct DofCommand {
+    double surge = 0.0;
+    double sway  = 0.0;
+    double heave = 0.0;
+
+    double roll  = 0.0;
+    double pitch = 0.0;
+    double yaw   = 0.0;
+};
+
+/**
+ * @brief 控制状态：由传感器融合模块提供的当前系统估计状态
+ *
+ * 用途:
+ *   - 控制器（PID/MPC/SMC）使用该状态作为反馈量；
+ *   - 记录时刻、有效标志用于调试与数据分析。
+ */
 struct ControlState {
-    /// 主时间戳（ns），通常使用导航状态的 est_ns
-    std::int64_t t_ns{0};
+    Pose   pose;          ///< 位置 + 姿态
+    Twist  velocity;      ///< 线速度 + 角速度
+    Accel  accel;         ///< 线加速度 + 角加速度（如可用）
 
-    /// 位置（m），机体在某个导航坐标系下的位置 [x, y, z]
-    std::array<double, 3> pos{0.0, 0.0, 0.0};
+    // 时间戳（单位秒，可以是相对时间或系统单调时间）
+    double timestamp_sec = 0.0;
 
-    /// 速度（m/s），同一坐标系下的线速度 [vx, vy, vz]
-    std::array<double, 3> vel{0.0, 0.0, 0.0};
-
-    /// 姿态（rad）：欧拉角 [roll, pitch, yaw]
-    std::array<double, 3> rpy{0.0, 0.0, 0.0};
-
-    /// 角速度（rad/s）：机体系角速度 [wx, wy, wz]
-    std::array<double, 3> ang_vel{0.0, 0.0, 0.0};
-
-    /// 深度（m），向下为正；若未单独提供，可由 z 轴推导
-    double depth{0.0};
-
-    /// 导航状态是否有效（例如 ESKF valid）
-    bool nav_valid{false};
+    // 有效性标志（可根据传感器情况设置）
+    bool has_pose     = false;
+    bool has_velocity = false;
+    bool has_accel    = false;
 };
 
-/// 控制参考（期望值）
-/// 可以由：
-///   - 键盘（手动给 DOF 档位 / 速度目标）
-///   - 轨迹规划（给位置/姿态随时间演化）
-///   - 上位机（任务级命令）
-/// 填充。
+/**
+ * @brief 控制参考量：控制目标（期望状态 / 期望 DOF 指令）
+ *
+ * 支持两种典型用法:
+ *   1. 轨迹跟踪 / 自动控制:
+ *      - 使用 pose_ref / vel_ref 等字段；
+ *   2. 手动/半自动控制:
+ *      - 使用 dof_cmd（归一化 6-DOF 指令）。
+ *
+ * 控制器可以根据 use_xxx 标志决定采用哪一类参考。
+ */
 struct ControlReference {
-    /// 主时间戳（ns），表示该参考值规划的生效时间（可选）
-    std::int64_t t_ns{0};
+    // 期望姿态与位置（轨迹跟踪）
+    Pose   pose_ref;         ///< 期望位姿
+    Twist  vel_ref;          ///< 期望速度（可选）
+    Accel  accel_ref;        ///< 期望加速度（可选）
 
-    /// 期望位置（m）
-    std::array<double, 3> pos_ref{0.0, 0.0, 0.0};
+    bool   use_pose_ref   = false;
+    bool   use_vel_ref    = false;
+    bool   use_accel_ref  = false;
 
-    /// 期望速度（m/s）
-    std::array<double, 3> vel_ref{0.0, 0.0, 0.0};
+    // 归一化 DOF 指令（用于 Teleop 等）
+    DofCommand dof_cmd;      ///< [-1,1] 范围的指令，含 6DOF
 
-    /// 期望姿态（rad）
-    std::array<double, 3> rpy_ref{0.0, 0.0, 0.0};
-
-    /// 期望深度（m）
-    double depth_ref{0.0};
-
-    /// 权重 / 优先级（可选，用于混合控制或多目标权衡）
-    double weight_pos{1.0};
-    double weight_vel{1.0};
-    double weight_att{1.0};
-    double weight_depth{1.0};
-
-    /// 是否启用各类约束/目标（用于简化控制器逻辑）
-    bool enable_pos{false};
-    bool enable_vel{false};
-    bool enable_att{false};
-    bool enable_depth{false};
+    bool   use_dof_cmd   = false;   ///< true 时，控制器优先按照 dof_cmd 执行
 };
 
-/// 控制输出（控制器 → 推力分配 / PWM 映射）
-///
-/// 我们按“层次”划分三个级别：
-///   1) 虚拟 4-DOF 指令（兼容现有 teleop 语义；[-1, 1] 档位）
-///   2) 机体系 6-DoF 力/力矩（N, N·m），供推力分配使用
-///   3) 单个推进器级别的指令（力 / 归一化档位 / PWM 百分比）
-///
-/// 在实际运行中：
-///   - 键盘模式 / 简单 PID：通常只写第 1 层，后两层由 allocation/pwm_mapper 填充；
-///   - 高级 MPC：可以直接写第 2 层（期望广义力），再由 allocation 层下钻到第 3 层。
+/**
+ * @brief 控制输出：控制器输出到推力分配/执行层的结果
+ *
+ * 两种层次:
+ *   1. body_wrench: 6-DOF 力/力矩（物理量），从模型预测控制等算法出来；
+ *   2. thruster_command: 8 路推进器归一化输出（占空比/推力指令），可直接给 PWM 层。
+ *
+ * 具体使用哪一级由上层控制栈设计决定。
+ */
 struct ControlOutput {
-    /// 控制模式（便于日志和调试）
-    ControlMode mode{ControlMode::MANUAL};
+    // 6-DOF 期望力/力矩（物理量），单位可约定为 N / N·m
+    DofVector body_wrench{};     ///< [Fx, Fy, Fz, Mx, My, Mz]
+    bool      has_body_wrench = false;
 
-    /// 本次输出对应的时间戳（ns）
-    std::int64_t t_ns{0};
-
-    // ===== (1) 虚拟 4-DOF 指令（现有 teleop 兼容层） =====
-    //
-    // 建议范围：[-1, 1]
-    //   - surge > 0 : 前进， < 0 : 后退
-    //   - sway  > 0 : 右移， < 0 : 左移
-    //   - heave > 0 : 上升， < 0 : 下潜
-    //   - yaw   > 0 : 左转， < 0 : 右转（或相反，按既有约定）
-    double surge_cmd{0.0};
-    double sway_cmd{0.0};
-    double heave_cmd{0.0};
-    double yaw_cmd{0.0};
-
-    /// 该层输出是否已填充（方便日志/调试和多控制器管线）
-    bool virtual_dof_valid{false};
-
-    // ===== (2) 机体系 6-DoF 力 / 力矩（中间层：供推力分配使用） =====
-    //
-    // wrench_cmd[0..2] = [Fx, Fy, Fz]  (N)
-    // wrench_cmd[3..5] = [Mx, My, Mz]  (N·m)
-    //
-    // 由控制器根据误差 + 动力学模型等计算，
-    // 推力分配器拿这个 6 维向量乘以分配矩阵 → 单个推进器力。
-    std::array<double, 6> wrench_cmd{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    bool wrench_valid{false};
-
-    // ===== (3) 单个推进器级别指令（底层推进器空间） =====
-    //
-    // 3.1 推进器力（N），由 thrust_allocator 产生
-    std::array<double, MAX_THRUSTERS> thruster_force_N{};
-    // 3.2 推进器归一化档位（[-1, 1]），用于抽象电机输出强度
-    //     例如：-1 → 反向最大，0 → 停止/中位，1 → 正向最大
-    std::array<double, MAX_THRUSTERS> thruster_norm{};
-    // 3.3 推进器 PWM 百分比（5.0~10.0），最终交给 pwm_control 安全层
-    //     由 pwm_mapper 负责从 thruster_norm / thruster_force_N 计算得到
-    std::array<double, MAX_THRUSTERS> thruster_pwm_pct{};
-    bool thruster_setpoint_valid{false};
-
-    /// 总体输出是否有效（例如某些模式下，控制器可能选择“保持上一帧输出不变”）
-    bool valid{false};
+    // 8 路推进器指令（例如 [-1,1] 对应反转/正转最大功率）
+    ThrusterArray thruster_command{};   ///< 推进器级的归一化指令（占空比/推力）
+    bool          has_thruster_command = false;
 };
 
 } // namespace rovctrl::control_core

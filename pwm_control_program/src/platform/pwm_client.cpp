@@ -213,7 +213,7 @@ int PwmClient::step() {
     }
 
     // 先处理一下心跳 ACK / 统计信息（非阻塞）
-    const int poll_rc = pwm_host_poll(0);
+    const int poll_rc = pwm_host_poll(1);
     if (poll_rc < 0) {
         // 软性告警：记录错误但不直接标记为失效，交给上层决定是否终止
         std::ostringstream oss;

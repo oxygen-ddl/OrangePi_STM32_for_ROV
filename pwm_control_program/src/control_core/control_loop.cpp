@@ -54,7 +54,7 @@ int ControlLoop::run()
     if (cfg_.loop_hz <= 0.0) {
         std::cerr << "[ControlLoop] invalid loop_hz = " << cfg_.loop_hz
                   << ", fallback to 100 Hz.\n";
-        cfg_.loop_hz = 100.0;
+        cfg_.loop_hz = 101.0;
     }
 
     const double loop_hz     = cfg_.loop_hz;
@@ -74,14 +74,12 @@ int ControlLoop::run()
             std::cout << "[ControlLoop] external stop flag set, exiting loop.\n";
             break;
         }
-
         // -------- 固定周期调度 --------
         auto now = clock::now();
         if (now < next_tick) {
             std::this_thread::sleep_until(next_tick);
             now = clock::now();
         }
-
         double dt = duration_d(now - last_tick).count();
         if (dt <= 0.0) {
             dt = 1.0 / loop_hz;  // 防守性兜底，避免 0 或负数
@@ -93,7 +91,7 @@ int ControlLoop::run()
             // 如有需要，可以在这里打印/统计 dt
             // std::cout << "[ControlLoop] dt = " << dt << " s\n";
         }
-
+        
         // -------- 输入更新：状态 + 参考量 --------
         bool request_exit = false;
         if (!input_->poll(state_, ref_, request_exit)) {
@@ -120,7 +118,8 @@ int ControlLoop::run()
         //       由 controller 或 allocation 层负责物理意义；
         //       ControlLoop 仅负责下发；
         //
-        if (output_.has_thruster_command) {
+        if (output_.has_thruster_command) 
+        {
             int rc = pwm_.setTargets(output_.thruster_command);
             if (rc < 0) {
                 std::cerr << "[ControlLoop] pwm_.setTargets() rc=" << rc
@@ -128,10 +127,10 @@ int ControlLoop::run()
                 // setTargets 失败暂时不作为致命错误处理，交由 step() 统一判断
             }
         }
-
         // -------- 安全层 step：限斜率 + 分组 + 实际下发 --------
-        int step_rc = pwm_.step();
-        if (step_rc < 0) {
+        int step_rc = pwm_.step();//！包含心跳 ACK 接收信息处理，务必注意需要将接收数据等待时间设置为1，即pwm_host_poll(1)
+        if (step_rc < 0) 
+        {
             ++step_err_count;
             if (step_err_count <= 3 ||
                 (cfg_.step_error_log_interval > 0 &&

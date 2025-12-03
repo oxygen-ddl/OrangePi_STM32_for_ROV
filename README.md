@@ -147,7 +147,9 @@ OrangePi_STM32_for_ROV/
 ---
 
 # 6. 构建方式（CMake）
-
+```bash
+sudo apt-get install libyaml-cpp-dev
+```
 顶层统一构建：
 
 ```bash

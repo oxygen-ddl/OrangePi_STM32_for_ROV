@@ -16,44 +16,19 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 endif()
 
-# ==================== 外部库：libpwm_host ====================
-# 通过 CACHE 变量暴露给用户，可以在命令行 -D 覆盖
-# 例如：
-#   cmake -DPWM_LIB_DIR=/path/to/build -DPWM_INCLUDE_DIR=/path/to/include ..
-
-set(PWM_LIB_DIR
-    "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/build"
-    CACHE PATH "Directory containing libpwm_host.a"
-)
+# ==================== libpwm_host 头文件路径 ====================
+# 头文件所在目录保持原来的约定：
+#   <repo_root>/OrangePi_STM32_for_ROV/orangepi_send/include
+#
+# 顶层 CMake 已经用 CACHE + FORCE 传进来一份 PWM_INCLUDE_DIR，
+# 如果没有（单独编译 pwm_control_program），就使用默认值。
 
 set(PWM_INCLUDE_DIR
-    "/home/orangepi/ROV/OrangePi_STM32_for_ROV/OrangePi_STM32_for_ROV/orangepi_send/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../OrangePi_STM32_for_ROV/orangepi_send/include"
     CACHE PATH "Directory containing libpwm_host.h / pwm_control.h"
 )
 
-# 简单存在性检查（可选）
-if (NOT EXISTS "${PWM_LIB_DIR}/libpwm_host.a")
-    message(WARNING "libpwm_host.a not found in PWM_LIB_DIR='${PWM_LIB_DIR}'")
-endif()
-if (NOT EXISTS "${PWM_INCLUDE_DIR}/libpwm_host.h")
-    message(WARNING "libpwm_host.h not found in PWM_INCLUDE_DIR='${PWM_INCLUDE_DIR}'")
-endif()
-
-# ==================== 外部库：yaml-cpp ====================
-# 在 OrangePi 上建议 apt 安装：
-#   sudo apt install libyaml-cpp-dev
-find_package(YAML-CPP REQUIRED)
-
 # ==================== 源码列表 ====================
-# 目录结构：
-#  src/
-#    main.cpp
-#    control_core/
-#    controllers/
-#    allocation/   (暂时可能为空)
-#    platform/
-#    io/
-#    utils/        (将来放 config_loader 等)
 
 set(PWMCTRL_SOURCES
     # 顶层入口
@@ -73,9 +48,7 @@ set(PWMCTRL_SOURCES
     # IO 层
     src/io/teleop_keyboard.cpp
     src/io/teleop_input.cpp
-
-    # 如果将来有 utils/config_loader.cpp 等，可以继续往这里加
-    # src/utils/config_loader.cpp
+    src/io/pwm_logger.cpp # ← 新增这一行
 )
 
 add_executable(pwm_control_program
@@ -83,32 +56,53 @@ add_executable(pwm_control_program
 )
 
 # ==================== 头文件搜索路径 ====================
+
 target_include_directories(pwm_control_program PRIVATE
     ${PWM_INCLUDE_DIR}                    # libpwm_host.h / pwm_control.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include   # 本工程头文件：control_core/, controllers/, io/, platform/, utils/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include   # 本工程头文件
 )
 
 # ==================== 链接库 ====================
 find_package(Threads REQUIRED)
 
-target_link_libraries(pwm_control_program PRIVATE
-    ${PWM_LIB_DIR}/libpwm_host.a   # 底层 UDP + 安全层 C 库
-    YAML::YAML_CPP                 # yaml-cpp
-    Threads::Threads
-)
+# 尽量用官方推荐写法：yaml-cpp
+# libyaml-cpp-dev 在大多数系统上会提供一个 'yaml-cpp' 的 CMake target
+find_package(yaml-cpp REQUIRED)
 
-# Linux 上可能需要 librt（clock_gettime 等），在部分系统上是隐式包含
+# 关键逻辑：优先用子项目 target，其次用预编译静态库文件
+if (TARGET pwm_host)
+    message(STATUS "[pwm_control_program] Linking against CMake target 'pwm_host' from orangepi_send")
+    target_link_libraries(pwm_control_program PRIVATE
+        pwm_host          # orangepi_send 生成的静态库 target
+        yaml-cpp          # CMake target，一般就叫这个名字
+        Threads::Threads
+    )
+else()
+    set(PWM_LIB_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}/../OrangePi_STM32_for_ROV/orangepi_send/build"
+        CACHE PATH "Directory containing prebuilt libpwm_host.a" FORCE
+    )
+
+    if (NOT EXISTS "${PWM_LIB_DIR}/libpwm_host.a")
+        message(WARNING
+            "[pwm_control_program] prebuilt libpwm_host.a not found in '${PWM_LIB_DIR}'. "
+            "You may need to build orangepi_send separately."
+        )
+    else()
+        message(STATUS "[pwm_control_program] Linking against prebuilt ${PWM_LIB_DIR}/libpwm_host.a")
+    endif()
+
+    target_link_libraries(pwm_control_program PRIVATE
+        "${PWM_LIB_DIR}/libpwm_host.a"
+        yaml-cpp          # 同样用 target 名
+        Threads::Threads
+    )
+endif()
+
+
+# Linux 上可能需要 librt
 if (UNIX AND NOT APPLE)
     target_link_libraries(pwm_control_program PRIVATE rt)
 endif()
 
-# ==================== 编译定义/特性（如有需要可以再扩展） ====================
-
-# 例如：
-# target_compile_definitions(pwm_control_program PRIVATE
-#     PWMCTRL_VERSION=\"0.1.0\"
-# )
-
-message(STATUS "Build type:           ${CMAKE_BUILD_TYPE}")
-message(STATUS "Using PWM include dir: ${PWM_INCLUDE_DIR}")
-message(STATUS "Using PWM lib dir:     ${PWM_LIB_DIR}")
+message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR = ${PWM_INCLUDE_DIR}")

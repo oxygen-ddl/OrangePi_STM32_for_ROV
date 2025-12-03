@@ -1,3 +1,4 @@
+#pragma once
 #ifndef ROVCTRL_IO_TELEOP_KEYBOARD_H
 #define ROVCTRL_IO_TELEOP_KEYBOARD_H
 /**
@@ -158,4 +159,4 @@ int pwm_teleop_handle_key(int key);
 }
 #endif
 
-#endif /* ROVCTRL_PLATFORM_IO_TELEOP_KEYBOARD_H */
+#endif /* ROVCTRL_IO_TELEOP_KEYBOARD_H */

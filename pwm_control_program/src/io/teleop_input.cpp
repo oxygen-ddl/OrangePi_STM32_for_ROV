@@ -31,8 +31,10 @@ public:
         }
 
         ::termios raw = orig_;
-        raw.c_lflag &= ~(ICANON | ECHO);  // 关闭行缓冲与回显
-        raw.c_cc[VMIN]  = 0;              // 非阻塞读：立即返回
+        // 避免 -Wsign-conversion：在 tcflag_t 域内构造 mask
+        tcflag_t mask = static_cast<tcflag_t>(ICANON) | static_cast<tcflag_t>(ECHO);
+        raw.c_lflag &= ~mask;     // 关闭行缓冲与回显
+        raw.c_cc[VMIN]  = 0;      // 非阻塞读：立即返回
         raw.c_cc[VTIME] = 0;
 
         if (::tcsetattr(STDIN_FILENO, TCSANOW, &raw) != 0) {
@@ -53,34 +55,23 @@ public:
     }
 
 private:
-    bool     enabled_{false};
+    bool      enabled_{false};
     ::termios orig_{};
 };
 
 // 单例 guard，整个进程共享一份终端 raw 状态
 TerminalRawGuard g_raw_guard;
 
-// 非阻塞读取一个按键，没有按键时返回 EOF
-int read_key_nonblock()
-{
-    unsigned char ch = 0;
-    ssize_t n = ::read(STDIN_FILENO, &ch, 1);
-    if (n == 1) {
-        return static_cast<int>(ch);
-    }
-    return EOF;
-}
-
 } // anonymous namespace
 
 namespace rovctrl::io {
 
-using namespace rovctrl::control_core;
-
 TeleopInputProvider::TeleopInputProvider()
     : initialized_(false)
     , raw_mode_(false)
-    , mode_(ControlMode::MANUAL)  // 目前仅用于标记“这是手动输入源”
+    , exit_requested_(false)
+    , last_t_ns_{0}
+    , mode_(rovctrl::control_core::ControlMode::Manual)  // 这里只是个标签
 {}
 
 TeleopInputProvider::~TeleopInputProvider()
@@ -114,9 +105,9 @@ bool TeleopInputProvider::init()
     return true;
 }
 
-bool TeleopInputProvider::poll(ControlState&     state,
-                               ControlReference& ref,
-                               bool&             request_exit)
+bool TeleopInputProvider::poll(rovctrl::control_core::ControlState&     state,
+                               rovctrl::control_core::ControlReference& ref,
+                               bool&                                     request_exit)
 {
     (void)state;  // 当前 Teleop 不使用导航状态，先显式标记未用
     request_exit = false;
@@ -133,10 +124,11 @@ bool TeleopInputProvider::poll(ControlState&     state,
         int rc = pwm_teleop_handle_key(key);
         if (rc == PWM_TELEOP_EXIT_REQUEST) {
             // Teleop 请求退出，由控制循环决定停机流程
-            request_exit = true;
+            request_exit    = true;
+            exit_requested_ = true;
         } else if (rc < 0) {
             std::cerr << "[Teleop] pwm_teleop_handle_key error rc=" << rc << "\n";
-            // 这里先不把错误视为致命错误，保持返回 true，交由上层决定是否退出
+            // 暂不视为致命错误，保持返回 true，由上层决定是否退出
         }
         // rc == PWM_TELEOP_HANDLED / PWM_TELEOP_IGNORED 均正常继续
     }
@@ -145,27 +137,17 @@ bool TeleopInputProvider::poll(ControlState&     state,
     pwm_teleop_state_t kstate{};
     pwm_teleop_get_state(&kstate);
 
-    // 映射到 ControlReference
-    //
-    // 情况 A：如果你已经采用了 DofCommand 结构：
-    //
-    //   ref.dof_cmd.surge = kstate.cmd_surge;
-    //   ref.dof_cmd.sway  = kstate.cmd_sway;
-    //   ref.dof_cmd.heave = kstate.cmd_heave;
-    //   ref.dof_cmd.yaw   = kstate.cmd_yaw;
-    //   ref.dof_cmd.roll  = kstate.cmd_roll;
-    //   ref.dof_cmd.pitch = kstate.cmd_pitch;
-    //   ref.use_dof_cmd   = true;
-    //
-    // 情况 B：如果当前 ControlReference 仍是平铺字段（surge/sway/...），
-    // 先直接按旧字段名赋值，等后续你把 control_types.hpp 升级后再统一改用 A。
-    //
-    ref.surge = kstate.cmd_surge;
-    ref.sway  = kstate.cmd_sway;
-    ref.heave = kstate.cmd_heave;
-    ref.yaw   = kstate.cmd_yaw;
-    ref.roll  = kstate.cmd_roll;
-    ref.pitch = kstate.cmd_pitch;
+    // 映射到 ControlReference::dof_cmd
+    ref.dof_cmd.surge = kstate.cmd_surge;
+    ref.dof_cmd.sway  = kstate.cmd_sway;
+    ref.dof_cmd.heave = kstate.cmd_heave;
+    ref.dof_cmd.yaw   = kstate.cmd_yaw;
+    ref.dof_cmd.roll  = kstate.cmd_roll;
+    ref.dof_cmd.pitch = kstate.cmd_pitch;
+    ref.use_dof_cmd   = true;
+
+    // 如果将来引入统一时间基，可以在此记录最后一次按键时间
+    // last_t_ns_ = rovctrl::platform::timebase::now_ns();
 
     return true;
 }
@@ -173,6 +155,19 @@ bool TeleopInputProvider::poll(ControlState&     state,
 void TeleopInputProvider::reset()
 {
     pwm_teleop_reset();
+    exit_requested_ = false;
+    // 不修改终端 raw 模式，由 init()/析构负责
+}
+
+// 成员函数版本的非阻塞读键，与头文件声明一致
+int TeleopInputProvider::read_key_nonblock()
+{
+    unsigned char ch = 0;
+    ssize_t n = ::read(STDIN_FILENO, &ch, 1);
+    if (n == 1) {
+        return static_cast<int>(ch);
+    }
+    return EOF;
 }
 
 } // namespace rovctrl::io

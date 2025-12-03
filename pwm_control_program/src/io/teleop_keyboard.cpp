@@ -1,9 +1,6 @@
 // src/io/teleop_keyboard.cpp
 
 #include <algorithm> // std::clamp
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
 
 extern "C" {
@@ -17,7 +14,7 @@ extern "C" {
  * ========================================================= */
 
 // 键盘每次按下时，在命令空间内增加/减少的步长（类似档位）
-static constexpr float CMD_STEP       = 0.25f;  // 建议 0.25：四挡可打满 [-1,1]
+static constexpr float CMD_STEP       = 0.25f;  // 建议 0.25：四档可打满 [-1,1]
 // 单电机测试用保持时间（秒）
 static constexpr float TEST_HOLD_SEC  = 2.0f;
 

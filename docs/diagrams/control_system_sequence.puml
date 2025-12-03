@@ -1,0 +1,74 @@
+@startuml
+title ROV 控制周期时序图（Teleop → ManualController → PWM → STM32）
+
+actor Operator as op
+
+participant "TeleopInputProvider\n(io::TeleopInputProvider)" as teleop
+participant "ControlLoop\n(control_core::ControlLoop)" as loop
+participant "ManualController\n(controllers::ManualController)" as ctrl
+participant "PwmClient\n(platform::PwmClient)" as pwmc
+participant "pwm_control.c\n(安全层)" as safelayer
+participant "libpwm_host\n(orangepi_send)" as hostlib
+participant "PwmLogger\n(io::PwmLogger)" as logger
+participant "STM32 通信任务\n(UDP 接收+解析)" as stm32comm
+participant "STM32 PWM 输出\n(TIM/中断)" as stm32pwm
+participant "ESC & Thrusters\n8x" as thr
+
+== 预备：循环已启动 ==
+
+op -> teleop : 按下键位（W/A/S/D/...）
+note right of teleop
+  TeleopInputProvider 内部更新
+  归一化 6-DOF 指令 dof_cmd
+end note
+
+loop -> loop : tick 定时触发\n(根据 loop_hz)
+
+== Step 1: 读取输入 ==
+loop -> teleop : poll(state, ref, request_exit)
+teleop --> loop : 填充 ControlReference.dof_cmd\n并设置 use_dof_cmd = true
+
+== Step 2: 控制器计算 ==
+loop -> ctrl : compute(state, ref, output, dt)
+note right of ctrl
+  ManualController:
+   - 读取 ref.dof_cmd
+   - 做限幅/增益缩放
+   - 填写 output.thruster_command[8]
+   - 置 has_thruster_command = true
+end note
+ctrl --> loop : ControlOutput
+
+== Step 3: 设置 PWM 目标 ==
+loop -> pwmc : setTargets(output.thruster_command[8])
+pwmc --> pwmc : 更新内部目标占空比\n(仅更新，不立即下发)
+
+== Step 4: 安全层 step 下发 ==
+loop -> pwmc : step()
+pwmc -> safelayer : pwm_ctrl_step()
+note right of safelayer
+  - 限斜率（max_step_pct）
+  - 越零保护（禁止直接反转）
+  - AB 分组交替更新
+  - 心跳/超时检测
+end note
+
+safelayer -> hostlib : pwm_host_set_all_pct(\n  当前安全占空比[8]\n)
+hostlib -> stm32comm : UDP 帧发送\n(PWM 指令 + 心跳)
+
+stm32comm -> stm32comm : 解析帧 / 校验 CRC
+stm32comm -> stm32pwm : 更新目标 PWM 寄存器
+stm32pwm -> thr : 物理 PWM 输出\n(驱动 8 个 ESC/推进器)
+
+== Step 5: PWM 日志记录 ==
+loop -> logger : log(t_s, output.thruster_command[8])
+note right of logger
+  写入 CSV:
+   - 相对时间 t_s
+   - 8 路逻辑 PWM 指令
+end note
+
+== Step 6: 下一周期 ==
+loop -> loop : sleep_until(next_tick)
+
+@enduml

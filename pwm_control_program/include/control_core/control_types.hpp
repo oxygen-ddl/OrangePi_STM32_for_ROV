@@ -2,8 +2,24 @@
 
 #include <array>
 #include <cstdint>
+#include <cstddef>  // 为 std::size_t 显式引入
 
 namespace rovctrl::control_core {
+
+/**
+ * @brief 控制模式枚举
+ *
+ * 说明：
+ *  - 统一采用 PascalCase 命名：Unknown / Manual / Auto / Failsafe
+ *  - 目前实际使用的是 Manual，将来可以扩展到 Auto（PID/MPC 等自动控制）、
+ *    Failsafe（失效保护）等模式。
+ */
+enum class ControlMode : std::uint8_t {
+    Unknown  = 0,  ///< 未知 / 未初始化
+    Manual   = 1,  ///< 手动控制模式（键盘 / 手柄等）
+    Auto     = 2,  ///< 自动控制模式（PID / MPC / SMC 等）
+    Failsafe = 3,  ///< 失效保护 / 紧急模式
+};
 
 /**
  * @brief 6 自由度 DOF 索引（线速度/加速度用前 3 项，角速度/角加速度用后 3 项）
@@ -25,11 +41,11 @@ enum class DofIndex : std::size_t {
     Yaw   = 5
 };
 
-inline constexpr std::size_t kNumDof        = 6;
-inline constexpr std::size_t kNumThrusters  = 8;   ///< 目前默认 8 推进器 ROV
+inline constexpr std::size_t kNumDof       = 6;
+inline constexpr std::size_t kNumThrusters = 8;   ///< 目前默认 8 推进器 ROV
 
-using DofVector      = std::array<double, kNumDof>;
-using ThrusterArray  = std::array<float,  kNumThrusters>;
+using DofVector     = std::array<double, kNumDof>;
+using ThrusterArray = std::array<float,  kNumThrusters>;
 
 /**
  * @brief 位姿（位置 + 姿态）
@@ -158,7 +174,7 @@ struct ControlOutput {
     bool      has_body_wrench = false;
 
     // 8 路推进器指令（例如 [-1,1] 对应反转/正转最大功率）
-    ThrusterArray thruster_command{};   ///< 推进器级的归一化指令（占空比/推力）
+    ThrusterArray thruster_command{};   ///< 推进器级的归一化指令
     bool          has_thruster_command = false;
 };
 

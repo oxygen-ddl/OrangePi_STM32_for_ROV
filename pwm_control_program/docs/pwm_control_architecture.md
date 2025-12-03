@@ -1,223 +1,250 @@
-# PWM 控制系统三层结构设计说明  
-面向水下机器人 8 通道 PWM 推进器控制  
-（工程文档，便于新成员快速上手）
 
 ---
 
-## 1. 总体结构概览
+# PWM 控制系统总体架构说明（新版本）
 
-本控制系统采用 **三层架构**，分别是：
-
-1. **底层通信层（libpwm_host）**  
-   负责将生成的 PWM 占空比指令通过 UDP 发送给 STM32，并接收心跳 ACK。
-
-2. **控制律与限斜率层（pwm_control）**  
-   负责平滑逼近、限斜率、分组输出（A/B 交替）、单通道测试等逻辑。
-
-3. **遥控/键盘操作层（pwm_teleop）**  
-   负责将“按键指令”翻译成 8 通道占空比模式，并调用控制层更新目标值。
-
-整体调用关系：
-
-```
-User Keyboard
-       ↓
-   pwm_teleop
-       ↓（set_targets / set_mid）
-   pwm_control
-       ↓（pwm_ctrl_step）
-   libpwm_host → STM32（PWM 驱动）
-```
-
-三个层次完全解耦：**上层不依赖下层内部实现，只通过 API 调用。**
+面向水下机器人 8 通道推进器控制
+（工程文档，支持手动控制、自动控制、MPC、PID 等扩展）
 
 ---
 
-## 2. 第一层：底层通信层（libpwm_host）
+# 1. 总览：控制系统三层结构
 
-### 2.1 功能
-- 建立 UDP 套接字并向 STM32 发送 PWM 帧。
-- 按固定频率发送心跳，接收心跳 ACK。
-- 维护 RTT（Round Trip Time）与统计数据。
-- 统一的错误码体系（PWMH_OK、PWMH_ESYS、PWMH_EINVAL 等）。
+本项目采用 **统一的三层控制架构**，覆盖从输入源（键盘、算法）到 PWM 下发的完整链路。
 
-### 2.2 主要 API
+```
+输入层（Input Layer）
+     │  TeleopInput / 上位机 / 自动控制
+     ▼
+控制器层（Controller Layer）
+     │  Manual / PID / MPC / RL 都实现 IController
+     ▼
+调度层（Control Loop Layer）
+     │  固定频率循环、调度输入→控制器→PWM
+     ▼
+执行层（Execution Layer）
+     │  PwmClient → pwm_control 安全层 → UDP → STM32
+```
 
-| API | 作用 |
-|-----|------|
-| `pwm_host_init(cfg)` | 初始化 UDP、目标地址、发送频率 |
-| `pwm_host_send_pwm(ch[], pct[])` | 发送 8 通道占空比数据 |
-| `pwm_host_send_heartbeat()` | 每秒 1~5 次心跳 |
-| `pwm_host_poll(timeout)` | 非阻塞/阻塞接收 ACK |
-| `pwm_host_close()` | 关闭套接字 |
-
-该层不做任何 PWM 限制，也不做逻辑判断，仅负责通讯。
+三层完全解耦，任何部分都可以独立替换或升级。
 
 ---
 
-## 3. 第二层：控制律与限斜率层（pwm_control）
+# 2. 输入层（Input Layer）
 
-本层属于系统核心逻辑。
+输入层由 `IInputProvider` 抽象定义。
 
-### 3.1 功能
-1. **目标占空比管理**（target_pct[8]）
-2. **当前输出占空比状态**（cur_pct[8]）
-3. **限斜率限制**：控制器不会让占空比瞬间跳变
-4. **分组输出策略**：A/B 交替输出，减少总线负载
-5. **单通道测试模式**（阻塞式）
-6. **紧急停止 / 平滑归中**
+当前实现：`TeleopInputProvider`
+未来支持：
 
-### 3.2 关键机制解释
+* 上位机 TCP 输入
+* ROS 控制输入
+* 航迹规划器输出
+* 网络控制 API
+* 自动化测试脚本
 
-#### (1) 限斜率（max_step_pct）
-例如 `max_step_pct = 0.2f`（0.2% 每步），则：
+输入层的职责：
 
-```
-当前通道 7.5%
-目标通道 9.0%
-ctrl_hz = 50Hz
-```
+1. 产生 `ControlReference`
+2. 选择是否退出程序（`request_exit`）
+3. 写入控制模式（Manual, Auto…）
+4. 与控制器完全解耦
 
-理想状态：
+示例 Teleop 输入到 DOF：
 
 ```
+键盘按键 → DOF 指令（surge/sway/heave/roll/pitch/yaw）
+DOF 指令写入 ControlReference.dof_cmd
+```
+
+---
+
+# 3. 控制器层（Controller Layer）
+
+控制器层由接口 `IController` 统一：
+
+```cpp
+bool compute(const ControlState& state,
+             const ControlReference& ref,
+             ControlOutput& out,
+             double dt);
+```
+
+所有控制算法都实现这一个函数：
+
+* ManualController（已实现）
+* PIDController（待扩展）
+* MPCController（未来扩展）
+* SMPC / RL（未来扩展）
+
+控制器只做**数学映射**，不接触 PWM 和 IO。
+
+示例 Manual 控制器输出：
+
+```
+DOF 指令（surge/sway/...） → 推进器 8 维 thruster_command[]
+```
+
+控制器输出统一交给 ControlLoop 处理。
+
+---
+
+# 4. 调度层：ControlLoop（Control Loop Layer）
+
+核心文件：`control_loop.cpp`
+
+主要职责：
+
+1. 固定频率执行控制循环（100 Hz）
+2. 调用输入源 → 维护 ControlState / ControlReference
+3. 调用控制器 → 生成 ControlOutput
+4. 调用 PwmClient → 进行安全层控制
+5. 统一记录 PWM 日志
+6. 错误检测、限频、退出机制
+
+调度层是整个程序的“心脏”。
+
+时序示意图：
+
+```
+for each cycle (10 ms):
+    │
+    ├─ 1. input_->poll()       // 读取输入
+    │
+    ├─ 2. controller_->compute()
+    │         输入：state + ref
+    │         输出：thruster_command[8]
+    │
+    ├─ 3. pwm_.setTargets()    // 写入目标占空比
+    │
+    ├─ 4. pwm_.step()          // 调用底层安全层，平滑逼近
+    │
+    └─ 5. pwm_logger.log()     // 写入日志
+```
+
+ControlLoop 是所有模式（Manual/MPC/...）的统一调度器。
+
+---
+
+# 5. 执行层（Execution Layer）
+
+执行层由 `PwmClient` 和底层 C 安全逻辑组成：
+
+```
+PwmClient C++
+    ▼
+pwm_control.c（安全层）
+    ▼
+libpwm_host（UDP 通信）
+    ▼
+STM32（PWM 真实输出）
+```
+
+## 5.1 PwmClient（C++ 封装）
+
+职责：
+
+1. 提供 C++ 友好的 API：`init() / setTargets() / step() / emergencyStop()`
+2. 全部调用底层安全逻辑
+3. 绝不允许 bypass 安全层（强约束）
+4. 维护错误状态，向上层报告
+
+## 5.2 pwm_control（安全层）
+
+功能：
+
+* **限斜率限制**（平滑逼近）
+* **AB 分组更新**
+* **占空比边界保护**
+* **单通道测试**
+* **紧急停止**
+* **平滑归中**
+
+示例（限斜率）：
+
+```
+current = 7.5%, target = 9.0%, max_step = 0.2%
 7.5 → 7.7 → 7.9 → 8.1 → ... → 9.0
-需要约 8~10 帧，安全无瞬变。
 ```
 
-这保证了推进器不会骤然加速或反向，避免损坏或水下扰动过大。
+## 5.3 libpwm_host（UDP 通信）
 
-#### (2) 分组输出 PWM
+负责：
 
-```
-组 A = 1,2,3,4
-组 B = 5,6,7,8
-```
+* UDP 发送 PWM 帧给 STM32
+* 心跳机制
+* 超时与错误码
 
-`PWM_CTRL_GROUP_MODE_AB_ALTERNATE`
-
-意味着：
-
-```
-第1帧：更新 A
-第2帧：更新 B
-第3帧：更新 A
-...
-```
-
-降低 UDP 发送负载，提升整体稳定性。
-
-#### (3) 阻塞式单通道测试
-
-```
-pwm_ctrl_hold_pct_blocking(ch=3, pct=9.0, sec=3)
-```
-
-内部包含：
-
-```
-step (平滑上升) → 3 秒保持 → emergency_stop(1s)
-```
-
-使工程调试更加安全可靠。
-
-### 3.3 主要 API
-
-| API | 功能 |
-|-----|------|
-| `pwm_ctrl_init(cfg)` | 初始化控制层参数 |
-| `pwm_ctrl_set_targets_mask(mask, pct[])` | 设置多个通道的目标占空比 |
-| `pwm_ctrl_set_all_target_mid()` | 所有通道回中位 7.5% |
-| `pwm_ctrl_step()` | **每帧必须调用**，平滑逼近目标并发送 |
-| `pwm_ctrl_hold_pct_blocking(ch, pct, sec)` | 单通道阻塞测试 |
-| `pwm_ctrl_emergency_stop(sec)` | 平滑归中 |
-| `pwm_ctrl_deinit()` | 销毁 |
+不做任何控制逻辑。
 
 ---
 
-## 4. 第三层：键盘遥控层（pwm_teleop）
+# 6. PWM 日志系统（自动启用）
 
-### 4.1 功能
-将键盘按键映射到“占空比模式”，然后发送给控制层。
-
-本层不需要关心 UDP，也不需要关心限斜率，只需要：
+由 ControlLoop 统一驱动：
 
 ```
-构造 pct[8]
-→ pwm_ctrl_set_targets_mask()
+log(t, thruster_command[8])
 ```
 
-### 4.2 键位说明（示例）
+存储结构：
 
-| 键 | 功能 |
-|-----|------|
-| W | 前进（CH3/CH4） |
-| S | 后退（CH1/CH2） |
-| A | 右移（CH1/CH3） |
-| D | 左移（CH2/CH4） |
-| Q | 左转（CH1/CH4） |
-| E | 右转（CH2/CH3） |
-| G | 下潜（CH5/CH8 正，CH6/CH7 反） |
-| H | 上浮（CH6/CH7 正，CH5/CH8 反） |
-| M | 全通道中位 |
-| Z | 显示帮助 |
-| Esc | 程序退出（由 main 处理） |
+```
+logs/
+    2025-12-02-15-30-10/
+        pwm_log.csv
+```
 
-### 4.3 为什么逻辑放在此处？
+日志包含：
 
-因为遥控层是“策略 + 映射层”，可随意扩展：
+* 时间戳（循环相对时间）
+* 8 路归一化 PWM 指令
 
-- 添加速度增益
-- 添加多级功率档位
-- 添加摇杆输入（替换键盘）
-- 添加轨迹控制输入（来自 MPC/RL）
-
-但不会影响底层通信与 PWM 控制安全性。
+日志功能与控制器、输入源无关，无论 Manual/MPC 都会自动记录。
 
 ---
 
-## 5. 三层解耦的工程价值
+# 7. 各模块职责矩阵（重要）
 
-### 5.1 安全性
-- 上层不会直接发送 PWM，所有控制都会经过限斜率保护。
-- STM32 侧独立有 fail-safe。
-- 每秒心跳，监控 UDP 链路健康。
-
-### 5.2 可维护性
-底层升级不会影响上层；  
-新增控制逻辑不需要修改底层代码。
-
-### 5.3 可复用性
-本三层结构未来可以轻松应用于：
-
-- 自动化轨迹控制（MPC）
-- 力控 / 姿态保持系统
-- 强化学习控制器
-- ROS / PX4 / ArduSub 上位机
+| 模块          | 输入                  | 输出               | 职责         | 与谁通信                      |
+| ----------- | ------------------- | ---------------- | ---------- | ------------------------- |
+| TeleopInput | 键盘                  | ControlReference | 生成 DOF 指令  | ControlLoop               |
+| IController | state + ref         | ControlOutput    | 算法层映射      | ControlLoop               |
+| ControlLoop | Input/Controller 输出 | 占空比目标            | 调度、日志、错误控制 | PwmClient                 |
+| PwmClient   | 目标占空比               | —                | 调用安全层和 UDP | pwm_control / libpwm_host |
+| pwm_control | 目标占空比               | 平滑占空比            | 限斜率、安全策略   | libpwm_host               |
+| libpwm_host | 平滑占空比               | —                | UDP 发送     | STM32                     |
+| STM32       | 占空比                 | 推进器 PWM          | 最终执行       | —                         |
 
 ---
 
-## 6. 新人建议阅读顺序
+# 8. 新人快速理解路径（工程建议）
 
-1. `pwm_teleop_keys.cpp`  
-   先理解如何从按键 → 模式 → 占空比。
+推荐阅读顺序：
 
-2. `pwm_control.c`  
-   理解限斜率、分组、紧急停止。
+1. `docs/pwm_control_architecture.md`（本文件）
+2. `control_types.hpp`（控制系统的数据字典）
+3. `controller_base.hpp`（控制器接口）
+4. `manual_controller.cpp`（8 推进器布局与 DOF 组合）
+5. `input_provider.hpp` + `teleop_input.cpp`
+6. `pwm_client.cpp`
+7. `pwm_control.c`（限斜率安全层）
 
-3. `libpwm_host.c`  
-   理解通信协议和心跳机制。
+掌握以上内容后即可开发：
 
----
-
-## 7. 后续可扩展方向
-
-- 多线程输入系统（键盘 + 网络控制并存）
-- 速度闭环（IMU/DVL 数据 → 速度控制 → PWM 映射）
-- 动力学模型结合（MPC/SMPC）
-- ROV 姿态保持 + 路径规划
+* 新控制器（PID/MPC）
+* 新输入源（TCP/ROS）
+* 新分布式控制策略
 
 ---
 
-如需补充 “通信协议文档（UDP Frame Spec）”，可从另一个文档引用。
+# 9. 未来升级方向
 
+* 自动控制 / MPC / SMPC 集成（直接写 IController）
+* 基于导航融合状态的闭环控制
+* 上位机远程操控输入
+* 支持 BlueROV2/ArduSub 推进器矩阵
+* 自适应增益 + 自动调参
+* 统一 ROS2 接口
+
+---

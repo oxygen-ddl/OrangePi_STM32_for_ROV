@@ -1,0 +1,62 @@
+<svg width="1050" height="820" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .box { fill:#eef4ff; stroke:#4a6fa5; stroke-width:2; rx:10; ry:10; }
+    .title { font-size:20px; font-weight:bold; fill:#1a3d6d; }
+    .label { font-size:16px; fill:#1a1a1a; }
+    .arrow { stroke:#333; stroke-width:2; marker-end:url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7"
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+  </defs>
+
+  <!-- Layer titles -->
+  <text x="60"  y="60"  class="title">Input Layer</text>
+  <text x="420" y="60"  class="title">Controller Layer</text>
+  <text x="780" y="60"  class="title">Execution Layer</text>
+
+  <!-- Input Layer box -->
+  <rect x="40" y="90" width="260" height="200" class="box"/>
+  <text x="60" y="130" class="label">IInputProvider</text>
+  <text x="60" y="160" class="label">• TeleopInputProvider</text>
+  <text x="60" y="190" class="label">• Future: ROS, TCP, Scripts</text>
+  <text x="60" y="230" class="label">Output: ControlReference</text>
+
+  <!-- Controller Layer -->
+  <rect x="400" y="90" width="260" height="200" class="box"/>
+  <text x="420" y="130" class="label">IController</text>
+  <text x="420" y="160" class="label">• ManualController</text>
+  <text x="420" y="190" class="label">• PID / MPC / SMPC / RL</text>
+  <text x="420" y="230" class="label">Output: ControlOutput</text>
+
+  <!-- Control Loop -->
+  <rect x="400" y="330" width="260" height="160" class="box"/>
+  <text x="420" y="370" class="label">ControlLoop</text>
+  <text x="420" y="400" class="label">• 100Hz scheduler</text>
+  <text x="420" y="430" class="label">• Logging</text>
+  <text x="420" y="460" class="label">• Error handling</text>
+
+  <!-- Execution Layer -->
+  <rect x="760" y="90" width="260" height="200" class="box"/>
+  <text x="780" y="130" class="label">PwmClient</text>
+  <text x="780" y="160" class="label">↓ pwm_control.c</text>
+  <text x="780" y="190" class="label">↓ libpwm_host.c</text>
+  <text x="780" y="220" class="label">↓ STM32 PWM</text>
+
+  <!-- Arrows -->
+  <line x1="300" y1="190" x2="400" y2="190" class="arrow"/>
+  <line x1="530" y1="290" x2="530" y2="330" class="arrow"/>
+  <line x1="660" y1="410" x2="760" y2="190" class="arrow"/>
+
+  <!-- Logging -->
+  <rect x="760" y="330" width="260" height="140" class="box"/>
+  <text x="780" y="370" class="label">PwmLogger</text>
+  <text x="780" y="400" class="label">• Timestamped PWM logs</text>
+  <text x="780" y="430" class="label">• Auto directory creation</text>
+
+  <!-- Arrow from loop to logging -->
+  <line x1="660" y1="410" x2="760" y2="410" class="arrow"/>
+</svg>

@@ -2,12 +2,13 @@
 #define ROVCTRL_PLATFORM_TIMEBASE_HPP
 
 #pragma once
+
 #include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
 
-namespace uwnav::timebase {
+namespace rovctrl::platform::timebase {
 
 //-------------------------
 // 基础类型
@@ -25,12 +26,13 @@ using Duration  = Clock::duration;
 int64_t   now_ns() noexcept;
 TimePoint now() noexcept;
 
-// 2. 传感器类型（精简版）
+// 2. 控制层的“事件类型”（精简版）
 //   - 用于按类型选择默认延迟
+//   - 可以理解为：我们在控制系统中关心的“数据来源”
 enum class SensorKind {
-    IMU,
-    DVL,
-    USBL,
+    IMU,          // IMU 传感器数据
+    TELEOP,       // 人工遥操作输入
+    CONTROL_LOOP, // 控制循环内部事件（如控制周期触发）
     OTHER
 };
 
@@ -38,18 +40,18 @@ enum class SensorKind {
 //
 // 语义约定：
 // - host_time_ns:
-//     使用 now_ns() 记录“本机接收到 / 解析完成该条数据”的时间。
+//     使用 now_ns() 记录“本机接收到 / 生成该条数据”的时间。
 // - sensor_time_ns:
-//     传感器内部提供的时间（若有，例如 DVL time tag）。
+//     传感器或上游模块提供的时间（若有）。
 // - latency_ns:
 //     对该条数据使用的“延迟估计”（可以是默认值，也可以是调用方覆写）。
 // - corrected_time_ns:
-//     统一后的事件时间戳，给 ESKF / Logger 使用。
+//     统一后的事件时间戳，给 Logger / 后续分析使用。
 //     典型策略：
 //       a) 如有 sensor_time_ns，则以 sensor_time_ns - latency_ns 作为 corrected；
-//       b) 否则以 host_time_ns - latency_ns 作为 corrected。
+//       b) 否则以 host_time_ns   - latency_ns 作为 corrected。
 struct Stamp {
-    std::string              sensor_id;         // "imu0", "dvl0", "usbl0", ...
+    std::string              sensor_id;         // "imu0", "teleop0", "ctrl_loop0", ...
     SensorKind               kind{SensorKind::OTHER};
 
     int64_t                  host_time_ns{0};
@@ -63,26 +65,26 @@ struct Stamp {
 //
 // 注意：单位为纳秒
 struct LatencyDefaults {
-    int64_t imu_ns   = 2'000'000;      // 2 ms
-    int64_t dvl_ns   = 50'000'000;     // 50 ms
-    int64_t usbl_ns  = 150'000'000;    // 150 ms
-    int64_t other_ns = 0;
+    int64_t imu_ns         = 2'000'000;      // 2 ms
+    int64_t teleop_ns      = 10'000'000;     // 10 ms
+    int64_t control_loop_ns= 0;              // 控制循环内部事件，通常认为无额外延迟
+    int64_t other_ns       = 0;
 };
 
 // 5. 全局默认延迟配置：
-//    - 返回一个可修改的全局引用（线程安全需求目前不强，后续再升级）
+//    - 返回一个可修改的全局引用（线程安全需求目前不强，如有需要后续升级）
 //
 // 用法示例：
 //   auto& ld = latency_defaults();
-//   ld.dvl_ns = 40'000'000;
+//   ld.teleop_ns = 20'000'000;
 LatencyDefaults& latency_defaults() noexcept;
 
 // 6. 统一打时间戳的工具函数
 //
 // 调用约定：
-//   - sensor_id: "imu0" / "dvl0" / "usbl0" 等
-//   - kind:      传感器类型，用于选择默认延迟
-//   - sensor_time_ns: 若传感器提供自身时间，则填；否则留空
+//   - sensor_id: "imu0" / "teleop0" / "ctrl_loop0" 等
+//   - kind:      数据类型，用于选择默认延迟
+//   - sensor_time_ns: 若上游提供自身时间，则填；否则留空
 //   - latency_ns: 如需覆写默认延迟，则传入；否则使用 latency_defaults() 中对应字段
 //
 // 行为：
@@ -96,7 +98,6 @@ Stamp stamp(
     std::optional<int64_t>          latency_ns     = std::nullopt
 );
 
-} // namespace uwnav::timebase
-
+} // namespace rovctrl::platform::timebase
 
 #endif /* ROVCTRL_PLATFORM_TIMEBASE_HPP */

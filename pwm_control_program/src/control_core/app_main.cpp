@@ -175,7 +175,8 @@ int app_main(int argc, char** argv)
     platform::PwmClientConfig pwm_cfg;  // 默认值在结构体内已设好
 
     // 如果指定了 --config，则尝试从 YAML 加载
-    if (!args.pwm_config.empty()) {
+    if (!args.pwm_config.empty()) 
+    {
         if (!load_pwm_config_from_yaml(args.pwm_config, pwm_cfg)) {
             std::cerr << "[WARN] Failed to load PWM config, fallback to defaults.\n";
         }

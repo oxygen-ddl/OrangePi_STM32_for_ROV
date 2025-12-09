@@ -14,10 +14,16 @@
 
 static int               s_inited      = 0;
 static pwm_ctrl_config_t s_cfg;                         /* 当前配置（含原始映射配置） */
-static float             s_current_pct[PWM_HOST_CH_NUM];/* 已下发占空比（逻辑电机） */
-static float             s_target_pct [PWM_HOST_CH_NUM];/* 目标占空比（逻辑电机）  */
-static uint64_t          s_step_count  = 0;
 
+/* 逻辑电机空间下的占空比：
+ * - s_target_pct[]  ：上层最近设置的目标占空比（尚未限斜率/分组）
+ * - s_current_pct[] ：上次 pwm_ctrl_step() 成功下发后“冻结”的当前值，
+ *                     已经过限斜率/分组/反向保护，是安全层视角的“实际输出”。
+ */
+static float             s_current_pct[PWM_HOST_CH_NUM];/* 当前实际占空比（逻辑电机） */
+static float             s_target_pct [PWM_HOST_CH_NUM];/* 目标占空比（逻辑电机）    */
+
+static uint64_t          s_step_count  = 0;
 static int               s_group_toggle = 0;            /* AB 交替：0->A,1->B */
 
 /* 收敛后的映射与反向标志（运行时使用） */
@@ -302,7 +308,14 @@ void pwm_ctrl_deinit(void)
     s_inited = 0;
     /* 不关闭 libpwm_host，由上层统一管理 */
 }
-
+/**
+ * @brief 获取控制层状态快照
+ *
+ * 说明：
+ *  - out_state->current_pct[] 即为“安全层当前持有的实际占空比”
+ *    （逻辑电机空间，单位 %），适合作为日志与离线分析信号；
+ *  - out_state->target_pct[] 为上层最近设置的目标。
+ */
 void pwm_ctrl_get_state(pwm_ctrl_state_t* out_state)
 {
     if (!out_state) return;

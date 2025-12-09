@@ -61,7 +61,7 @@ struct PwmClientStatus {
  *   - 初始化/关闭 libpwm_host 与 pwm_control 安全层；
  *   - 提供“设中位”、“设目标占空比数组”、“单步 step”、“紧急停车”等接口；
  *   - 将底层 C API 的错误状态封装成 C++ 形式，便于上层记录日志和决策；
- *   - 只在 cpp 中依赖 C 头文件，对上层只暴露干净的 C++ 接口。
+ *   - 提供查询最近一次“实际下发占空比”的接口，便于日志与诊断；
  *
  * 非线程安全：
  *   - 默认假定在单线程控制循环中使用；若未来需要多线程，需要外部加锁。
@@ -91,7 +91,7 @@ public:
      * @brief 关闭 PWM 客户端
      *
      * 行为：
-     *   - 尝试调用 emergencyStop(1.0f) 将所有通道平滑拉回中位；
+     *   - 尽量调用 emergencyStop(1.0f) 将所有通道平滑拉回中位；
      *   - 调用 pwm_ctrl_deinit()；
      *   - 调用 pwm_host_close()；
      *   - 清空内部状态标记（inited_ = false, status_.ok = false）。
@@ -136,12 +136,12 @@ public:
      * @brief 执行一次“安全层 step + UDP 下发”的循环
      *
      * 行为：
-     *   - 先调用 pwm_host_poll(0) 非阻塞收包（心跳 ACK / 统计）；
-     *   - 再调用 pwm_ctrl_step() 完成限斜率 / 分组 / 映射 / 反向并下发一帧 PWM。
+     *   - 内部调用 pwm_ctrl_step() 完成限斜率 / 分组 / 映射 / 反向并下发一帧 PWM；
+     *   - 同时让底层 libpwm_host 处理 ACK 等（等价于周期性轮询）；
      *
      * 典型调用频率：
      *   - cfg.ctrl_hz = 100.0f 时，在主控制循环中以 100Hz 调用本函数；
-     *   - 时间控制由上层负责（例如使用 FixedRateLoop / std::this_thread::sleep_for）。
+     *   - 时间控制由上层负责（例如使用 sleep_until）。
      */
     int step();
 
@@ -167,6 +167,21 @@ public:
     int setMotorReverse(int motor_id, bool enable);
 
     /**
+     * @brief 获取最近一次安全层 step 后“逻辑电机视角”的当前占空比
+     *
+     * @param out_pct 长度为 8 的数组，返回 current_pct（单位：%），
+     *                即 pwm_ctrl_get_state() 中的 current_pct[]。
+     *
+     * @return true 成功获取；false 客户端未初始化或底层返回错误
+     *
+     * 典型用途：
+     *   - 与控制器输出（目标 cmd）一起写入日志，用于分析限斜率 / 反向保护等效果；
+     *   - 调试 AB 分组、映射和反向逻辑；
+     *   - 运行中做健康检查或安全监控。
+     */
+    bool getLastApplied(std::array<float, kNumPwmChannels>& out_pct);
+
+    /**
      * @brief 查询当前状态（错误快照）
      */
     const PwmClientStatus& status() const { return status_; }
@@ -181,9 +196,9 @@ public:
     bool is_ok() const { return status_.ok; }
 
 private:
-    bool             inited_ = false;
-    PwmClientConfig  cfg_{};
-    PwmClientStatus  status_{};
+    bool            inited_ = false;
+    PwmClientConfig cfg_{};
+    PwmClientStatus status_{};
 
     /// 记录错误并将 ok 置为 false
     void set_error(int err_code, const std::string& msg);

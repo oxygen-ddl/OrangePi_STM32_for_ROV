@@ -2,7 +2,7 @@
 
 #include <array>
 #include <cstdint>
-#include <cstddef>  // 为 std::size_t 显式引入
+#include <cstddef>  // for std::size_t
 
 namespace rovctrl::control_core {
 
@@ -42,7 +42,7 @@ enum class DofIndex : std::size_t {
 };
 
 inline constexpr std::size_t kNumDof       = 6;
-inline constexpr std::size_t kNumThrusters = 8;   ///< 目前默认 8 推进器 ROV
+inline constexpr std::size_t kNumThrusters = 8;   ///< 默认 8 推进器 ROV
 
 using DofVector     = std::array<double, kNumDof>;
 using ThrusterArray = std::array<float,  kNumThrusters>;
@@ -112,25 +112,68 @@ struct DofCommand {
 };
 
 /**
- * @brief 控制状态：由传感器融合模块提供的当前系统估计状态
+ * @brief 控制状态：由传感器融合模块 / 导航进程提供的当前系统估计状态
  *
  * 用途:
  *   - 控制器（PID/MPC/SMC）使用该状态作为反馈量；
- *   - 记录时刻、有效标志用于调试与数据分析。
+ *   - timestamp / has_xxx / nav_valid 等标志用于调试与数据分析。
+ *
+ * 注意：
+ *   - 新增的 nav_* 字段是“来自导航进程的反馈”，不会改变原有 pose/velocity 的语义；
+ *   - 控制器可以选择使用 pose/velocity（本地估计）或 nav_xxx（共享内存 NavState）。
  */
 struct ControlState {
+    // ================== 原有本地估计状态 ==================
     Pose   pose;          ///< 位置 + 姿态
     Twist  velocity;      ///< 线速度 + 角速度
     Accel  accel;         ///< 线加速度 + 角加速度（如可用）
 
-    // 时间戳（单位秒，可以是相对时间或系统单调时间）
+    /// 时间戳（单位秒，可以是相对时间或系统单调时间）
     double timestamp_sec = 0.0;
 
-    // 有效性标志（可根据传感器情况设置）
+    /// 有效性标志（根据传感器情况设置）
     bool has_pose     = false;
     bool has_velocity = false;
     bool has_accel    = false;
+
+    // ================== 新增：导航反馈（共享内存 NavState 映射） ==================
+
+    /**
+     * @brief 当前循环是否存在可用导航状态
+     *
+     * 由控制循环根据 NavStateSubscriber 结果设置：
+     *   - true  表示 nav_* 字段有效；
+     *   - false 表示本周期未获得稳定导航状态，控制器可据此做降级策略。
+     */
+    bool nav_valid = false;
+
+    /// 导航时间戳（纳秒），直接来源于 shared::msg::NavState::t_ns
+    std::uint64_t nav_t_ns = 0;
+
+    /// NED 坐标系下的位置 [x, y, z]
+    std::array<double, 3> nav_pos_ned{0.0, 0.0, 0.0};
+
+    /// NED 坐标系下的速度 [vx, vy, vz]
+    std::array<double, 3> nav_vel_ned{0.0, 0.0, 0.0};
+
+    /// 欧拉角 [roll, pitch, yaw]，单位 rad，来自 NavState::rpy
+    std::array<double, 3> nav_rpy{0.0, 0.0, 0.0};
+
+    /// 深度（正向向下，单位 m，来自 NavState::depth）
+    double nav_depth = 0.0;
+
+    /// 机体系角速度 [wx, wy, wz]，来自 NavState::omega_b
+    std::array<double, 3> nav_omega_b{0.0, 0.0, 0.0};
+
+    /// 机体系线加速度 [ax, ay, az]，来自 NavState::acc_b
+    std::array<double, 3> nav_acc_b{0.0, 0.0, 0.0};
+
+    /// 状态标志（bitmask，直接转抄 NavState::status_flags）
+    std::uint16_t nav_status_flags = 0;
+
+    // ……后面还有你原来的 body_wrench / thruster_command 等字段……
 };
+
 
 /**
  * @brief 控制参考量：控制目标（期望状态 / 期望 DOF 指令）

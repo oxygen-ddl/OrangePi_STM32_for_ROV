@@ -1,14 +1,3 @@
-下面我为你准备一份**更高层次、面向你团队的完整控制算法开发文档**。
-该文档可以直接交付，让你的下属理解：
-
-* 整体控制系统的架构与理念
-* 控制算法（PID / SMC / MPC）在系统中的位置
-* 控制器应如何与导航模块配合
-* 控制算法与 ThrusterAllocator、PwmClient 的标准接口
-* 如何编写新的控制器（如 SMC、MPC）并无缝融入整个项目
-* 控制器开发的规范流程
-
-你可放入仓库 `docs/control_algorithm_development_guide.md`。
 
 ---
 

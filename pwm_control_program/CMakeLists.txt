@@ -48,7 +48,6 @@ set(PWM_LIB_DIR
 )
 
 # 手动指定 Eigen3 的头文件目录（通过 apt 安装 libeigen3-dev 后默认路径）
-# 注意：这个必须放在 target_include_directories 之前！！
 set(EIGEN3_INCLUDE_DIR "/usr/include/eigen3")
 
 # ==================== 源码列表 ====================
@@ -77,6 +76,9 @@ set(PWMCTRL_SOURCES
     src/io/teleop_input.cpp
     src/io/pwm_logger.cpp           # PWM 日志
     src/io/nav_state_subscriber.cpp # 读取定位算法消息（共享内存）
+
+    # utils 层
+    src/utils/config_loader.cpp     # ★ 新增：配置解析/加载工具
 )
 
 add_executable(pwm_control_program
@@ -84,10 +86,9 @@ add_executable(pwm_control_program
 )
 
 # ==================== 头文件搜索路径 ====================
-# 统一用一次 target_include_directories，把所有 include 根目录写清楚
 target_include_directories(pwm_control_program
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include  # 本工程头文件（control_core/controllers/io/platform）
+        ${CMAKE_CURRENT_SOURCE_DIR}/include  # 本工程头文件（control_core/controllers/io/platform/utils）
         ${PWM_INCLUDE_DIR}                  # libpwm_host.h / pwm_control.h
         ${NAV_PROJECT_INCLUDE_DIR}          # shared/msg/nav_state.hpp 所在项目根目录
         ${EIGEN3_INCLUDE_DIR}              # /usr/include/eigen3, 提供 <Eigen/Dense>
@@ -99,12 +100,11 @@ find_package(Threads REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 # ==================== 链接库 ====================
-# 关键逻辑：优先用子项目 target，其次用预编译静态库文件
 if (TARGET pwm_host)
     message(STATUS "[pwm_control_program] Linking against CMake target 'pwm_host' from orangepi_send")
     target_link_libraries(pwm_control_program PRIVATE
-        pwm_host          # orangepi_send 生成的静态库 target
-        yaml-cpp          # CMake target
+        pwm_host
+        yaml-cpp
         Threads::Threads
     )
 else()

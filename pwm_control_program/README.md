@@ -1,6 +1,6 @@
+那我直接给你一份“合并整理 + 加上新特性（config_loader / 轨迹 / PWM 日志）”后的 README 草稿，你可以直接覆盖 `README.md` 用：
 
----
-
+````markdown
 # ROV 控制程序（pwm_control_program）
 
 ### 上位机实时控制系统架构说明与开发指南（OrangePi）
@@ -9,21 +9,21 @@
 
 系统核心目标包括：
 
-* 统一的控制架构（ControlLoop + Controller + Allocator）
-* 可靠的 8 通道推进器控制（基于安全层 pwm_control 保护）
-* 手动模式（Teleop）与自动控制模式（未来：PID / MPC / SMC）
-* 与底层 PWM 执行层完全解耦
-* 工程级可扩展架构，适合科研到实机部署
+- 统一的控制架构（ControlLoop + Controller + Allocator）
+- 可靠的 8 通道推进器控制（基于安全层 `pwm_control` 保护）
+- 手动模式（Teleop）与自动控制模式（未来：PID / MPC / SMC）
+- 与底层 PWM 执行层完全解耦
+- 工程级可扩展架构，适合科研到实机部署
 
-该架构已经通过在 OrangePi 上的实际编译与调试验证。
+该架构已经在 OrangePi 上完成编译与调试验证。
 
 ---
 
-# 1. 整体控制链路概述
+## 1. 整体控制链路概述
 
 控制链路由三层组成：
 
-```
+```text
 【控制程序（本仓库）】
    Controller → ThrusterCommand[8]
         ↓
@@ -33,87 +33,109 @@
 【驱动层 libpwm_host → UDP → STM32】
         ↓
 【ESC → 推进器】
-```
+````
 
 职责划分：
 
-| 层级          | 作用                   |
-| ----------- | -------------------- |
-| 控制程序        | 决策（控制算法、模式、手动输入解析）   |
-| 安全层（C 库）    | PWM 信号硬性保护，不允许任何失控指令 |
-| 驱动层（UDP 协议） | 可靠下发至 STM32          |
-| 执行层         | 最终驱动 8 路 PWM         |
+| 层级          | 作用                  |
+| ----------- | ------------------- |
+| 控制程序        | 决策（控制算法、模式、手动输入解析）  |
+| 安全层（C 库）    | PWM 信号硬性保护，避免任何失控指令 |
+| 驱动层（UDP 协议） | 可靠下发至 STM32         |
+| 执行层         | 最终驱动 8 路 PWM/推进器    |
 
-控制程序**永远不直接生成物理 PWM**，只是给安全层提供归一化指令。
+> 控制程序**永远不直接生成物理 PWM**，只是给安全层提供归一化指令。
 
 ---
 
-# 2. 项目目录结构（保持可扩展）
+## 2. 项目目录结构
 
-结构如下：
+当前目录结构如下：
 
 ```
 pwm_control_program/
-├── CMakeLists.txt
-├── README.md
-│
-├── config/
-│   └── pwm_client.yaml           ← 底层通信参数（IP、端口等）
-│
-├── docs/
-│   ├── pwm_control_architecture.md
-│   ├── control_stack_safety.md
-│   ├── pwm_test_procedures.md
-│   └── teleop_usage.md
-│
-├── include/
-│   ├── control_core/
-│   │   ├── control_types.hpp     ← ControlState/Reference/Output
-│   │   └── control_loop.hpp      ← 主循环调度器
-│   │
-│   ├── controllers/
-│   │   ├── controller_base.hpp   ← 接口 IController
-│   │   └── manual_controller.hpp ← 手动控制器
-│   │
-│   ├── io/
-│   │   ├── input_provider.hpp    ← 抽象输入源
-│   │   └── teleop_input.hpp      ← 键盘 teleop 实现
-│   │
-│   ├── platform/
-│   │   ├── pwm_client.hpp        ← 对安全层+UDP的封装
-│   │   └── timebase.hpp
-│   │
-│   └── utils/
-│       └── config_loader.hpp     ← YAML 加载（可后续加入）
-│
-└── src/
-    ├── main.cpp                  ← 程序入口
-    ├── control_core/
-    │   ├── app_main.cpp
-    │   └── control_loop.cpp
-    ├── controllers/manual_controller.cpp
-    ├── io/teleop_input.cpp
-    ├── io/teleop_keyboard.cpp
-    ├── platform/pwm_client.cpp
-    └── platform/timebase.cpp
-```
+.
+├── CMakeLists.txt                      ← 本子项目的 CMake 构建脚本（目标：pwm_control_program）
+├── config                              ← 运行时配置文件目录（不需要重新编译）
+│   ├── control_params.yaml             
+│   ├── pwm_client.yaml                 
+│   └── trajectory.yaml                 
+├── docs                                ← 工程文档与操作说明（给人看的，不参与编译）
+│   ├── architecture.svg                ← 控制架构总览图（控制程序 ↔ 安全层 ↔ STM32）
+│   ├── control_loop_sequence.svg       ← 控制主循环时序图（Input → Controller → PwmClient）
+│   ├── pwm_control_architecture.md     ← PWM 三层结构及安全设计说明（新成员优先阅读）
+│   ├── PWM.md                          
+│   ├── pwm_teleop_usage.md             
+│   ├── pwm_teleop_user_manual.md       
+│   ├── pwm_test_procedures.md          ← PWM 上电/测试流程与安全 checklist（实验前必读）
+│   └── test                           
+│       ├── control_algorithm_development_guide.md 
+│       └── pid_test_guide.md           
+├── include                             ← 头文件（对外接口与模块边界声明）
+│   ├── control_core                    ← 控制核心：数据类型 + 主循环 + 推力分配 + 轨迹跟踪
+│   │   ├── app_main.hpp                ← app_main 入口声明：组装各模块并启动 ControlLoop
+│   │   ├── control_loop.hpp            ← ControlLoop 声明：单线程控制主循环框架
+│   │   ├── control_types.hpp           
+│   │   ├── mode.hpp                    ← 控制模式枚举与模式相关定义（Manual/MPC/...）
+│   │   ├── thruster_allocation.hpp     
+│   │   └── trajectory_tracking.hpp     
+│   ├── controllers                     ← 控制器接口与各类控制器头文件
+│   │   ├── controller_base.hpp         ← 抽象基类 IController（compute(state,ref,output,dt)）
+│   │   ├── controller_manager.hpp      ← 控制器管理器（未来支持多模式切换/注册）
+│   │   ├── manual_controller.hpp       
+│   │   └── pid_controller.hpp          
+│   ├── io                              ← 输入/输出适配层（键盘、导航状态、PWM 日志等）
+│   │   ├── input_provider.hpp          
+│   │   ├── nav_state_subscriber.hpp    ← 导航状态订阅接口（从导航进程/共享内存读取 NavState）
+│   │   ├── pwm_logger.hpp              
+│   │   ├── teleop_input.hpp            ← 键盘 Teleop 输入提供者声明（封装终端 + 键盘解析）
+│   │   └── teleop_keyboard.h           ← C 风格键盘处理辅助接口（按键 → DOF 状态）
+│   ├── platform                        ← 平台适配层（与底层 C 库、时间系统打交道）
+│   │   ├── pwm_client.hpp              ← PwmClient 接口：对接 pwm_control.c + libpwm_host
+│   │   └── timebase.hpp                ← 时间基工具：稳态时钟/时间戳/周期睡眠等封装
+│   └── utils                           
+│       └── config_loader.hpp           ← 配置加载/路径解析工具（pwm/control/trajectory 三类）
+├── pwm_control_update.md               
+├── README.md                           
+├── src                                 ← 源码实现（与 include 中的头文件一一对应）
+│   ├── control_core
+│   │   ├── app_main.cpp                ← app_main 实现：加载配置、创建组件、启动 ControlLoop
+│   │   ├── control_loop.cpp            ← ControlLoop::run 实现：主循环逻辑 + 错误统计 + 日志
+│   │   ├── thruster_allocation.cpp     
+│   │   └── trajectory_tracking.cpp     
+│   ├── controllers
+│   │   ├── controller_manager.cpp      ← 控制器管理器实现（预留多模式/动态切换）
+│   │   ├── manual_controller.cpp       
+│   │   └── pid_controller.cpp          
+│   ├── io
+│   │   ├── nav_state_subscriber.cpp    ← 从导航进程/共享内存读取 NavState 的具体实现
+│   │   ├── pwm_logger.cpp              
+│   │   ├── teleop_input.cpp            ← TeleopInputProvider 实现（终端 raw 模式 + 按键轮询）
+│   │   └── teleop_keyboard.cpp         ← 键盘映射的 C 实现：键位 → DOF 增减/清零逻辑
+│   ├── main.cpp                        
+│   ├── platform
+│   │   ├── pwm_client.cpp              ← PwmClient 实现：限斜率/AB 分组/越零保护 + UDP 下发
+│   │   └── timebase.cpp                ← 时间工具实现：steady clock / sleep_until 封装
+│   └── utils
+│       └── config_loader.cpp           ← 解析 YAML 路径 & 读取 pwm/control/trajectory 配置
+└── update_v2.md                        ← v2 版本的整体更新说明/迁移指南（与旧版差异摘要）
 
-该结构已完全兼容你当前的编译结果。
+```
 
 ---
 
-# 3. 控制系统架构
+## 3. 控制程序内部架构
 
-## 3.1 控制程序内部架构
+### 3.1 模块关系概览
 
-```
+```text
 +----------------------------+
 |      InputProvider         |  (键盘 / 上位机指令 / 未来自动轨迹)
 +----------------------------+
                |
                v
 +----------------------------+
-|      Controller            |  (Manual / PID / MPC / SMC)
+|        Controller          |  (Manual / PID / MPC / SMC)
 +----------------------------+
                |
                v
@@ -126,518 +148,386 @@ pwm_control_program/
 |      PwmClient  +  pwm_control.c       |
 |   (限斜率 / AB 分组 / 越零保护 / UDP)   |
 +----------------------------------------+
+               |
+               v
+        libpwm_host → STM32 → ESC
 ```
 
-控制框架是**完全模块化的**：
+核心模块职责：
 
-| 模块            | 责任                                 |
-| ------------- | ---------------------------------- |
-| InputProvider | 读取输入（键盘、网络、轨迹）并写入 ControlReference |
-| Controller    | 计算 ThrusterCommand[8]              |
-| ControlLoop   | 管理周期、调度输入和输出                       |
-| PwmClient     | 封装安全层 + UDP 下发                     |
-| pwm_control.c | **强制性安全保障，不可绕过**                   |
-
----
-
-# 4. 控制循环控制策略
-
-主循环（ControlLoop）运行在固定频率（默认 100 Hz）：
-
-```
-while true:
-    poll input           （TeleopInputProvider）
-    controller.compute()  （ManualController）
-    pwm_client.setTargets()
-    pwm_client.step()     （AB分组 + 限斜率 + 越零保护）
-```
-
-流程保证：
-
-* 输入 → 输出 → 安全层 → 下发 全流程可控
-* 单次错误不会导致程序退出
-* 连续错误超过阈值才退出
+| 模块            | 责任                                   |
+| ------------- | ------------------------------------ |
+| InputProvider | 读取输入（键盘、网络、轨迹）并填充 `ControlReference` |
+| Controller    | 根据状态与参考，计算 `ThrusterCommand[8]`      |
+| ControlLoop   | 管理周期、调用 Input/Controller、调度 PWM 下发   |
+| PwmClient     | 封装安全层 + UDP，负责实际 PWM 下发与错误处理         |
+| pwm_control.c | C 层安全逻辑：限斜率、越零保护、A/B 分组              |
 
 ---
 
-# 5. 控制模式体系（未来扩展）
+## 4. 数据类型与主循环
 
-虽然目前实现的是 **ManualController**，但架构已经支持：
+### 4.1 核心数据结构（`control_types.hpp`）
 
-| 控制模式             | 描述                |
-| ---------------- | ----------------- |
-| Manual           | 手动控制，6DOF 转 8 推进器 |
-| PID DepthHold    | 深度保持              |
-| PID AttitudeHold | 姿态保持              |
-| MPC Track        | 轨迹跟踪              |
-| SMC Robust       | 强鲁棒控制             |
+在 `include/control_core/control_types.hpp` 中，定义了统一数据字典，包括：
 
-每种模式对应新的 Controller 子类。
+* `Pose / Twist / Accel`：位姿、速度、加速度
+* `DofCommand`：6-DOF 指令（surge/sway/heave/roll/pitch/yaw ∈ [-1,1]）
+* `ControlState`：当前状态（来自导航或上位机）
+* `ControlReference`：期望参考（Teleop / 轨迹 / 任务层）
+* `ControlOutput`：
 
----
+  * `body_wrench`：物理 6-DOF 力/力矩（未来可用于 MPC/动力学控制）
+  * `thruster_command[8]`：8 推进器归一化指令（本程序当前主用）
 
-# 6. Teleop 输入系统
+### 4.2 控制主循环（`control_loop.hpp / .cpp`）
 
-TeleopInputProvider 完成：
+`ControlLoop` 完成：
 
-* 切换终端为 raw mode
-* 非阻塞读取按键
-* 调用 C 层 teleop_keyboard
-* 写入 ControlReference.dof_cmd
+* 固定频率循环（默认 `loop_hz = 100`）
 
-键位（简化示例）：
+* 每周期调用：
 
-| 按键  | 含义           |
-| --- | ------------ |
-| W/S | Surge ±      |
-| A/D | Sway ±       |
-| Q/E | Yaw ±        |
-| H/G | Heave ±      |
-| R/T | Roll ±（纯姿态）  |
-| F/V | Pitch ±（纯姿态） |
-| 1–8 | 单电机阻塞测试      |
-| M   | 清零           |
-| ESC | 请求退出         |
+  1. `input_->poll(state, ref, request_exit)`
+  2. `controller_->compute(state, ref, output, dt)`
+  3. `pwm_.setTargets(output.thruster_command)`
+  4. `pwm_.step()`
+  5. 记录 PWM 日志（如果开启）
+
+* 连续错误计数与退出条件
+
+* 优雅退出时调用 `PwmClient::emergencyStop()` 和 `shutdown()`
 
 ---
 
-# 7. 手动控制器 ManualController
+## 5. 控制器体系（controllers）
 
-将 DOF 命令映射为 8 推进器：
+### 5.1 控制器接口（`controller_base.hpp`）
 
-```
-surge → 1/2/3/4
-sway  → 差动分配
-yaw   → 正反交替分配
-heave → 5/6/7/8 同向
-roll  → 5~8 左右差动
-pitch → 5~8 前后差动
-```
+统一接口 `IController`：
 
-ManualController 已与你当前 ROV 推进器布局一致。
+* `std::string name() const`
+* `ControlMode mode() const`
+* `void reset()`
+* `void compute(const ControlState&, const ControlReference&, ControlOutput&, double dt)`
 
----
+所有控制算法只在 `compute()` 中实现决策逻辑，不直接接触 PWM/UDP。
 
-# 8. PWM 客户端与安全层交互（关键工程价值）
+### 5.2 手动控制器（`manual_controller.hpp / .cpp`）
 
-PwmClient 是控制层与驱动层之间的唯一接口。
+`ManualController` 负责：
 
-功能：
+* 从 `ControlReference.dof_cmd` 取出 6 个 DOF 指令
+* 乘各向增益（`surge_gain/sway_gain/heave_gain/...`）
+* 按 ROV 布局将 6 DOF 组合成 8 个 `thruster_command[i]`
+* 对指令限幅到 `[-max_cmd_abs, max_cmd_abs]`
 
-* setTargets(float[8])
-* step() 调用安全层
-* emergencyStop()
-* 自动处理错误
-* 自动清理资源（析构）
-
-所有 PWM 信号必须经过安全层：
-
-```
-限斜率 → 越零保护 → A/B分组 → UDP打包
-```
-
-确保推进器硬件不会受损。
+DOF → 电机的具体分配规则写在 `manual_controller.cpp` 中，是理解当前推进器布局的关键文件。
 
 ---
 
-# 9. 日志与调试（后续加入）
+## 6. 输入系统（io）
 
-未来会加入：
+### 6.1 输入抽象接口（`input_provider.hpp`）
 
-* CSV 控制日志
-* 推进器命令日志
-* 事件日志（模式切换、错误）
+`IInputProvider` 定义：
 
----
+* `bool init()`
+* `bool poll(ControlState& state, ControlReference& ref, bool& request_exit)`
 
-# 10. 开发路线（Roadmap）
+每个控制周期由 `ControlLoop` 调用 `poll()`，完成：
 
-| 阶段 | 内容                                |
-| -- | --------------------------------- |
-| 1  | ManualController + Teleop 完成（已完成） |
-| 2  | 简易 PID 控制器加入                      |
-| 3  | 推力分配矩阵（6DOF → 8 Thrusters）        |
-| 4  | MPC 控制模块接入                        |
-| 5  | 控制参数 YAML 支持                      |
-| 6  | 高级模式系统（ModeManager）               |
+* 采集控制状态（可从导航、共享内存或上位机获取）
+* 更新参考 `ref`（键盘 Teleop / 轨迹参考 / 任务层指令）
+* 根据退出指令（如 ESC）设置 `request_exit=true`
 
-当前代码结构完全支持以上路线。
+### 6.2 键盘 Teleop（`teleop_input.hpp / .cpp`）
 
----
+`TeleopInputProvider`：
 
-# 11. 总结
+* 切换终端为 raw mode、非阻塞读取按键
+* 调用 C 层键盘处理逻辑（`teleop_keyboard.*`）
+* 将当前键盘 DOF 写入 `ControlReference.dof_cmd`
 
-你现在的控制程序已经具备：
+典型键位（可详见 `docs/pwm_teleop_usage.md`）：
 
-✔ 专业工程结构
-✔ 安全层全流程接入
-✔ Teleop → Controller → PWM 的完整链路
-✔ 完整 CMake 工程
-✔ 适合未来拓展 MPC / PID / SMC
-
----
-
-## 目录结构与模块职责
-
-整个 `pwm_control_program` 只做一件事：
-在 **控制算法** 和 **底层 PWM 安全层 + STM32** 之间，提供一个安全、可扩展的控制程序。
-
-从上往下看，功能分层大致是：
-
-```
-控制算法层（controllers/*）
-    ↓  thruster_command[8] 逻辑推力指令
-控制主循环（control_core/*）
-    ↓  motor_pct[8] 逻辑占空比
-PWM 客户端（platform/pwm_client）
-    ↓  调用 C 安全层 pwm_control.c
-底层通信 orangepi_send + STM32
-```
-
-### 1. 顶层文件
-
-#### `CMakeLists.txt`
-
-* 定义整个 `pwm_control_program` 子项目的构建规则。
-* 主要职责：
-
-  * 指定 C++ 标准、警告等级。
-  * 告诉编译器去哪儿找头文件（`include/` 等）。
-  * 链接底层 `libpwm_host.a`、`yaml-cpp` 等依赖。
-* 实际工作中：
-
-  * 新增源文件 / 模块时，记得在这里的 `add_library` / `add_executable` 中补上。
-  * 如果底层库路径有变动（例如 `orangepi_send_build` 目录），也在这里改。
-
-#### `README.md`
-
-* 面向“工程师”的总览文档：
-
-  * 本控制程序在整个 ROV 系统中的角色。
-  * 控制链路：控制算法 → 安全 PWM → UDP → STM32。
-  * 适合新同事快速理解“这个子项目到底干什么”。
+| 按键  | DOF     |
+| --- | ------- |
+| W/S | Surge ± |
+| A/D | Sway ±  |
+| G/H | Heave ± |
+| Q/E | Yaw ±   |
+| R/T | Roll ±  |
+| F/V | Pitch ± |
+| M   | 清零      |
+| ESC | 请求退出    |
 
 ---
 
-### 2. `config/` 配置层
+## 7. PWM 客户端与安全层（platform）
+
+### 7.1 PwmClient（`pwm_client.hpp / .cpp`）
+
+职责：
+
+* 初始化安全层 `pwm_control.c` 与 `libpwm_host`
+
+* 接收 `thruster_command[8]`（归一化指令 `u ∈ [-1,1]`）
+
+* 在 `step()` 中调用：
+
+  * 限斜率
+  * 越零保护
+  * AB 分组输出
+  * UDP 下发给 STM32
+
+* 提供：
+
+  * `setTargets(const std::array<float,8>&)`
+  * `step()`
+  * `setAllMid()`
+  * `emergencyStop(float hold_s)`
+  * `shutdown()`
+
+> 所有 PWM 都必须经过 `PwmClient` 与安全层，控制器不允许直接下发物理 PWM。
+
+---
+
+## 8. 配置系统与 config_loader（utils）
+
+配置文件统一放在 `config/` 目录，由 `utils/config_loader.*` 负责路径解析与加载。
+
+### 8.1 路径解析策略
+
+`config_loader` 提供三个解析函数：
+
+* `resolve_pwm_client_config_path(...)`
+* `resolve_control_config_path(...)`
+* `resolve_trajectory_config_path(...)`
+
+通用优先级：
+
+1. 命令行参数（例如 `--config`, `--control-config`, `--traj-config`）
+
+2. 环境变量：
+
+   * `PWM_CLIENT_CONFIG`
+   * `ROV_CONTROL_CONFIG`
+   * `ROV_TRAJECTORY_CONFIG`
+
+3. 相对可执行文件位置的若干候选路径，例如：
+
+   * `./config/pwm_client.yaml`
+   * `../../pwm_control_program/config/pwm_client.yaml`
+
+这样可以兼容：
+
+* 在 `pwm_control_program/` 下直接运行
+* 在上层 `build/` 目录中运行可执行文件
+
+### 8.2 配置文件说明
 
 #### `config/pwm_client.yaml`
 
-* 用于配置 **底层 PWM 通信参数**：
+设置：
 
-  * UDP 目标 IP（STM32 所在板子的 IP）。
-  * UDP 端口号。
-  * 逻辑通道数量（一般 8）。
-  * 心跳周期、超时等参数。
-* 特点：
+* 底层 UDP 参数（remote_ip/port 等）
+* 安全层频率 `ctrl_hz`
+* 限斜率参数 `max_step_pct`
+* PWM 范围：`min_pct/mid_pct/max_pct`（典型 5/7.5/10）
+* AB 分组掩码
+* 逻辑电机 → 物理 PWM 通道映射 `motorch_to_pwmch`
+* 每路电机反向标志 `motor_reverse`
 
-  * 这是你在换实验平台 / 换网段 / 换 STM32 时最常改的文件。
-  * 控制算法不需要关心这些细节，只要它能看到“电机 0–7 的逻辑占空比”。
+#### `config/control_params.yaml`
 
-后续可以在 `config/` 下增加：
+设置推力分配/控制相关参数，例如：
 
-* `controller_manual.yaml`：手动模式配置（各 DOF 增益、限幅）。
-* `controller_mpc.yaml`：MPC 参数。
-* `thrust_allocator.yaml`：推力分配矩阵等。
+* `vehicle.thrusters.order`：推进器命名顺序
+* `vehicle.thrusters.allocation_matrix.data`：6×8 推力分配矩阵
+* `vehicle.thrusters.active_rows`：启用的 DOF（Fx/Fy/Fz/Mx/My/Mz）
+* `vehicle.thrusters.limits.norm_min/norm_max`
+* `vehicle.thrusters.thrust_model.*`（如最大推力）
 
----
+由 `load_thruster_allocation_config()` 解析到 `ThrusterAllocationConfig` 中。
 
-### 3. `docs/` 文档层
+#### `config/trajectory.yaml`
 
-这部分是给“人”看的，而不是给编译器看的。
+用于未来的轨迹跟踪模块，描述：
 
-* `pwm_control_architecture.md`
-  描述整个 PWM 控制栈的架构，包括：
+* 坐标系 `frame`（`NED` / `ENU`）
+* 角度单位 `angle_unit`（`rad` / `deg`）
+* 轨迹类型 `type`（当前主要为 `piecewise`）
+* `waypoints[]`：
 
-  * teleop → 控制程序 → pwm_control → UDP → STM32 的链路。
-  * 安全措施位置（限斜率、越零保护、急停）。
+  * `t`、`x`、`y`、`z`
+  * `yaw`
+  * 可选 `vx/vy/vz/yaw_rate`
 
-* `control_stack_safety.md`
-  专门讲安全策略：
-
-  * 为什么有 AB 交替、限斜率等措施。
-  * 出现异常（通信丢失、心跳超时）时如何保护推进器。
-
-* `pwm_test_procedures.md`
-  工程测试流程：
-
-  * 第一次上电前要拆桨。
-  * 每次实验前后的检查清单。
-  * 如何逐通道验证、如何回归测试。
-
-* `teleop_usage.md`
-  针对操作者的“键盘操作说明书”：
-
-  * 键位定义。
-  * 多 DOF 叠加规则。
-  * 退出流程和急停行为。
-
-新人如果要“先用起来、再看代码”，建议从 `docs/` 开始看。
+由上层解析为 `TrajectoryConfig`，再注入 `TrajectoryTracking`。
 
 ---
 
-### 4. `include/` 头文件层（接口与抽象）
+## 9. 轨迹跟踪（trajectory_tracking）
 
-这一层定义了“模块边界”和“API 协议”。它们是各个 cpp 文件之间的契约。
+`include/control_core/trajectory_tracking.hpp` / `src/control_core/trajectory_tracking.cpp` 提供：
 
-#### 4.1 `control_core/` 核心数据结构与主循环
+* 用 `TrajectoryPoint` / `TrajectoryConfig` 保存离散轨迹点
 
-* `control_core/control_types.hpp`
-  定义这一套控制栈的“语言”：
+* 根据当前控制时间 `t_now_s` 在线性插值出：
 
-  * `ControlMode`：控制模式枚举（目前有 `MANUAL`，未来会扩展为 `MPC_TRACK` 等）。
-  * `Pose / Twist / Accel`：位姿、速度、加速度。
-  * `DofCommand`：归一化 6-DOF 指令（surge / sway / heave / roll / pitch / yaw ∈ [-1,1]）。
-  * `ControlState`：当前状态（来自导航/估计系统）。
-  * `ControlReference`：期望（来自 Teleop / 上位机 / 轨迹规划）。
-  * `ControlOutput`：
+  * `TrajectorySample.pose_ref`
+  * `TrajectorySample.vel_ref`
+  * `TrajectorySample.accel_ref`
 
-    * `body_wrench`：物理量级别的 6-DOF 力/力矩。
-    * `thruster_command[8]`：8 推进器归一化指令（本次我们用的就是这个）。
+* 提供：
 
-  新人可以把这个文件理解成：“控制程序的统一数据字典”。
+  * `fill_reference()`：将采样结果写入 `ControlReference`
+  * `compute_error()`：计算状态与轨迹参考之间的误差（含 yaw wrap 到 [-π, π]）
 
-* `control_core/control_loop.hpp`
-  控制主循环 `ControlLoop` 的声明：
-
-  * 定义 `Config`：主循环频率、错误阈值、是否打开 PWM 日志等。
-  * 声明：
-
-    * 构造函数：接收 `PwmClient`、`InputProvider`、`IController`。
-    * `run()`：执行主循环。
-
-  任何新的控制模式（MPC、SMC）都会复用这套循环框架，而不是重新写 while(true)。
+注意：**轨迹加载本身由 `config_loader` 完成**，`TrajectoryTracking` 只做插值与误差计算，两者是解耦的。
 
 ---
 
-#### 4.2 `controllers/` 控制算法层
+## 10. PWM 日志记录（pwm_logger）
 
-* `controllers/controller_base.hpp`
+PWM 日志由 `io/pwm_logger.*` 实现，并在 `ControlLoop` 中统一调用。
 
-  * 定义统一控制器接口 `class IController`：
+### 10.1 日志文件位置与命名
 
-    * `name()`：名字（用于日志）。
-    * `mode()`：返回 `ControlMode`。
-    * `reset()`：重置内部状态。
-    * `compute(state, ref, output, dt)`：
+* 日志根目录由 `ControlLoop::Config` 指定（例如 `./logs/pwm`）
+* 每次运行会生成一个新文件：
 
-      * 所有控制算法只实现这一个入口。
-      * 不直接操作 PWM，不关心 UDP，不做 IO，纯算法。
+  ```text
+  logs/pwm/pwm_YYYYMMDD_HHMMSS.csv
+  ```
 
-  * 任何一个新算法模块（PID、MPC、RL）都应该 `class XxxController : public IController`。
+### 10.2 记录内容与单位
 
-* `controllers/manual_controller.hpp`
+当前实现中，控制器和安全层内部使用**归一化指令**：
 
-  * 一个最简单的控制器实现，主要是“线性 DOF → 推进器”的映射：
+* `u ∈ [-1, 1]`
 
-    * 从 `ControlReference.dof_cmd` 取 6 个 DOF 指令。
-    * 乘以方向增益（surge/sway/yaw/roll/pitch/heave）。
-    * 按当前推进器布局，把 6 个 DOF 合成成 8 路 `thruster_command`。
-    * 限幅（保护 DOF 输出在 [-1,1] 或 cfg.max_cmd_abs 内）。
+  * `u = 0`  → 中位
+  * `u = +1` → 最大正向
+  * `u = -1` → 最大反向
 
-  * 新人理解推进器布局、DOF → 电机映射时可以重点读这个文件和它的 cpp。
+日志中不直接记 `u`，而是转换为**占空比百分数 `duty_pct`（单位：%）**：
 
----
+> 假定 PWM 频率 ≈ 50 Hz，周期 T ≈ 20 ms：
 
-#### 4.3 `io/` 输入输出抽象层
+* `min_pct = 5.0` → 1.0 ms 脉宽
+* `mid_pct = 7.5` → 1.5 ms 脉宽
+* `max_pct = 10.0` → 2.0 ms 脉宽
 
-* `io/input_provider.hpp`
+映射关系：
 
-  * 定义 `class IInputProvider`：
+```text
+u =  0   → duty_pct =  7.5 % → τ ≈ 1.5 ms（中位）
+u = +1   → duty_pct = 10.0 % → τ ≈ 2.0 ms（最大正向）
+u = -1   → duty_pct =  5.0 % → τ ≈ 1.0 ms（最大反向）
 
-    * `init()`：初始化输入源（比如打开终端 raw 模式）。
-    * `poll(state, ref, request_exit)`：
+通用：τ_ms ≈ duty_pct / 100 * 20
+```
 
-      * 每个控制周期调用一次。
-      * 填充当前的 `ControlState`（也可以先空着）。
-      * 填充 `ControlReference`（比如键盘 Teleop 指令）。
-      * 根据用户输入可以设置 `request_exit=true`（退出控制循环）。
+### 10.3 CSV 格式
 
-  * 新的输入源（上位机 TCP 命令、autopilot 脚本）只要实现这个接口即可。
+#### Mode::AppliedOnly
 
-* `io/teleop_input.hpp`
+表头：
 
-  * `TeleopInputProvider` 的接口声明：
+```csv
+t_s,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8
+```
 
-    * 一个具体版本的 `IInputProvider`，数据来源是键盘。
-    * 内部持有一个 `ControlMode mode_{MANUAL}` 作为标签。
-    * 在 cpp 中用 `pwm_teleop_*` 函数和 C 层键盘处理逻辑对接。
+* `t_s`：控制时间，单位秒
+* `ch1`~`ch8`：各通道占空比百分数（例如 7.5 表示 7.5%）
 
-  * 新人要理解“键盘按键如何最终变成 DOF 指令”，可以看：
+示例行（四位小数）：
 
-    * `teleop_input.cpp` + C 层的 `pwm_teleop_keys.c`。
+```csv
+12.3400,7.5000,8.1250,8.7500,6.8750,7.5000,7.5000,7.5000,7.5000
+```
 
-  * 注意：**PWM 日志记录并不在这里做**，而是在 `ControlLoop` 中统一实现，所以更换控制器 / 输入源时日志功能不会丢。
+含义：
 
----
+* 通道 1 中位（1.5 ms）
+* 通道 2 稍大于中位（约 1.625 ms）
+* 通道 3 接近半油门（约 1.75 ms）
+* 通道 4 稍小于中位（约 1.375 ms）
+* 通道 5–8 在中位
 
-#### 4.4 `platform/` 平台适配层
+#### Mode::CmdAndApplied
 
-* `platform/pwm_client.hpp`
+表头：
 
-  * 封装底层 PWM 安全层和 UDP 发送逻辑。
+```csv
+t_s,ch1_cmd,...,ch8_cmd,ch1_applied,...,ch8_applied
+```
 
-  * 提供上层调用接口：
+* `*_cmd`：期望占空比（由归一化指令映射）
+* `*_applied`：安全层之后实际下发的占空比
 
-    * `init()`：初始化底层 `pwm_control` 与 `libpwm_host`。
-    * `setTargets(thruster_command)`：设置本周期的逻辑目标占空比。
-    * `step()`：
+方便分析：
 
-      * 调用安全层一步（限斜率、AB 分组、越零保护）。
-      * 调用 `libpwm_host` 下发容量与通信。
-    * `emergencyStop()` / `shutdown()`：安全收尾。
-
-  * 控制算法不直接操作 C 函数，只要和 `PwmClient` 打交道。
-
-* `platform/timebase.hpp`
-
-  * 提供时间基工具（steady clock 等）。
-  * 目前主要用于：
-
-    * 控制循环的周期调度。
-    * 未来可用于和导航、IMU/DVL 日志对齐。
+* 安全层限斜率/越零保护是否触发
+* 控制器指令与最终下发 PWM 的偏差
 
 ---
 
-#### 4.5 `utils/` 通用工具层
+## 11. 开发路线（Roadmap）
 
-* `utils/config_loader.hpp`
-
-  * 负责从 YAML 加载配置，比如：
-
-    * PWM client 的 IP / 端口等参数。
-    * 控制器增益。
-  * 目前可以是简单封装，后面有需要再扩展。
-
----
-
-### 5. `src/` 源码实现层
-
-这一层是“真正跑起来的代码”。
-
-#### 5.1 入口与控制主循环
-
-* `src/main.cpp`
-
-  * 进程入口：
-
-    * 解析命令行（如后续需要）。
-    * 调用 `control_core::app_main(argc, argv)`。
-  * 新人如果只想“跑起来看效果”，看这个文件就够了。
-
-* `src/control_core/app_main.cpp`
-
-  * 负责把所有部件串起来：
-
-    * 加载配置。
-    * 创建 `PwmClient`。
-    * 创建 `InputProvider`（当前是 `TeleopInputProvider`）。
-    * 创建 `ManualController`。
-    * 构造 `ControlLoop`，（把以上组件都交给它）。
-    * 调用 `loop.run()`。
-  * 后续如果增加其他模式：
-
-    * 可以在这里决定用哪个 controller / input provider。
-
-* `src/control_core/control_loop.cpp`
-
-  * `ControlLoop::run()` 的具体实现：
-
-    * 固定频率调度（`loop_hz`）。
-    * 调 `input_->init()` 和每周期 `input_->poll(...)`。
-    * 调 `controller_->compute(...)` 得到 `ControlOutput`。
-    * 调 `pwm_.setTargets()` + `pwm_.step()`。
-    * 错误统计（连续 `step()` 失败次数）。
-    * 统一的 PWM 日志记录：
-
-      * 只要 `cfg_.enable_pwm_log=true`，无论 controller 是 manual/MPC/SMC，都会记录。
-      * 日志内容：时间戳 + 8 路 thruster_command。
+| 阶段 | 内容                              | 状态     |
+| -- | ------------------------------- | ------ |
+| 1  | ManualController + Teleop       | 已完成    |
+| 2  | 推力分配矩阵配置（`control_params.yaml`） | 已接入    |
+| 3  | 配置解析工具 `config_loader`          | 已接入    |
+| 4  | PWM 占空比日志记录（duty_pct）           | 已接入    |
+| 5  | 轨迹配置 `trajectory.yaml` 与插值模块    | 已实现骨架  |
+| 6  | PID 控制器（深度/姿态）                  | 进行中/预留 |
+| 7  | MPC/SMC 控制模式                    | 预留     |
 
 ---
 
-#### 5.2 控制器实现
+## 12. 新人阅读建议
 
-* `src/controllers/manual_controller.cpp`
+给新同事的推荐阅读顺序：
 
-  * 对应 `manual_controller.hpp` 的实现：
+1. `README.md` + `docs/pwm_control_architecture.md`
+   了解 ROV 控制栈整体结构与控制链路。
 
-    * 把 `ControlReference.dof_cmd` 映射到 `ControlOutput.thruster_command[8]`。
-    * 这里有详细注释说明当前推进器拓扑和 DOF 分解。
-  * 将来如果控制布局变化，只需要调整这里的组合逻辑。
+2. `include/control_core/control_types.hpp`
+   熟悉项目中的“统一控制语言”（状态 / 参考 / 输出）。
 
----
+3. `include/controllers/controller_base.hpp`
+   理解控制器接口约束。
 
-#### 5.3 IO 层实现
+4. `include/controllers/manual_controller.hpp` + `src/controllers/manual_controller.cpp`
+   了解当前 ROV 布局下 DOF → 8 推进器的映射方式。
 
-* `src/io/teleop_input.cpp`
+5. `include/io/input_provider.hpp` + `include/io/teleop_input.hpp` + `src/io/teleop_input.cpp`
+   理解键盘 Teleop 到 DOF 指令的转换逻辑。
 
-  * 实现 `TeleopInputProvider`：
+6. `include/platform/pwm_client.hpp` + `src/platform/pwm_client.cpp`
+   理解逻辑占空比如何通过安全层与 UDP 下发到 STM32。
 
-    * 启用/恢复终端 raw 模式。
-    * 非阻塞读取键盘。
-    * 调用 C 层 `pwm_teleop_handle_key()` 维护 DOF 状态。
-    * 将当前键盘 DOF 写入 `ControlReference.dof_cmd`。
+7. `src/control_core/control_loop.cpp` + `src/control_core/app_main.cpp`
+   查看完整控制循环和模块串联方式。
 
-* `src/io/teleop_keyboard.cpp`
+阅读完这条路径，基本可以独立：
 
-  * C 层或更底层的键盘处理实现（如果存在）：
-
-    * 具体键位映射和组合逻辑实现。
-    * 一般情况下，新人不用直接改这里，但可以当成参考。
-
----
-
-#### 5.4 平台适配实现
-
-* `src/platform/pwm_client.cpp`
-
-  * `PwmClient` 的具体行为实现：
-
-    * 调 C 接口 `pwm_ctrl_init(...)`、`pwm_ctrl_step()`。
-    * 调 `pwm_host_set_all_pct()` 下发到 STM32。
-    * 内部维护状态与错误信息。
-
-* `src/platform/timebase.cpp`
-
-  * 与 `timebase.hpp` 对应的实现。
-  * 负责封装 `std::chrono` 并提供统一接口。
+* 添加新的控制模式（PID/MPC）
+* 调整推力分配
+* 扩展输入通道（轨迹 / 上位机）
+* 理解并分析实验中的 PWM 日志数据
 
 ---
 
-## 新同事如何上手阅读代码？
+整个 `pwm_control_program` 的唯一职责：
 
-建议给新同事一个“推荐阅读路径”，大致如下：
+> 在 **控制算法** 和 **底层 PWM 安全层 + STM32** 之间，构建一个安全、可扩展、可调试的控制程序。
 
-1. 看 `README.md` 和 `docs/pwm_control_architecture.md`
-   明白整个控制栈在 ROV 项目中的位置。
+接下来，扩展控制器（PID / MPC / RL）、接轨导航状态、接轨轨迹规划，都可以在这一框架上自然演进。
 
-2. 看 `include/control_core/control_types.hpp`
-   搞清楚项目里“状态 / 参考 / 输出”的统一定义。
 
-3. 看 `include/controllers/controller_base.hpp` +
-   `include/controllers/manual_controller.hpp` +
-   `src/controllers/manual_controller.cpp`
-   理解：
-
-   * 控制器接口长什么样。
-   * 手动控制是如何 DOF → 8 推进器。
-
-4. 看 `include/io/input_provider.hpp` + `include/io/teleop_input.hpp` +
-   `src/io/teleop_input.cpp`
-   理解键盘如何变成 DOF 指令。
-
-5. 看 `include/platform/pwm_client.hpp` + `src/platform/pwm_client.cpp`
-   理解逻辑占空比如何走到安全层 + UDP + STM32。
-
-6. 最后看 `src/control_core/control_loop.cpp` + `src/control_core/app_main.cpp`
-   看完整的控制循环与模块串联逻辑。
-
-这样一圈下来，新人基本能掌握每个模块的“生态位”：谁负责算法、谁负责 IO、谁负责安全与下发、日志在哪里统一做、要加新控制器应该怎么接入。
-
-它已经不是简单的键盘控制程序，而是：
-
-### **一个可扩展、模块化、工程化的 ROV 控制框架。**
-
-你可以在此基础上继续发展复杂模式与控制算法，而不需要再改底层结构。
-
----
+```

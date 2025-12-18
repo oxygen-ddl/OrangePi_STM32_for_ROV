@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.o  -o gcs_client  libcomm_gcs_gcs.a libcomm_gcs.a -lpthread ../proto_gcs_build/libproto_gcs.a 

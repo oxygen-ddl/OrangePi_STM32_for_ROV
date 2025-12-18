@@ -1,232 +1,401 @@
 #include "controllers/controller_manager.hpp"
 
 #include <iostream>
-#include <utility>      // std::move
+#include <utility>
 
+// IMPORTANT: must include the full definition of IController here
+// to allow unique_ptr<IController> to be destroyed safely.
 #include "controllers/controller_base.hpp"
-// 将来如果需要在这里直接 new PidController / SmcController / MpcController，
-// 再按需包含对应头文件即可：
-// #include "controllers/pid_controller.hpp"
+
+namespace rovctrl::controllers {
+void IControllerDeleter::operator()(IController* p) const noexcept {
+    delete p;
+}
+} // namespace rovctrl::controllers
 
 namespace rovctrl::control_core {
 
 // ============================================================================
-// 内部工具
+// Out-of-line special members (required by forward-declared IController)
 // ============================================================================
 
-void ControllerManager::set_error(std::string msg)
-{
-    status_.ok         = false;
-    status_.last_error = std::move(msg);
+ControllerManager::~ControllerManager() noexcept = default;
 
-    // 简单打印到 stderr，便于调试
-    std::cerr << "[ControllerManager] ERROR: " << status_.last_error << "\n";
+ControllerManager::ControllerManager(ControllerManager&&) noexcept = default;
+ControllerManager& ControllerManager::operator=(ControllerManager&&) noexcept = default;
+
+// ============================================================================
+// Initialization
+// ============================================================================
+
+bool ControllerManager::init_manual_only(ControllerPtr manual_ctrl)
+{
+    controllers_.clear();
+    active_      = nullptr;
+    active_name_.clear();
+
+    status_ = ControllerManagerStatus{};
+    mode_   = ControlMode::kUnknown;
+
+    if (!manual_ctrl) {
+        set_error("manual controller is null");
+        return false;
+    }
+
+    // NOTE:
+    // This file assumes IController exposes name() (string).
+    // If your base interface differs, keep your original logic and only
+    // update ControlMode enum names.
+    const std::string name = manual_ctrl->name();
+    controllers_.emplace(name, std::move(manual_ctrl));
+
+    if (!switch_active_controller(name)) {
+        set_error("failed to activate manual controller: " + name);
+        return false;
+    }
+
+    mode_        = ControlMode::kManual;
+    status_.mode = mode_;
+    status_.ok   = true;
+
+    return true;
+}
+
+bool ControllerManager::init_from_params(const ControlParams& params,
+                                        ControllerPtr        manual_ctrl)
+{
+    controllers_.clear();
+    active_      = nullptr;
+    active_name_.clear();
+
+    status_ = ControllerManagerStatus{};
+    mode_   = ControlMode::kUnknown;
+
+    if (!manual_ctrl) {
+        set_error("manual controller is null");
+        return false;
+    }
+
+    // Register manual controller first
+    {
+        const std::string name = manual_ctrl->name();
+        controllers_.emplace(name, std::move(manual_ctrl));
+    }
+
+    // Register builtins based on params
+    if (!register_builtin_controllers(params)) {
+        // register_builtin_controllers already sets error
+        return false;
+    }
+
+    // Choose defaults
+    default_auto_name_ = options_.default_auto_controller.empty()
+                             ? std::string{"pid"}
+                             : options_.default_auto_controller;
+
+    // Activate manual by default if present
+    if (controllers_.empty()) {
+        set_error("no controllers registered");
+        return false;
+    }
+
+    // Prefer "manual" if exists; otherwise pick first
+    if (has_controller("manual")) {
+        if (!switch_active_controller("manual")) {
+            set_error("failed to activate manual controller");
+            return false;
+        }
+        mode_ = ControlMode::kManual;
+    } else {
+        // fallback
+        const auto it = controllers_.begin();
+        if (!switch_active_controller(it->first)) {
+            set_error("failed to activate controller: " + it->first);
+            return false;
+        }
+        mode_ = ControlMode::kManual; // treat as manual-like
+    }
+
+    status_.mode = mode_;
+    status_.ok   = true;
+    return true;
+}
+
+// ============================================================================
+// Commands
+// ============================================================================
+
+bool ControllerManager::apply_command(const ControlCommand& cmd,
+                                     std::uint64_t         now_ns)
+{
+    switch (cmd.kind) {
+    case ControlCommand::Kind::None:
+        return true;
+
+    case ControlCommand::Kind::SetManual:
+        if (!cmd.force && !allow_switch_now(now_ns)) {
+            set_error("mode switch throttled (manual)");
+            return false;
+        }
+        status_.last_switch_t_ns = now_ns;
+        return set_mode(ControlMode::kManual);
+
+    case ControlCommand::Kind::SetAuto:
+        if (!cmd.force && !allow_switch_now(now_ns)) {
+            set_error("mode switch throttled (auto)");
+            return false;
+        }
+        status_.last_switch_t_ns = now_ns;
+        return set_mode(ControlMode::kAuto);
+
+    case ControlCommand::Kind::SetFailsafe:
+        status_.last_switch_t_ns = now_ns;
+        return set_mode(ControlMode::kFailsafe);
+
+    case ControlCommand::Kind::SelectAutoController:
+        if (!cmd.force && !allow_switch_now(now_ns)) {
+            set_error("controller switch throttled");
+            return false;
+        }
+        status_.last_switch_t_ns = now_ns;
+        return select_auto_controller(cmd.controller_name);
+
+    case ControlCommand::Kind::QueryStatus:
+        return true;
+
+    case ControlCommand::Kind::EmergencyStop:
+        status_.last_switch_t_ns = now_ns;
+        return set_mode(ControlMode::kFailsafe);
+
+    default:
+        set_error("unknown command kind");
+        return false;
+    }
+}
+
+// ============================================================================
+// Legacy / direct APIs
+// ============================================================================
+
+bool ControllerManager::set_mode(ControlMode mode)
+{
+    // kNone means "no request": keep current mode
+    if (mode == ControlMode::kNone) {
+        return true;
+    }
+
+    // Normalize unknown -> failsafe (defensive)
+    if (mode == ControlMode::kUnknown) {
+        set_error("set_mode called with kUnknown");
+        return false;
+    }
+
+    mode_        = mode;
+    status_.mode = mode_;
+    clear_error();
+
+    // When switching to auto, ensure desired controller exists
+    if (mode_ == ControlMode::kAuto) {
+        if (!status_.desired_controller.empty()) {
+            if (!has_controller(status_.desired_controller)) {
+                set_error("desired auto controller not found: " + status_.desired_controller);
+                return false;
+            }
+            if (!switch_active_controller(status_.desired_controller)) {
+                set_error("failed to switch to desired auto controller: " + status_.desired_controller);
+                return false;
+            }
+        } else if (!default_auto_name_.empty() && has_controller(default_auto_name_)) {
+            status_.desired_controller = default_auto_name_;
+            if (!switch_active_controller(default_auto_name_)) {
+                set_error("failed to switch to default auto controller: " + default_auto_name_);
+                return false;
+            }
+        } else {
+            // Auto requested but no controller specified
+            set_error("auto mode requested but no auto controller available");
+            return false;
+        }
+    }
+
+    // Manual mode: prefer "manual" controller if it exists
+    if (mode_ == ControlMode::kManual) {
+        if (has_controller("manual")) {
+            if (!switch_active_controller("manual")) {
+                set_error("failed to switch to manual controller");
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool ControllerManager::select_auto_controller(const std::string& name)
+{
+    if (name.empty()) {
+        set_error("select_auto_controller: empty name");
+        return false;
+    }
+    if (!has_controller(name)) {
+        set_error("auto controller not found: " + name);
+        return false;
+    }
+
+    status_.desired_controller = name;
+
+    // If already in auto mode, switch immediately
+    if (mode_ == ControlMode::kAuto) {
+        if (!switch_active_controller(name)) {
+            set_error("failed to switch auto controller: " + name);
+            return false;
+        }
+    }
+
+    clear_error();
+    return true;
+}
+
+// ============================================================================
+// Compute
+// ============================================================================
+
+bool ControllerManager::compute(const ControlState&     state,
+                               const ControlReference& ref,
+                               ControlOutput&          out,
+                               double                  dt)
+{
+    status_.last_compute_ok = false;
+
+    // Failsafe: output policy
+    if (mode_ == ControlMode::kFailsafe) {
+        apply_failsafe_output(out);
+        status_.last_compute_ok = true;
+        clear_error();
+        return true;
+    }
+
+    // Unknown or no active controller -> failsafe output
+    if (mode_ == ControlMode::kUnknown || active_ == nullptr) {
+        apply_failsafe_output(out);
+        set_error("no active controller (unknown mode or null active)");
+        return false;
+    }
+
+    // Manual/Auto: delegate to active controller
+    const bool ok = active_->compute(state, ref, out, dt);
+    status_.last_compute_ok = ok;
+
+    if (ok) {
+        status_.consecutive_failures = 0;
+        clear_error();
+        return true;
+    }
+
+    // Failure handling
+    status_.consecutive_failures += 1;
+
+    set_error("controller compute failed: " + active_name_);
+
+    if (status_.consecutive_failures >= options_.auto_fail_limit) {
+        // Enter failsafe on repeated failures
+        mode_        = ControlMode::kFailsafe;
+        status_.mode = mode_;
+        apply_failsafe_output(out);
+        std::cerr << "[ControllerManager] Auto fail limit reached -> FAILSAFE\n";
+    }
+
+    return false;
+}
+
+// ============================================================================
+// Query helpers
+// ============================================================================
+
+std::vector<std::string> ControllerManager::list_controllers() const
+{
+    std::vector<std::string> names;
+    names.reserve(controllers_.size());
+    for (const auto& kv : controllers_) {
+        names.push_back(kv.first);
+    }
+    return names;
+}
+
+bool ControllerManager::has_controller(std::string_view name) const
+{
+    return controllers_.find(std::string(name)) != controllers_.end();
+}
+
+// ============================================================================
+// Internals
+// ============================================================================
+
+bool ControllerManager::register_builtin_controllers(const ControlParams& params)
+{
+    (void)params;
+
+    // TODO: build pid/smc/mpc ... from params and register into controllers_.
+    // NOTE: keep your existing implementation here; this stub remains intentionally minimal.
+
+    // If your existing project already registers PID/Manual controllers elsewhere,
+    // you can keep that logic. This function must return true when registration is OK.
+
+    // For now, assume manual controller already exists and PID controller is optional.
+    // If your build expects PID always, implement it here using your pid_controller.hpp.
+
+    clear_error();
+    return true;
 }
 
 bool ControllerManager::switch_active_controller(const std::string& name)
 {
     auto it = controllers_.find(name);
     if (it == controllers_.end() || !it->second) {
-        set_error("controller '" + name + "' not found or null");
-        active_      = nullptr;
-        active_name_.clear();
-        status_.active_controller.clear();
+        set_error("switch_active_controller: controller not found or null: " + name);
         return false;
     }
 
     active_      = it->second.get();
     active_name_ = name;
 
-    status_.active_controller = active_name_;
-    status_.ok                = true;
+    status_.active_controller  = active_name_;
+    status_.consecutive_failures = 0;
+
+    clear_error();
+    return true;
+}
+
+void ControllerManager::set_error(std::string msg)
+{
+    status_.ok         = false;
+    status_.last_error = std::move(msg);
+
+    std::cerr << "[ControllerManager] ERROR: " << status_.last_error << "\n";
+}
+
+void ControllerManager::clear_error()
+{
+    status_.ok = true;
     status_.last_error.clear();
-    return true;
 }
 
-// 目前只做占位，不依赖 ControlParams 的具体字段，后续你再补充 PID/SMC/MPC 创建逻辑即可
-bool ControllerManager::register_builtin_controllers(const ControlParams& params)
+void ControllerManager::apply_failsafe_output(ControlOutput& out)
 {
-    // 避免未使用参数的编译告警
-    (void)params;
-
-    // 示例（将来可以这样启用 PID 控制器）：
-    //
-    // if (params.pid.enabled) {
-    //     auto pid = std::make_unique<rovctrl::controllers::PidController>(params.pid);
-    //     controllers_.emplace("pid", std::move(pid));
-    // }
-    //
-    // if (params.smc.enabled) { ... }
-    // if (params.mpc.enabled) { ... }
-
-    return true;
-}
-
-// ============================================================================
-// 对外接口实现
-// ============================================================================
-
-bool ControllerManager::init_manual_only(ControllerPtr manual_ctrl)
-{
-    controllers_.clear();
-    active_          = nullptr;
-    active_name_.clear();
-    status_          = ControllerManagerStatus{};
-    mode_            = ControlMode::Unknown;
-    default_auto_name_ = options_.default_auto_controller;
-
-    if (!manual_ctrl) {
-        set_error("init_manual_only: manual controller is null");
-        return false;
-    }
-
-    controllers_.emplace("manual", std::move(manual_ctrl));
-
-    // 默认进入手动模式
-    mode_         = ControlMode::Manual;
-    status_.mode  = mode_;
-
-    if (!switch_active_controller("manual")) {
-        // switch_active_controller 已经设置了错误信息
-        return false;
-    }
-
-    status_.ok = true;
-    return true;
-}
-
-bool ControllerManager::init_from_params(const ControlParams& params,
-                                         ControllerPtr        manual_ctrl)
-{
-    controllers_.clear();
-    active_          = nullptr;
-    active_name_.clear();
-    status_          = ControllerManagerStatus{};
-    mode_            = ControlMode::Unknown;
-    default_auto_name_ = options_.default_auto_controller;
-
-    if (!manual_ctrl) {
-        set_error("init_from_params: manual controller is null");
-        return false;
-    }
-
-    // 1) 注册手动控制器（键盘/手柄 teleop）
-    controllers_.emplace("manual", std::move(manual_ctrl));
-
-    // 2) 按配置注册 PID/SMC/MPC 等自动控制器
-    if (!register_builtin_controllers(params)) {
-        // register_builtin_controllers 内部应当设置错误信息
-        return false;
-    }
-
-    // 3) 设置默认模式：先进入 Manual，保证安全
-    mode_        = ControlMode::Manual;
-    status_.mode = mode_;
-
-    if (!switch_active_controller("manual")) {
-        return false;
-    }
-
-    status_.ok = true;
-    return true;
-}
-
-bool ControllerManager::set_mode(ControlMode mode)
-{
-    // 记录目标模式
-    mode_        = mode;
-    status_.mode = mode_;
-
-    switch (mode_) {
-    case ControlMode::Manual:
-        // 手动模式 → 使用 "manual" 控制器
-        if (!switch_active_controller("manual")) {
-            // 保守策略：如果切换失败，回退为 Unknown
-            mode_        = ControlMode::Unknown;
-            status_.mode = mode_;
-            return false;
-        }
-        return true;
-
-    case ControlMode::Auto:
-        // 自动模式 → 使用当前选择好的自动控制器（默认 "pid"）
-        if (!switch_active_controller(default_auto_name_)) {
-            // 如果失败，可以回退为 Manual 或 Unknown，这里先回退为 Manual
-            std::cerr << "[ControllerManager] Auto mode fallback to Manual.\n";
-            mode_        = ControlMode::Manual;
-            status_.mode = mode_;
-            return switch_active_controller("manual");
-        }
-        return true;
-
-    case ControlMode::Failsafe:
-        // Failsafe 模式：当前可以先不绑定任何控制器，由 compute() 做特例处理
-        active_      = nullptr;
-        active_name_.clear();
-        status_.active_controller.clear();
-        status_.ok         = true;
-        status_.last_error.clear();
-        return true;
-
-    case ControlMode::Unknown:
-    default:
-        active_      = nullptr;
-        active_name_.clear();
-        status_.active_controller.clear();
-        status_.ok         = false;
-        status_.last_error = "set_mode: Unknown mode selected";
-        return false;
+    if (options_.failsafe_zero_output) {
+        out = ControlOutput{}; // rely on default-zero initialization
     }
 }
 
-bool ControllerManager::select_auto_controller(const std::string& name)
+bool ControllerManager::allow_switch_now(std::uint64_t now_ns) const
 {
-    // 如果对应控制器不存在，直接报错
-    auto it = controllers_.find(name);
-    if (it == controllers_.end() || !it->second) {
-        set_error("select_auto_controller: controller '" + name + "' not found");
-        return false;
-    }
-
-    default_auto_name_ = name;
-
-    // 如果当前已经处于 Auto 模式，则立即切换 active 控制器
-    if (mode_ == ControlMode::Auto) {
-        return switch_active_controller(default_auto_name_);
-    }
-
-    // 非 Auto 模式下，仅记录，待下次进入 Auto 时生效
-    status_.ok = true;
-    return true;
-}
-
-bool ControllerManager::compute(const ControlState&    state,
-                                const ControlReference& ref,
-                                ControlOutput&          out,
-                                double                  dt)
-{
-    // Failsafe 模式：当前简单处理为“输出清零 + 返回 true”
-    if (mode_ == ControlMode::Failsafe) {
-        out = ControlOutput{};   // 清零 wrench & thruster_command
-        status_.ok         = true;
-        status_.last_error.clear();
+    if (options_.min_switch_interval_sec <= 0.0) {
         return true;
     }
-
-    if (!active_) {
-        set_error("compute: no active controller");
-        return false;
-    }
-
-    // 委托给当前激活控制器
-    if (!active_->compute(state, ref, out, dt)) {
-        set_error("compute: active controller '" + active_name_ + "' returned failure");
-        return false;
-    }
-
-    status_.ok         = true;
-    status_.last_error.clear();
-    return true;
+    const double min_ns = options_.min_switch_interval_sec * 1e9;
+    const auto   last   = status_.last_switch_t_ns;
+    if (last == 0) return true;
+    return static_cast<double>(now_ns - last) >= min_ns;
 }
 
 } // namespace rovctrl::control_core

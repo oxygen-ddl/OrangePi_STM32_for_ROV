@@ -1,4 +1,3 @@
-那我直接给你一份“合并整理 + 加上新特性（config_loader / 轨迹 / PWM 日志）”后的 README 草稿，你可以直接覆盖 `README.md` 用：
 
 ````markdown
 # ROV 控制程序（pwm_control_program）

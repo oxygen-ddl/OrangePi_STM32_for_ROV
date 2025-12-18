@@ -15,7 +15,7 @@ ManualController::ManualController(const ManualControllerConfig& cfg)
 {}
 
 // 统一限幅到 [-max_cmd_abs, max_cmd_abs]
-void ManualController::clamp_output(ControlOutput& out) const
+void ManualController::clamp_output(rovctrl::control_core::ControlOutput& out) const noexcept
 {
     const double limit = (cfg_.max_cmd_abs > 0.0) ? cfg_.max_cmd_abs : 1.0;
     for (auto& v : out.thruster_command) {

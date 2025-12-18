@@ -1,171 +1,236 @@
 
 ---
 
-# 🌊 Underwater ROV PWM Control System
+```md
+# 🌊 Underwater ROV Control System  
+## OrangePi + STM32 双层架构推进器控制与上位机通信系统
 
-### 双机架构（OrangePi + STM32）水下机器人推进器控制系统
+本仓库实现了一套**面向真实水下机器人（ROV）**的工程级控制系统，  
+以 **安全、可扩展、可验证** 为核心设计目标，支持：
 
-为 MPC / SMC / RL 等高层控制器提供可靠、可验证的底层推进器驱动基础。
-
----
-
-# 1. 项目简介
-
-本系统面向**水下机器人（ROV/AUV）**的低层推进器控制，提供：
-
-* 高可靠性的 **8 通道 PWM 输出链路**
-* 覆盖全流程的 **安全机制**
-* 可组合的 **手动/自动控制架构**
-* 适配**高层控制器（PID / MPC / NMPC / RL）**使用
-
-整个工程分为两个子系统：
-
-```
-OrangePi （上位机）           STM32 （下位机）
---------------------------------------------------------------
-pwm_control_program       <-->      orangepi_send
-控制逻辑 / 输入层 / 安全层           PWM 执行 / 心跳监控 / 协议解析
-```
-
-系统保证**不论上层控制算法是否成熟，推进器永远处于安全状态**。
+- 多推进器（8 通道）安全 PWM 输出
+- 多输入源（键盘 / GCS / 自动算法）仲裁
+- 控制模式管理（Manual / Auto / Failsafe）
+- 上位机（GCS）远程控制与状态遥测
+- 面向 MPC / RL / 学术研究的控制算法接入
 
 ---
 
-# 2. 系统架构总览
+## 1. 项目整体定位
 
-## 2.1 目录结构（大项目层级）
+> **这是一个“控制中枢型系统”，而不是单一控制算法工程。**
+
+系统将高风险的水下推进器控制问题，拆分为三层明确职责：
 
 ```
+
+┌─────────────────────────────────────────┐
+│              GCS / 算法层                │
+│   人机交互 / MPC / RL / 监控与记录        │
+└───────────────────▲─────────────────────┘
+│ UDP / Telemetry
+┌───────────────────┴─────────────────────┐
+│           OrangePi 控制中枢               │
+│ pwm_control_program                      │
+│ 多输入仲裁 / 安全裁决 / 控制器管理         │
+└───────────────────▲─────────────────────┘
+│ PWM Frame
+┌───────────────────┴─────────────────────┐
+│             STM32 执行层                  │
+│ orangepi_send                             │
+│ 实时 PWM 输出 / 硬件级安全 / 心跳监控      │
+└─────────────────────────────────────────┘
+
+```
+
+---
+
+## 2. 仓库结构总览
+
+```
+
 OrangePi_STM32_for_ROV/
 │
-├── orangepi_send/                ← STM32 通信代理与 PWM 底层服务（C）
-│     ├── include/libpwm_host.h
-│     ├── include/pwm_control.h
-│     └── build/libpwm_host.a     ← 输出静态库
+├── pwm_control_program/      ← OrangePi 侧控制中枢（C++）
+││   ├── control_core/        ← 控制循环 / 安全裁决
+││   ├── controllers/         ← Manual / PID / (MPC/RL 扩展)
+││   ├── io/
+││   │   ├── input/           ← Teleop / GCS / 多输入仲裁
+││   │   ├── gcs/             ← GCS 协议 / 会话 / 遥测
+││   │   ├── nav/             ← 导航状态订阅接口
+││   │   └── log/             ← PWM / 控制日志
+││   ├── platform/            ← PwmClient / 时间基准
+││   ├── config/              ← YAML 参数文件
+││   └── docs/                ← 详细设计文档
 │
-├── pwm_control_program/          ← PWM 控制层（C++）
-│     ├── include/
-│     │     ├── control_core/     ← 控制循环、数据结构
-│     │     ├── controllers/      ← ManualController/MPC Controller
-│     │     ├── io/               ← 键盘输入 TeleopInput
-│     │     ├── platform/         ← PwmClient、安全层封装
-│     │     └── utils/            ← 配置/日志工具（可扩展）
-│     ├── src/
-│     └── config/                 ← YAML 参数（pwm_client.yaml 等）
+├── orangepi_send/            ← STM32 通信代理与 PWM 执行层（C/C++）
+││   ├── libpwm_host           ← OrangePi ↔ STM32 通信库
+││   ├── pwm_control           ← STM32 PWM 输出与安全逻辑
+││   └── protocol_*            ← 协议 / CRC / 帧构造
 │
-└── CMakeLists.txt                ← 顶层构建入口（统一构建两个项目）
-```
-
----
-
-# 3. 运行链路
-
-## 3.1 控制数据流（核心）
+├── comm_gcs/                 ← 通用 UDP 通信工具库（可复用）
+│
+├── docs/                     ← 系统级设计文档 / UML
+│
+└── CMakeLists.txt            ← 顶层构建入口
 
 ```
-[ Teleop / 上位机控制算法 ]  →  InputProvider
-          ↓
-     ControlReference      （surge / sway / heave / yaw / roll / pitch）
-          ↓
-     ControllerBase        （Manual / MPC / RL / SMC）
-          ↓
-     ControlOutput         （8 通道归一化 thruster_cmd）
-          ↓
-     PwmClient             （限斜率 + AB 分组 + 安全策略）
-          ↓
-     libpwm_host           （UDP 通讯层）
-          ↓
-     STM32 pwm_control     （实际 PWM 输出）
+
+---
+
+## 3. pwm_control_program（OrangePi 控制中枢）
+
+### 3.1 核心职责
+
+`pwm_control_program` 是**整个系统的“大脑”**，负责：
+
+- 接收并仲裁多种控制输入
+- 进行安全检查与模式裁决
+- 调用具体控制器生成推进器指令
+- 驱动 STM32 执行 PWM
+- 向 GCS 回传系统状态（Telemetry）
+
+---
+
+### 3.2 控制数据流（真实实现）
+
 ```
 
----
+Teleop / GCS / 算法
+↓
+InputProvider
+↓
+MultiInputProvider     ← 多输入仲裁
+↓
+ControlIntent          ← 统一控制意图
+↓
+ControlGuard           ← TTL / ESTOP / 模式裁决
+↓
+ControllerManager
+↓
+Controller (Manual / PID / ...)
+↓
+ControlOutput
+↓
+ThrusterAllocation
+↓
+PwmClient
+↓
+STM32 PWM 输出
 
-# 4. 功能模块说明
-
-## 4.1 上位机控制程序（pwm_control_program）
-
-### 控制核心（control_core）
-
-* 固定周期控制循环（ControlLoop）
-* 管理输入 Provider、控制器、PWM 客户端
-* 负责与安全层协同执行限斜率、组交替、心跳
-
-### 控制器层（controllers）
-
-* ManualController（键盘遥控）
-* MPCController（未来扩展）
-* RLController（未来扩展）
-* 所有控制器统一输出 8 通道 thruster_cmd [-1,1]
-
-### 输入层（io）
-
-* TeleopInputProvider：键盘输入，映射到 DOF（6 个自由度）
-
-### 平台层（platform）
-
-* PwmClient:
-
-  * setTargets()
-  * step()（限斜率 + AB 分组 + 心跳前置检查）
-  * emergencyStop()
-  * status 管理
+````
 
 ---
 
-# 5. 安全机制
+### 3.3 关键设计一：ControlIntent（统一意图模型）
 
-系统内建多重硬件保护策略，用于应对水下高风险环境。
+所有控制输入最终都被转换为 `ControlIntent`，其包含：
 
-### 1. 限斜率保护（slope limit）
+- 6 自由度控制（surge/sway/heave/roll/pitch/yaw）
+- 模式请求（Manual / Auto / Failsafe）
+- ARM / DISARM
+- ESTOP / CLEAR
+- 时间戳、序号、TTL（防止陈旧输入）
 
-* 每周期最大变化约 **0.2–0.5%**
-* 避免电流瞬间拉高和推进器反向冲击
-
-### 2. AB 分组输出
-
-* CH1–4、CH5–8 分两组交替更新
-* 防止 STM32 同时处理 8 路导致电源尖峰
-
-### 3. 中位反跳保护（deadband crossing protection）
-
-* 禁止 PWM 直接从“前进”跳到“后退”
-* 必须先经过中位（7.5%）
-
-### 4. 心跳与超时保活
-
-* 上位机 >500 ms 无心跳
-* 下位机自动回中位 + 上位机应激处理
-
-### 5. CRC 校验和数据完整性
-
-* 所有帧均带 CRC16，丢包/损坏数据自动丢弃
-
-### 6. 急停（Emergency Stop）
-
-* 平滑归中，避免水下推进器瞬停造成姿态失稳
+> **ControlLoop 不关心“输入来自哪里”，只关心 Intent 是否安全、有效。**
 
 ---
 
-# 6. 构建方式（CMake）
+### 3.4 关键设计二：ControlGuard（软件安全核心）
+
+`ControlGuard` 是系统的软件级安全裁决器，负责：
+
+- 输入超时检测（TTL / stale）
+- 急停（ESTOP）锁存与解除
+- 模式切换合法性判断
+- 异常情况下自动降级到 Failsafe
+
+这是系统**允许 GCS 远程控制推进器**的前提。
+
+---
+
+### 3.5 输入系统（io/input）
+
+| 模块 | 功能 |
+|----|----|
+| TeleopInputProvider | 键盘遥控（调试 / 无 GCS 场景） |
+| GcsInputProvider | 通过 UDP 接收 GCS 控制命令 |
+| MultiInputProvider | 多输入源仲裁（可配置 GCS 优先） |
+
+安全类指令（ESTOP / EXIT）取并集，  
+控制类指令以 primary 输入为准。
+
+---
+
+### 3.6 GCS 通信与遥测（io/gcs）
+
+系统已实现完整的 OrangePi ↔ GCS 通信链路：
+
+- UDP 会话管理（GcsSession）
+- 控制输入解析（GcsInputAdapter）
+- 状态遥测打包（GcsTelemetryAdapter）
+
+GCS 可实时获取：
+
+- 当前控制模式
+- 是否 ESTOP
+- 活跃控制器
+- 计算失败次数
+- 链路状态
+
+---
+
+## 4. orangepi_send（STM32 PWM 执行层）
+
+该模块运行于 STM32，提供：
+
+- 8 通道 PWM 实时输出
+- 硬件级限斜率
+- AB 分组更新（CH1–4 / CH5–8）
+- 心跳超时自动归中
+- CRC 校验与帧完整性检查
+
+> STM32 **永远不信任上位机**，这是系统安全的最后一道防线。
+
+---
+
+## 5. 多层安全机制总结
+
+### 硬件层（STM32）
+- PWM 限斜率
+- AB 分组输出
+- 心跳超时保护
+- 中位反跳保护
+
+### 软件层（OrangePi）
+- ControlGuard 安全裁决
+- 输入 TTL / stale 检测
+- 控制器失败自动降级
+
+### 通信层
+- CRC 校验
+- 会话状态管理
+- 双向遥测与确认
+
+---
+
+## 6. 构建与运行
+
+### 6.1 依赖
 ```bash
-sudo apt-get install libyaml-cpp-dev
-```
-顶层统一构建：
+sudo apt-get install -y libyaml-cpp-dev
+````
+
+### 6.2 构建
 
 ```bash
-mkdir build && cd build
+mkdir build
+cd build
 cmake ..
 make -j4
 ```
 
-输出内容：
-
-```
-orangepi_send/libpwm_host.a
-pwm_control_program/pwm_control_program
-```
-
-运行：
+### 6.3 运行
 
 ```bash
 ./pwm_control_program/pwm_control_program
@@ -173,85 +238,44 @@ pwm_control_program/pwm_control_program
 
 ---
 
-# 7. 测试流程（实验室验证）
+## 7. 适用场景
 
-### 1. 单通道测试（阻塞式）
-
-按键：`1~8`
-
-验证：
-
-* 占空比从 7.5% → 8% → 回中位
-* 电流变化平滑无冲击
-
-### 2. 多通道混合动作
-
-按键组合：
-
-* `WASD` 平面运动
-* `QE` 航向旋转
-* `GH` 垂直控制
-* `RT / FV` 姿态测试
-
-验证：
-
-* AB 分组正常工作
-* 限斜率限制生效
-* 无反向跳跃
-
-### 3. 通信错误模拟
-
-* 拔掉网线
-* 修改 IP/端口
-* 观察“心跳超时→自动回中”是否正常
+* 科研型 ROV / AUV
+* MPC / RL 控制算法验证
+* 水槽 / 实海实验
+* 高风险推进器平台
 
 ---
 
-# 8. 工程价值
+## 8. 非本系统职责（明确边界）
 
-### 1. 可插拔架构
-
-你可以轻松插入：
-
-* 自己的 MPC 控制器
-* LSTM 控制器
-* RL 策略
-* 外部定深/定姿算法
-
-### 2. 工业级安全基础设施
-
-适用于：
-
-* 科研型 ROV
-* 工业无人船/水下机器人
-* 多推进器平台
-
-### 3. 已验证的稳定性
-
-在多个真实实验中通过验证，包括：
-
-* 水槽实验
-
-* 长时间运行稳定性测试
+* ❌ 不负责导航状态估计（IMU/DVL/ESKF）
+* ❌ 不负责路径规划
+* ❌ 不直接驱动 GPIO / PWM 硬件
+* ❌ 不绑定任何单一控制算法
 
 ---
 
-# 9. 未来扩展
+## 9. 未来扩展方向
 
-* [ ] MPC 控制器接入（位置/姿态跟踪）
-* [ ] ROV 运动学 + 动力学模型
-* [ ] IMU/DVL/深度计融合
-* [ ] USBL 定位与闭环控制
-* [ ] 日志系统（状态机时间戳）
-* [ ] WebUI 上位机控制界面
-* [ ] AUV 自主控制模块
+* MPC / NMPC 控制器接入
+* 强化学习（RL）策略部署
+* IMU / DVL / USBL 融合导航
+* Web / Qt GCS 客户端
+* 实验数据自动记录与回放
 
 ---
 
-# 10. 致谢
+## 10. 作者与致谢
 
-本系统由 **wys + 阿智（AI 伙伴）**
-在大量硬件调试、算法迭代和工程验证中共同打造。
+本系统由 **wys** 主导设计与实现，
+并在架构设计、工程审查与问题定位过程中，
+由 **阿智（AI 工程伙伴）** 深度协作完成。
+
+> 目标不是“跑起来”，
+> 而是构建一套 **可以长期演进的水下机器人控制系统**。
+
+```
 
 ---
 

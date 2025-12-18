@@ -6,12 +6,10 @@
 #include <iosfwd>
 #include <string>
 
+#include "platform/pwm_client.hpp"
+
 namespace rovctrl {
 
-namespace platform {
-    // 在 platform/pwm_client.hpp 中定义
-    struct PwmClientConfig;
-}
 
 namespace control_core {
     // 在 control_core/thruster_allocation.hpp 中定义
@@ -58,7 +56,7 @@ bool resolve_config_path(const std::string& cli_opt,
  * 专门针对 pwm_client.yaml 的路径解析：
  *
  * 约定：
- *   - 命令行参数：--config <path>  → 传入 cli_opt
+ *   - 命令行参数：--pwm-config <path>  → 传入 cli_opt
  *   - 环境变量： PWM_CLIENT_CONFIG
  *   - 相对 exe_dir 的候选路径：
  *        1) exe_dir / "config/pwm_client.yaml"
@@ -90,7 +88,7 @@ bool resolve_control_config_path(const std::string& cli_opt,
  * 专门针对 trajectory.yaml 的路径解析：
  *
  * 约定：
- *   - 建议未来命令行参数：--traj-config <path>  → 传入 cli_opt
+ *   - 命令行参数：--traj-config <path>  → 传入 cli_opt
  *   - 环境变量： ROV_TRAJECTORY_CONFIG
  *   - 相对 exe_dir 的候选路径：
  *        1) exe_dir / "config/trajectory.yaml"
@@ -104,6 +102,23 @@ bool resolve_trajectory_config_path(const std::string& cli_opt,
                                     std::ostream&      log);
 
 /**
+ * 专门针对 alloc.yaml（推力分配配置）的路径解析：
+ *
+ * 约定：
+ *   - 命令行参数：--alloc-config <path>  → 传入 cli_opt
+ *   - 环境变量： ROV_ALLOC_CONFIG
+ *   - 相对 exe_dir 的候选路径：
+ *        1) exe_dir / "config/alloc.yaml"
+ *        2) exe_dir / "../../pwm_control_program/config/alloc.yaml"
+ *
+ * 注意：这里不负责真正加载 YAML，只负责“定位文件路径”。
+ */
+bool resolve_alloc_config_path(const std::string& cli_opt,
+                               const char*        argv0,
+                               fs::path&          out_path,
+                               std::ostream&      log);
+
+/**
  * 从 pwm_client.yaml 加载底层通信 / 安全层配置。
  *
  * 参数：
@@ -115,26 +130,46 @@ bool resolve_trajectory_config_path(const std::string& cli_opt,
  *   - true  : 加载成功
  *   - false : 加载失败（结构体内容保持调用前或部分更新，调用方应决定是否继续）
  */
-bool load_pwm_client_config(const fs::path&         path,
+bool load_pwm_client_config(const fs::path&                 path,
                             rovctrl::platform::PwmClientConfig& cfg,
-                            std::ostream&           log);
+                            std::ostream&                   log);
 
 /**
- * 从 control_params.yaml 加载推力分配 / 控制相关参数。
+ * 从 alloc.yaml 加载推力分配（Thruster Allocation）配置。
+ *
+ * YAML 顶层结构建议如下（简化示意）：
+ *
+ *   version: 1
+ *   thrusters:
+ *     count: 8
+ *     order: [P5, P6, ...]
+ *     allocation_matrix:
+ *       rows: [Fx, Fy, Fz, Mx, My, Mz]
+ *       data: [[...8...], ...]     # 6 行
+ *       active_rows: [Fx, Fy, Fz, Mz]
+ *     limits:
+ *       norm_min: -1.0
+ *       norm_max:  1.0
+ *       wrench_limits: { Fx_min:..., Fx_max:..., ... }
+ *       norm_slew_rate: { enabled: true, max_delta_per_step: 0.05 }
+ *     solver:
+ *       method: pinv
+ *       svd_epsilon: 1e-6
+ *       thruster_weights: [1,1,1,1,1,1,1,1]
  *
  * 参数：
- *   - path : 已解析好的 control_params.yaml 路径
- *   - cfg  : 输出 ThrusterAllocationConfig
+ *   - path : 已解析好的 alloc.yaml 路径
+ *   - cfg  : 输出 ThrusterAllocationConfig（结构体内部默认值可作为缺省回退）
  *   - log  : 日志输出流
  *
  * 返回值：
  *   - true  : 加载成功
- *   - false : 加载失败
+ *   - false : 加载失败（调用方应决定是否退出）
  */
 bool load_thruster_allocation_config(
-    const fs::path&                         path,
-    rovctrl::control_core::ThrusterAllocationConfig& cfg,
-    std::ostream&                           log);
+    const fs::path&                                      path,
+    rovctrl::control_core::ThrusterAllocationConfig&     cfg,
+    std::ostream&                                        log);
 
 /**
  * 从 trajectory.yaml 加载轨迹配置（预留接口）。

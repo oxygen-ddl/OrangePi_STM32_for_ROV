@@ -1,16 +1,6 @@
 /**
  * @file   control_loop.cpp
- * @brief  控制主循环实现
- *
- * 负责周期性执行以下步骤：
- *   1. 处理外部停止标志；
- *   2. 固定周期调度（基于 steady_clock）；
- *   3. 从 InputProvider 读取当前控制参考与状态；
- *   4. 从导航共享内存订阅最新 NavState（如可用）；
- *   5. 调用控制器计算控制输出（body wrench / thruster command）；
- *   6. 如有需要，调用推力分配模块将 body wrench 映射为 8 通道推进器指令；
- *   7. 通过 PwmClient 下发 PWM（含安全层 step）；
- *   8. 记录 PWM 日志（可配置启用）。
+ * @brief  控制主循环实现（ControlIntent + Guard 仲裁版 / Path A）
  */
 
 #include "control_core/control_loop.hpp"
@@ -20,279 +10,446 @@
 #include <cstdint>
 #include <iostream>
 #include <thread>
+#include <utility>
+
+// cpp 内部依赖：导航订阅器 + NavState
+#include "io/nav/nav_state_subscriber.hpp"
+#include "shared/msg/nav_state.hpp"
+
+// 日志实现（cpp 内部使用，不透传到头文件）
+#include "io/log/pwm_logger.hpp"
+
+// 兜底：若 ControllerManager 析构仍需完整类型
+#include "controllers/controller_base.hpp"
+
+// 统一时间基
+#include "platform/timebase.hpp"
 
 namespace rovctrl::control_core {
 
 using clock      = std::chrono::steady_clock;
 using duration_d = std::chrono::duration<double>;
 
+namespace {
+
+// 统一：用项目 timebase（避免重复定义 now_mono_ns）
+inline std::uint64_t now_mono_ns()
+{
+    return static_cast<std::uint64_t>(rovctrl::platform::timebase::now_ns());
+}
+
+} // namespace
+
 // ============================================================================
-// 构造函数
+// NavSub (PIMPL) —— 只在 .cpp 依赖 shared/msg 与共享内存订阅实现
+// ============================================================================
+
+struct ControlLoop::NavSub {
+    rovctrl::io::NavStateSubscriber sub{};
+    std::string shm_name{"/rov_nav_state_v1"};
+
+    bool init() { return sub.init(shm_name); }
+    bool ok() const noexcept { return sub.ok(); }
+
+    bool read_latest(shared::msg::NavState& out) const { return sub.read_latest(out); }
+};
+
+// ============================================================================
+// PwmLog (PIMPL) —— ControlLoop::PwmLog 抽象接口的具体实现
+// ============================================================================
+
+namespace {
+
+class PwmLogImpl final : public ControlLoop::PwmLog {
+public:
+    bool init(const std::string& root_dir,
+              Mode               mode,
+              const std::string& prefix) override
+    {
+        const rovctrl::io::PwmLogger::Mode m =
+            (mode == Mode::AppliedOnly) ? rovctrl::io::PwmLogger::Mode::AppliedOnly
+                                        : rovctrl::io::PwmLogger::Mode::CmdAndApplied;
+
+        return logger_.init(root_dir, m, prefix);
+    }
+
+    bool is_open() const noexcept override { return logger_.is_open(); }
+
+    void logApplied(double t_s,
+                    const std::array<float, 8>& applied) override
+    {
+        logger_.logApplied(t_s, applied);
+    }
+
+    void logCmdAndApplied(double t_s,
+                          const std::array<float, 8>& cmd,
+                          const std::array<float, 8>& applied) override
+    {
+        logger_.logCmdAndApplied(t_s, cmd, applied);
+    }
+
+    void close() noexcept override
+    {
+        // 如果你的 rovctrl::io::PwmLogger 没有 close()，可以留空；
+        // 其 std::ofstream 在析构时会自动关闭。
+    }
+
+private:
+    rovctrl::io::PwmLogger logger_;
+};
+
+} // namespace
+
+// ============================================================================
+// 构造 / 析构
 // ============================================================================
 
 ControlLoop::ControlLoop(const Config&                 cfg,
                          rovctrl::platform::PwmClient& pwm,
                          rovctrl::io::InputProviderPtr input,
-                         ControllerPtr                 controller,
+                         ControllerManager&&           ctrl_mgr,
                          std::atomic_bool*             external_stop_flag)
     : cfg_(cfg)
     , pwm_(pwm)
     , input_(std::move(input))
-    , controller_(std::move(controller))
+    , ctrl_mgr_(std::move(ctrl_mgr))
     , external_stop_(external_stop_flag)
+    , guard_(cfg.guard_cfg)
+    , nav_sub_(std::make_unique<NavSub>())
 {
-    // 这里只做依赖注入，不做重型初始化，重型动作在 run() 中完成：
-    //  - input_->init()
-    //  - pwm_logger_.init()
-    //  - nav_sub_.init()
-    //  - allocator_.init()
+    // 这里不强制创建 pwm_logger_，在 run() 里按 enable 开关创建更清晰
+}
+
+ControlLoop::~ControlLoop() noexcept = default;
+
+// ============================================================================
+// 导航反馈更新（并返回 nav 是否有效）
+// ============================================================================
+
+bool ControlLoop::update_nav_feedback_(shared::msg::NavState& nav_out)
+{
+    state_.nav_valid = false;
+
+    if (!nav_sub_ || !nav_sub_->ok()) {
+        last_nav_valid_ = false;
+        return false;
+    }
+
+    shared::msg::NavState nav{};
+    if (!nav_sub_->read_latest(nav)) {
+        last_nav_valid_ = false;
+        return false;
+    }
+
+    last_nav_valid_ = true;
+
+    state_.nav_valid = true;
+    state_.nav_t_ns  = nav.t_ns;
+
+    for (std::size_t i = 0; i < 3; ++i) {
+        state_.nav_pos_ned[i] = nav.pos[i];
+        state_.nav_vel_ned[i] = nav.vel[i];
+        state_.nav_rpy[i]     = nav.rpy[i];
+        state_.nav_omega_b[i] = nav.omega_b[i];
+        state_.nav_acc_b[i]   = nav.acc_b[i];
+    }
+
+    state_.nav_depth        = nav.depth;
+    state_.nav_status_flags = nav.status_flags;
+
+    nav_out = nav;
+    return true;
 }
 
 // ============================================================================
-// 主循环实现
+// 构造 8 路推进器归一化指令
+// ============================================================================
+
+bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
+{
+    if (output_.has_thruster_command) {
+        thr_out = output_.thruster_command;
+        return true;
+    }
+
+    if (output_.has_body_wrench) {
+        std::array<double, 6> wrench{};
+        for (std::size_t i = 0; i < 6; ++i) {
+            wrench[i] = output_.body_wrench[i];
+        }
+
+        std::array<float, 8> thr{};
+        if (!allocator_.allocate(wrench, thr)) {
+            return false;
+        }
+
+        thr_out = thr;
+        return true;
+    }
+
+    return false;
+}
+
+// ============================================================================
+// 执行 failsafe（Guard 只建议，ControlLoop 执行）
+// ============================================================================
+
+void ControlLoop::execute_failsafe_(FailsafeAction a)
+{
+    // 清空控制输出，避免残留
+    output_ = ControlOutput{};
+
+    // 尽量把控制器切到 failsafe（若内部实现支持）
+    (void)ctrl_mgr_.set_mode(ControlMode::kFailsafe);
+
+    ThrusterArray zero{};
+    zero.fill(0.0f);
+
+    // kEmergencyStop：如 PwmClient 有专门 API，可在此调用
+    (void)a;
+
+    (void)pwm_.setTargets(zero);
+    (void)pwm_.step();
+}
+
+// ============================================================================
+// GuardResult -> reference
+// ============================================================================
+
+void ControlLoop::build_reference_from_guard_()
+{
+    ref_ = ControlReference{}; // 每周期重建，避免旧字段残留
+
+    // 这里假设 GuardResult 里有 effective_intent 字段（你前面已按此方向改）
+    const auto& eff = guard_result_.effective_intent;
+
+    // 1) explicit ref
+    if (eff.has_ref) {
+        ref_ = eff.ref;
+    }
+
+    // 2) teleop dof
+    if (eff.has_teleop_dof) {
+        ref_.dof_cmd     = eff.teleop_dof_cmd;
+        ref_.use_dof_cmd = true;
+    }
+
+    // 3) ref_delta：建议由控制器层融合；若临时需要，可在此做保守叠加
+    // if (eff.has_ref_delta) { ... }
+}
+
+// ============================================================================
+// 主循环
 // ============================================================================
 
 int ControlLoop::run()
 {
-    // ------------------------------------------------------------------------
-    // 1. 基本合法性检查
-    // ------------------------------------------------------------------------
-    if (!controller_) {
-        std::cerr << "[ControlLoop] controller_ is null, cannot run.\n";
-        return -1;
-    }
-
+    // 1) 基本检查
     if (!input_) {
         std::cerr << "[ControlLoop] input_ is null, cannot run.\n";
         return -2;
     }
 
-    // ------------------------------------------------------------------------
-    // 2. 初始化输入源（例如 TeleopInputProvider 打开终端 raw 模式）
-    // ------------------------------------------------------------------------
+    if (!ctrl_mgr_.has_active_controller()) {
+        std::cerr << "[ControlLoop] ControllerManager has no active controller.\n";
+        std::cerr << "             status.ok=" << ctrl_mgr_.status().ok
+                  << " mode=" << static_cast<int>(ctrl_mgr_.status().mode)
+                  << " active='" << ctrl_mgr_.status().active_controller
+                  << "' err='" << ctrl_mgr_.status().last_error << "'\n";
+        return -1;
+    }
+
+    // 2) init input
     if (!input_->init()) {
         std::cerr << "[ControlLoop] InputProvider::init() failed.\n";
         return -3;
     }
 
-    // ------------------------------------------------------------------------
-    // 3. 初始化 PWM 日志（可配置开关）
-    // ------------------------------------------------------------------------
+    // 3) PWM log（按开关创建 PIMPL）
     if (cfg_.enable_pwm_log) {
-        if (!pwm_logger_.init("./logs",
-                              rovctrl::io::PwmLogger::Mode::CmdAndApplied,
-                              "pwm_log")) {
-            std::cerr << "[ControlLoop] PwmLogger init failed, "
-                         "continue without logging.\n";
-            // 不强制退出；后续通过 is_open() 判断是否写日志
+        pwm_logger_ = std::make_unique<PwmLogImpl>();
+        if (!pwm_logger_->init("./logs",
+                               ControlLoop::PwmLog::Mode::CmdAndApplied,
+                               "pwm_log")) {
+            std::cerr << "[ControlLoop] PwmLogger init failed, continue without logging.\n";
+            pwm_logger_.reset();
         }
     }
 
-    // ------------------------------------------------------------------------
-    // 4. 初始化导航状态订阅器（从导航进程共享内存读取 NavState）
-    // ------------------------------------------------------------------------
-    {
-        const char* shm_name = "/rov_nav_state_v1";
-        if (!nav_sub_.init(shm_name)) {
+    // 4) nav sub
+    if (nav_sub_) {
+        if (!nav_sub_->init()) {
             std::cerr << "[ControlLoop] Warning: NavStateSubscriber init failed on "
-                      << shm_name << ". Running without navigation feedback.\n";
+                      << nav_sub_->shm_name << ". Running without navigation feedback.\n";
             last_nav_valid_ = false;
         } else {
             std::cout << "[ControlLoop] NavStateSubscriber initialized on "
-                      << shm_name << ".\n";
+                      << nav_sub_->shm_name << ".\n";
         }
+    } else {
+        std::cerr << "[ControlLoop] Warning: nav_sub_ is null.\n";
+        last_nav_valid_ = false;
     }
 
-    // ------------------------------------------------------------------------
-    // 5. 循环频率配置
-    // ------------------------------------------------------------------------
-    if (cfg_.loop_hz <= 0.0) {
-        std::cerr << "[ControlLoop] invalid loop_hz = " << cfg_.loop_hz
-                  << ", fallback to 100 Hz.\n";
-        cfg_.loop_hz = 100.0;
-    }
-
-    const double loop_hz     = cfg_.loop_hz;
-    const auto   loop_period = duration_d(1.0 / loop_hz);
-
-    auto last_tick = clock::now();
-    auto next_tick = last_tick + loop_period;
-    start_time_    = last_tick;  // 作为日志时间零点（steady_clock）
-
-    int step_err_count   = 0;
-    int nav_miss_counter = 0;
-
-    // ------------------------------------------------------------------------
-    // 6. 推力分配器初始化（基于 YAML 配置）
-    // ------------------------------------------------------------------------
+    // 5) allocator
     if (!allocator_.init(cfg_.thruster_alloc)) {
         std::cerr << "[ControlLoop] ThrusterAllocator::init() failed.\n";
         return -4;
     }
-
     if (!allocator_.ok()) {
-        std::cerr << "[ControlLoop] ThrusterAllocator is not in OK state.\n";
+        std::cerr << "[ControlLoop] ThrusterAllocator is not OK.\n";
         return -5;
     }
 
-    std::cout << "[ControlLoop] starting, loop_hz = " << loop_hz << " Hz\n";
+    // 6) loop freq
+    double loop_hz = cfg_.loop_hz;
+    if (loop_hz <= 0.0) {
+        std::cerr << "[ControlLoop] invalid loop_hz=" << loop_hz << ", fallback to 100.\n";
+        loop_hz = 100.0;
+    }
 
-    // ========================================================================
-    // 主控制循环
-    // ========================================================================
+    const auto   loop_period = duration_d(1.0 / loop_hz);
+    const double dt_nom      = 1.0 / loop_hz;
+
+    double dt_max = cfg_.dt_clamp_max_sec;
+    if (dt_max <= 0.0) dt_max = 0.2;
+    if (dt_max < dt_nom) dt_max = dt_nom;
+
+    auto last_tick = clock::now();
+    auto next_tick = last_tick + loop_period;
+    start_time_    = last_tick;
+
+    int step_err_count   = 0;
+    int nav_miss_counter = 0;
+
+    std::cout << "[ControlLoop] starting, loop_hz=" << loop_hz
+              << " Hz, active_controller=" << ctrl_mgr_.active_controller_name()
+              << ", mode=" << static_cast<int>(ctrl_mgr_.mode()) << "\n";
+
     while (true) {
-        // --------------------------------------------------------------------
-        // 7. 外部退出标志检查（例如上层 main 收到 Ctrl+C/SIGINT 后设置）
-        // --------------------------------------------------------------------
+        // 7) external stop
         if (external_stop_ && external_stop_->load()) {
             std::cout << "[ControlLoop] external stop flag set, exiting loop.\n";
             break;
         }
 
-        // --------------------------------------------------------------------
-        // 8. 固定周期调度（sleep_until + dt 计算）
-        // --------------------------------------------------------------------
+        // 8) schedule
         auto now = clock::now();
         if (now < next_tick) {
             std::this_thread::sleep_until(next_tick);
             now = clock::now();
+        } else {
+            const auto lag = duration_d(now - next_tick).count();
+            if (lag > 5.0 * dt_nom) {
+                next_tick = now;
+            }
         }
 
         double dt = duration_d(now - last_tick).count();
-        if (dt <= 0.0) {
-            // 防守性兜底：避免 dt 为 0 或负数
-            dt = 1.0 / loop_hz;
-        }
         last_tick = now;
-        next_tick = now + loop_period;
+        next_tick += loop_period;
 
-        if (cfg_.log_timing) {
-            // 可在此处打印或统计 dt
-            // std::cout << "[ControlLoop] dt = " << dt << " s\n";
-        }
+        if (dt <= 0.0) dt = dt_nom;
+        if (dt > dt_max) dt = dt_max;
 
-        // --------------------------------------------------------------------
-        // 9. 导航状态更新（从共享内存读取最新 NavState，并注入到内部状态）
-        // --------------------------------------------------------------------
-        {
-            state_.nav_valid = false;  // 默认置 false，每次循环重置
+        const double t_s = duration_d(now - start_time_).count();
+        state_.timestamp_sec = t_s;
 
-            if (nav_sub_.ok()) {
-                shared::msg::NavState nav{};
-                if (nav_sub_.read_latest(nav)) {
-                    last_nav_state_  = nav;
-                    last_nav_valid_  = true;
-                    nav_miss_counter = 0;
+        // 9) nav update
+        shared::msg::NavState nav{};
+        const bool nav_ok = update_nav_feedback_(nav);
 
-                    // ==== 将 NavState 映射到内部导航状态 ====
-                    state_.nav_valid = true;
-                    state_.nav_t_ns = nav.t_ns;
+        if (nav_sub_ && nav_sub_->ok()) {
+            if (!state_.nav_valid) {
+                ++nav_miss_counter;
 
-                    // 位置 / 速度 / 姿态（NED）
-                    for (std::size_t i = 0; i < 3; ++i) {
-                        state_.nav_pos_ned[i] = nav.pos[i];
-                        state_.nav_vel_ned[i] = nav.vel[i];
-                        state_.nav_rpy[i]     = nav.rpy[i];
-                    }
-
-                    // 深度
-                    state_.nav_depth = nav.depth;
-
-                    // body 角速度 / 线加速度
-                    for (std::size_t i = 0; i < 3; ++i) {
-                        state_.nav_omega_b[i] = nav.omega_b[i];
-                        state_.nav_acc_b[i]   = nav.acc_b[i];
-                    }
-
-                    // 状态标志（新版字段 status_flags）
-                    state_.nav_status_flags = nav.status_flags;
-
-                } else {
-                    // 本周期没有读到稳定的 NavState
-                    ++nav_miss_counter;
-                    last_nav_valid_ = false;
-
-                    if (nav_miss_counter == 100 ||
-                        (cfg_.step_error_log_interval > 0 &&
-                         nav_miss_counter % cfg_.step_error_log_interval == 0)) {
-                        std::cerr << "[ControlLoop] Warning: no stable NavState for "
-                                  << nav_miss_counter << " cycles.\n";
-                    }
+                if (!cfg_.allow_run_without_nav) {
+                    std::cerr << "[ControlLoop] NavState missing and allow_run_without_nav=false, entering failsafe.\n";
+                    execute_failsafe_(FailsafeAction::kEmergencyStop);
+                    return -8;
                 }
+
+                if (nav_miss_counter == 100 ||
+                    (cfg_.step_error_log_interval > 0 &&
+                     nav_miss_counter % cfg_.step_error_log_interval == 0)) {
+                    std::cerr << "[ControlLoop] Warning: no stable NavState for "
+                              << nav_miss_counter << " cycles.\n";
+                }
+            } else {
+                nav_miss_counter = 0;
             }
-            // 若 nav_sub_.ok() 为 false，则保持 nav_valid = false，
-            // 控制器可以据此做降级策略
+        } else {
+            nav_miss_counter = 0;
         }
 
-        // --------------------------------------------------------------------
-        // 10. 输入更新：从 InputProvider 读取状态 + 参考量
-        // --------------------------------------------------------------------
-        bool request_exit = false;
-        if (!input_->poll(state_, ref_, request_exit)) {
-            std::cerr << "[ControlLoop] InputProvider::poll() failed, exiting.\n";
+        // 10) poll input (ControlIntent)
+        ControlIntent intent{};
+        if (!input_->poll(state_, intent)) {
+            std::cerr << "[ControlLoop] InputProvider::poll(state,intent) failed.\n";
+            execute_failsafe_(FailsafeAction::kEmergencyStop);
             return -10;
         }
-        if (request_exit) {
-            std::cout << "[ControlLoop] Input provider requested exit, exiting loop.\n";
+
+        if (intent.request_exit) {
+            std::cout << "[ControlLoop] Input provider requested exit.\n";
             break;
         }
 
-        // --------------------------------------------------------------------
-        // 11. 控制器计算
-        // --------------------------------------------------------------------
-        output_ = ControlOutput{};  // 清空上次输出与标志位
-        if (!controller_->compute(state_, ref_, output_, dt)) {
-            std::cerr << "[ControlLoop] controller_->compute() failed, exiting.\n";
+        // 11) guard
+        {
+            const std::uint64_t now_ns = now_mono_ns();
+            const shared::msg::NavState* nav_ptr = nav_ok ? &nav : nullptr;
+
+            guard_result_ = guard_.step(now_ns, state_, nav_ptr, intent);
+
+            if (guard_result_.effective_intent.request_exit) {
+                std::cout << "[ControlLoop] Guard requested exit.\n";
+                break;
+            }
+
+            if (guard_result_.failsafe != FailsafeAction::kNone) {
+                execute_failsafe_(guard_result_.failsafe);
+                continue;
+            }
+
+            if (guard_result_.mode_changed) {
+                (void)ctrl_mgr_.set_mode(guard_result_.effective_mode);
+            }
+        }
+
+        // 12) build ref
+        build_reference_from_guard_();
+
+        // 13) compute
+        output_ = ControlOutput{};
+        if (!ctrl_mgr_.compute(state_, ref_, output_, dt)) {
+            std::cerr << "[ControlLoop] ControllerManager::compute() failed: "
+                      << ctrl_mgr_.status().last_error << "\n";
+
+            if (cfg_.enter_failsafe_on_controller_error) {
+                execute_failsafe_(FailsafeAction::kZeroOutput);
+                continue;
+            }
             return -20;
         }
 
-        // --------------------------------------------------------------------
-        // 12. 推力分配：如有 body_wrench，则映射为 8 通道归一化推进器指令
-        // --------------------------------------------------------------------
-        if (output_.has_body_wrench) {
-            std::array<double, 6> wrench{};
-            for (std::size_t i = 0; i < 6; ++i) {
-                wrench[i] = output_.body_wrench[i];
-            }
-
-            std::array<float, 8> thruster_cmd{};
-            if (!allocator_.allocate(wrench, thruster_cmd)) {
-                std::cerr << "[ControlLoop] ThrusterAllocator::allocate() failed.\n";
-                // 当前策略：视为致命错误退出；后续可改为“保留上一次指令 / 清零”
-                return -21;
-            }
-
-            output_.thruster_command     = thruster_cmd;
-            output_.has_thruster_command = true;
+        // 14) thruster command
+        ThrusterArray thr_cmd{};
+        if (!build_thruster_command_(thr_cmd)) {
+            thr_cmd.fill(0.0f);
         }
 
-        // --------------------------------------------------------------------
-        // 13. 输出映射到 PWM 客户端（setTargets）
-        // --------------------------------------------------------------------
-        //
-        // 约定策略：
-        //   - 如果 has_thruster_command = true：
-        //       output_.thruster_command 视为已经完成 DOF→推进器映射的归一化指令，
-        //       由控制器（手动）或 ThrusterAllocator 负责其物理意义；
-        //       ControlLoop 仅负责调用下发接口。
-        //
-        if (output_.has_thruster_command) {
-            int rc = pwm_.setTargets(output_.thruster_command);
+        // 15) setTargets
+        {
+            const int rc = pwm_.setTargets(thr_cmd);
             if (rc < 0) {
                 std::cerr << "[ControlLoop] pwm_.setTargets() rc=" << rc
                           << " msg=" << pwm_.status().last_error_msg << "\n";
-                // setTargets 失败暂不视为致命错误，由 step() 的错误统计统一处理
             }
         }
 
-        // --------------------------------------------------------------------
-        // 14. 安全层 step：限斜率 + AB 分组 + 实际下发 + 心跳 ACK
-        // --------------------------------------------------------------------
-        //
-        // 注意：pwm_.step() 内部包含 ACK 接收与错误处理；
-        //       等价于 C 层的 pwm_host_poll(1)，即 ~1 ms 的阻塞等待。
-        //
-        int step_rc = pwm_.step();
+        // 16) step
+        const int step_rc = pwm_.step();
         if (step_rc < 0) {
             ++step_err_count;
 
@@ -301,43 +458,35 @@ int ControlLoop::run()
                  step_err_count % cfg_.step_error_log_interval == 0)) {
                 std::cerr << "[ControlLoop] pwm_.step() rc=" << step_rc
                           << " msg=" << pwm_.status().last_error_msg
-                          << " (error count = " << step_err_count << ")\n";
+                          << " (error count=" << step_err_count << ")\n";
             }
 
-            if (cfg_.max_step_errors > 0 &&
-                step_err_count > cfg_.max_step_errors) {
-                std::cerr << "[ControlLoop] pwm_.step() errors exceed "
-                          << "max_step_errors (" << cfg_.max_step_errors
-                          << "), aborting.\n";
+            if (cfg_.max_step_errors > 0 && step_err_count > cfg_.max_step_errors) {
+                std::cerr << "[ControlLoop] pwm_.step() errors exceed max_step_errors="
+                          << cfg_.max_step_errors << ", entering failsafe and abort.\n";
+                execute_failsafe_(FailsafeAction::kEmergencyStop);
                 return -30;
             }
-        } else {
-            // 有一次成功就清零错误计数
-            step_err_count = 0;
-
-            // ----------------------------------------------------------------
-            // 15. 成功下发后记录一条 PWM 日志（与控制环锁步）
-            // ----------------------------------------------------------------
-            if (pwm_logger_.is_open()) {
-                const double t_s = duration_d(now - start_time_).count();
-
-                // 当前阶段：applied 先用 cmd 占位，等接入 PwmClient::getLastApplied() 后替换
-                std::array<float, 8> cmd{};
-                std::array<float, 8> applied{};
-
-                if (output_.has_thruster_command) {
-                    cmd     = output_.thruster_command;
-                    applied = cmd;
-                } else {
-                    // 无推进器命令时，记录为 0；后续可根据需要改为“上一次输出”
-                    cmd.fill(0.0f);
-                    applied.fill(0.0f);
-                }
-
-                pwm_logger_.logCmdAndApplied(t_s, cmd, applied);
-            }
+            continue;
         }
-    } // while (true)
+
+        step_err_count = 0;
+
+        // 17) log
+        if (pwm_logger_ && pwm_logger_->is_open()) {
+            std::array<float, 8> cmd{};
+            std::array<float, 8> applied{};
+
+            for (std::size_t i = 0; i < 8; ++i) {
+                cmd[i]     = thr_cmd[i];
+                applied[i] = thr_cmd[i]; // TODO: 若能读到 safety-layer applied，替换
+            }
+
+            pwm_logger_->logCmdAndApplied(t_s, cmd, applied);
+        }
+    }
+
+    execute_failsafe_(FailsafeAction::kEmergencyStop);
 
     std::cout << "[ControlLoop] loop exited normally.\n";
     return 0;

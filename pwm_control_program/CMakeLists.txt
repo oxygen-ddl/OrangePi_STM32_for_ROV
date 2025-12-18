@@ -1,135 +1,247 @@
 cmake_minimum_required(VERSION 3.14)
 project(pwm_control_program LANGUAGES CXX)
 
-# ==================== 编译选项 ====================
+# =============================================================================
+# Build defaults
+# =============================================================================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    add_compile_options(
-        -Wall -Wextra -Wpedantic
-        -Wconversion -Wsign-conversion
-        -Wshadow -Wformat=2 -Wundef
-    )
-    if (NOT CMAKE_BUILD_TYPE)
-        set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
-    endif()
+if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
 endif()
 
-# ==================== 路径约定 ====================
-# 当前目录：.../UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program
-# 上一层：  .../UnderwaterRobotSystem/OrangePi_STM32_for_ROV
-# 同级目录：
-#   - orangepi_send
-#   - pwm_control_program
-# 另一项目：
-#   .../UnderwaterRobotSystem/Underwater-robot-navigation
+# =============================================================================
+# Options
+# =============================================================================
+option(PWMCTRL_STRICT_WARNINGS "Enable strict warnings (-Wall/-Wextra/...)" ON)
+option(PWMCTRL_ASAN           "Enable AddressSanitizer/UBSan (Debug only recommended)" OFF)
+option(PWMCTRL_FORCE_STDCXXFS "Force link stdc++fs for old toolchains" OFF)
 
-# libpwm_host 头文件所在目录：
-#   <repo_root>/OrangePi_STM32_for_ROV/orangepi_send/include
-set(PWM_INCLUDE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../orangepi_send/include"
-    CACHE PATH "Directory containing libpwm_host.h / pwm_control.h"
-)
+# comm_gcs：默认开，但必须“存在才启用”，避免阻塞主工程编译
+option(PWMCTRL_ENABLE_COMM_GCS "Enable comm_gcs module if present" ON)
 
-# 共享导航消息头文件所在项目根目录：
-#   <repo_root>/Underwater-robot-navigation
-# 该项目下存在 shared/msg/nav_state.hpp
-set(NAV_PROJECT_INCLUDE_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../Underwater-robot-navigation"
-    CACHE PATH "Directory containing shared/msg/nav_state.hpp"
-)
+# =============================================================================
+# Repo paths
+# =============================================================================
+get_filename_component(UWSYS_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+set(UWSYS_SHARED_DIR "${UWSYS_ROOT}/shared")
 
-# 预编译 libpwm_host.a 所在目录：
-#   <repo_root>/OrangePi_STM32_for_ROV/orangepi_send/build
-set(PWM_LIB_DIR
-    "${CMAKE_CURRENT_SOURCE_DIR}/../orangepi_send/build"
-    CACHE PATH "Directory containing prebuilt libpwm_host.a"
-)
+get_filename_component(PWM_SEND_DIR "${CMAKE_CURRENT_LIST_DIR}/../orangepi_send" ABSOLUTE)
+set(PWM_INCLUDE_DIR "${PWM_SEND_DIR}/include" CACHE PATH "orangepi_send include dir")
+set(PWM_LIB_DIR     "${PWM_SEND_DIR}/build"   CACHE PATH "orangepi_send build dir (fallback)")
 
-# 手动指定 Eigen3 的头文件目录（通过 apt 安装 libeigen3-dev 后默认路径）
-set(EIGEN3_INCLUDE_DIR "/usr/include/eigen3")
+if (NOT EXISTS "${UWSYS_SHARED_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "[pwm_control_program] shared/ not found at: ${UWSYS_SHARED_DIR}")
+endif()
+if (NOT EXISTS "${PWM_INCLUDE_DIR}")
+    message(FATAL_ERROR "[pwm_control_program] orangepi_send include dir not found: ${PWM_INCLUDE_DIR}")
+endif()
 
-# ==================== 源码列表 ====================
-
-set(PWMCTRL_SOURCES
-    # 顶层入口
-    src/main.cpp
-
-    # control_core
-    src/control_core/app_main.cpp
-    src/control_core/control_loop.cpp
-    src/control_core/thruster_allocation.cpp
-    src/control_core/trajectory_tracking.cpp
-
-    # controllers
-    src/controllers/manual_controller.cpp
-    src/controllers/pid_controller.cpp
-    src/controllers/controller_manager.cpp
-
-    # platform 层
-    src/platform/pwm_client.cpp
-    src/platform/timebase.cpp
-
-    # IO 层
-    src/io/teleop_keyboard.cpp
-    src/io/teleop_input.cpp
-    src/io/pwm_logger.cpp           # PWM 日志
-    src/io/nav_state_subscriber.cpp # 读取定位算法消息（共享内存）
-
-    # utils 层
-    src/utils/config_loader.cpp     # ★ 新增：配置解析/加载工具
-)
-
-add_executable(pwm_control_program
-    ${PWMCTRL_SOURCES}
-)
-
-# ==================== 头文件搜索路径 ====================
-target_include_directories(pwm_control_program
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include  # 本工程头文件（control_core/controllers/io/platform/utils）
-        ${PWM_INCLUDE_DIR}                  # libpwm_host.h / pwm_control.h
-        ${NAV_PROJECT_INCLUDE_DIR}          # shared/msg/nav_state.hpp 所在项目根目录
-        ${EIGEN3_INCLUDE_DIR}              # /usr/include/eigen3, 提供 <Eigen/Dense>
-)
-
-# ==================== 依赖库查找 ====================
-
+# =============================================================================
+# Dependencies
+# =============================================================================
 find_package(Threads REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
-# ==================== 链接库 ====================
-if (TARGET pwm_host)
-    message(STATUS "[pwm_control_program] Linking against CMake target 'pwm_host' from orangepi_send")
-    target_link_libraries(pwm_control_program PRIVATE
-        pwm_host
-        yaml-cpp
-        Threads::Threads
+set(YAMLCPP_TARGET yaml-cpp)
+if (TARGET yaml-cpp::yaml-cpp)
+    set(YAMLCPP_TARGET yaml-cpp::yaml-cpp)
+elseif (TARGET yaml-cpp)
+    set(YAMLCPP_TARGET yaml-cpp)
+endif()
+
+# ---- Eigen (header-only): single, consistent logic ----
+# Prefer user-specified -DEIGEN3_INCLUDE_DIR=/path if provided
+if (NOT DEFINED EIGEN3_INCLUDE_DIR)
+    find_path(EIGEN3_INCLUDE_DIR
+        NAMES Eigen/Dense
+        PATHS
+            /usr/include/eigen3
+            /usr/local/include/eigen3
+            /usr/include
+            /usr/local/include
     )
-else()
-    if (NOT EXISTS "${PWM_LIB_DIR}/libpwm_host.a")
-        message(WARNING
-            "[pwm_control_program] prebuilt libpwm_host.a not found in '${PWM_LIB_DIR}'. "
-            "You may need to build orangepi_send separately."
+endif()
+
+if (NOT EIGEN3_INCLUDE_DIR)
+    message(FATAL_ERROR
+        "[pwm_control_program] Eigen headers not found.\n"
+        "Install with: sudo apt-get install -y libeigen3-dev\n"
+        "Or set -DEIGEN3_INCLUDE_DIR=/path/to/eigen3"
+    )
+endif()
+
+message(STATUS "[pwm_control_program] EIGEN3_INCLUDE_DIR = ${EIGEN3_INCLUDE_DIR}")
+
+# ---- shared_msgs (fallback add_subdirectory) ----
+if (NOT TARGET shared_msgs)
+    add_subdirectory(
+        "${UWSYS_SHARED_DIR}"
+        "${CMAKE_BINARY_DIR}/_deps/shared_msgs-build"
+    )
+endif()
+
+if (NOT TARGET shared_msgs)
+    message(FATAL_ERROR
+        "[pwm_control_program] shared target 'shared_msgs' not found after add_subdirectory().\n"
+        "Please check ${UWSYS_SHARED_DIR}/CMakeLists.txt exports a target named 'shared_msgs'."
+    )
+endif()
+
+# =============================================================================
+# Sources (grouped)
+# =============================================================================
+set(SRC_APP
+    src/main.cpp
+    src/control_core/app_main.cpp
+)
+
+set(SRC_CONTROL_CORE
+    src/control_core/control_loop.cpp
+    src/control_core/control_guard.cpp
+    src/control_core/thruster_allocation.cpp
+    src/control_core/trajectory_tracking.cpp
+)
+
+set(SRC_CONTROLLERS
+    src/controllers/manual_controller.cpp
+    src/controllers/pid_controller.cpp
+    src/controllers/controller_manager.cpp
+)
+
+set(SRC_PLATFORM
+    src/platform/pwm_client.cpp
+    src/platform/timebase.cpp
+)
+
+# IO（不把 gcs 写死进去，gcs 用可选模块逻辑单独 append）
+set(SRC_IO
+    # ---- teleop ----
+    src/io/teleop/teleop_keyboard.cpp
+
+    # ---- input ----
+    src/io/input/teleop_input.cpp
+    src/io/input/gcs_input_adapter.cpp
+    src/io/input/telemetry_frame.cpp
+    src/io/input/gcs_input_provider.cpp
+    src/io/input/multi_input_provider.cpp
+
+    # ---- nav ----
+    src/io/nav/nav_state_source_shm.cpp
+    src/io/nav/nav_state_subscriber.cpp
+
+    # ---- log ----
+    src/io/log/pwm_logger.cpp
+)
+
+set(SRC_UTILS
+    src/utils/config_loader.cpp
+)
+
+# =============================================================================
+# Optional comm_gcs module (only if present)
+# =============================================================================
+set(SRC_GCS "")
+set(PWMCTRL_HAS_COMM_GCS OFF)
+
+if (PWMCTRL_ENABLE_COMM_GCS)
+    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/io/gcs"
+        AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/io/gcs")
+        set(PWMCTRL_HAS_COMM_GCS ON)
+        list(APPEND SRC_GCS
+            src/io/gcs/gcs_link_udp.cpp
+            src/io/gcs/gcs_session.cpp
+            src/io/gcs/gcs_telemetry_adapter.cpp
+            src/io/gcs/crc32c.cpp
         )
+    endif()
+endif()
+
+# =============================================================================
+# Target
+# =============================================================================
+add_executable(pwm_control_program
+    ${SRC_APP}
+    ${SRC_CONTROL_CORE}
+    ${SRC_CONTROLLERS}
+    ${SRC_PLATFORM}
+    ${SRC_IO}
+    ${SRC_GCS}
+    ${SRC_UTILS}
+)
+
+target_include_directories(pwm_control_program
+    PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${PWM_INCLUDE_DIR}"
+        "${EIGEN3_INCLUDE_DIR}"
+)
+
+target_link_libraries(pwm_control_program
+    PRIVATE
+        ${YAMLCPP_TARGET}
+        Threads::Threads
+        shared_msgs
+)
+
+# =============================================================================
+# Link libpwm_host (prefer target, fallback to prebuilt)
+# =============================================================================
+if (TARGET pwm_host)
+    target_link_libraries(pwm_control_program PRIVATE pwm_host)
+else()
+    if (EXISTS "${PWM_LIB_DIR}/libpwm_host.a")
+        target_link_libraries(pwm_control_program PRIVATE "${PWM_LIB_DIR}/libpwm_host.a")
     else()
-        message(STATUS "[pwm_control_program] Linking against prebuilt ${PWM_LIB_DIR}/libpwm_host.a")
+        message(FATAL_ERROR
+            "[pwm_control_program] Neither target 'pwm_host' nor prebuilt libpwm_host.a found.\n"
+            "PWM_LIB_DIR=${PWM_LIB_DIR}\nPWM_INCLUDE_DIR=${PWM_INCLUDE_DIR}"
+        )
+    endif()
+endif()
+
+# =============================================================================
+# Warnings / sanitizers (per-target)
+# =============================================================================
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    if (PWMCTRL_STRICT_WARNINGS)
+        target_compile_options(pwm_control_program PRIVATE
+            -Wall -Wextra -Wpedantic
+            -Wshadow -Wformat=2 -Wundef
+            -Wconversion -Wsign-conversion
+        )
     endif()
 
-    target_link_libraries(pwm_control_program PRIVATE
-        "${PWM_LIB_DIR}/libpwm_host.a"
-        yaml-cpp
-        Threads::Threads
-    )
+    if (PWMCTRL_ASAN)
+        target_compile_options(pwm_control_program PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer
+        )
+        target_link_options(pwm_control_program PRIVATE
+            -fsanitize=address,undefined
+        )
+    endif()
 endif()
 
-# Linux 上可能需要 librt
 if (UNIX AND NOT APPLE)
-    target_link_libraries(pwm_control_program PRIVATE rt)
+    find_library(RT_LIB rt)
+    if (RT_LIB)
+        target_link_libraries(pwm_control_program PRIVATE ${RT_LIB})
+    endif()
 endif()
 
-message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR        = ${PWM_INCLUDE_DIR}")
-message(STATUS "[pwm_control_program] NAV_PROJECT_INCLUDE_DIR = ${NAV_PROJECT_INCLUDE_DIR}")
-message(STATUS "[pwm_control_program] PWM_LIB_DIR            = ${PWM_LIB_DIR}")
-message(STATUS "[pwm_control_program] EIGEN3_INCLUDE_DIR     = ${EIGEN3_INCLUDE_DIR}")
+if (PWMCTRL_FORCE_STDCXXFS)
+    target_link_libraries(pwm_control_program PRIVATE stdc++fs)
+endif()
+
+# =============================================================================
+# Diagnostics
+# =============================================================================
+message(STATUS "[pwm_control_program] UWSYS_ROOT        = ${UWSYS_ROOT}")
+message(STATUS "[pwm_control_program] UWSYS_SHARED_DIR  = ${UWSYS_SHARED_DIR}")
+message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR   = ${PWM_INCLUDE_DIR}")
+message(STATUS "[pwm_control_program] PWM_LIB_DIR       = ${PWM_LIB_DIR}")
+message(STATUS "[pwm_control_program] YAMLCPP_TARGET    = ${YAMLCPP_TARGET}")
+message(STATUS "[pwm_control_program] BUILD_TYPE        = ${CMAKE_BUILD_TYPE}")
+message(STATUS "[pwm_control_program] HAS_COMM_GCS      = ${PWMCTRL_HAS_COMM_GCS}")

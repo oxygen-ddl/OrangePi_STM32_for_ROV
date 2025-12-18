@@ -13,19 +13,19 @@
 #include "platform/pwm_client.hpp"
 
 #include "control_core/control_loop.hpp"
+#include "control_core/control_mode.hpp"
 #include "control_core/thruster_allocation.hpp"
 #include "control_core/trajectory_tracking.hpp"
 
 #include "controllers/manual_controller.hpp"
 #include "controllers/controller_manager.hpp"
 
-#include "io/input/teleop_input.hpp"
 #include "utils/config_loader.hpp"
 
-// ---- IMPORTANT: make sure these headers exist in your tree ----
-// If names/paths differ, adjust accordingly.
+// Input providers
 #include "io/input/gcs_input_provider.hpp"
 #include "io/input/multi_input_provider.hpp"
+#include "io/input/teleop_input.hpp"
 
 namespace {
 namespace fs = std::filesystem;
@@ -143,7 +143,7 @@ static bool load_alloc_yaml(const fs::path& alloc_cfg_path,
 {
     if (alloc_cfg_path.empty()) {
         log << "[Alloc] [WARN] alloc.yaml path empty; keep default allocation.\n";
-        return true; // allow default
+        return true;
     }
 
     try {
@@ -261,13 +261,13 @@ int app_main(int argc, char** argv)
 
     // ===================== Build InputProvider chain =====================
     rovctrl::io::InputProviderPtr input;
-
-    std::shared_ptr<rovctrl::io::TeleopInputProvider> teleop;
-    std::shared_ptr<rovctrl::io::GcsInputProvider>    gcs;
+    rovctrl::io::InputProviderPtr teleop;
+    rovctrl::io::InputProviderPtr gcs;
 
     if (args.enable_teleop) {
         teleop = std::make_shared<rovctrl::io::TeleopInputProvider>();
     }
+
     if (args.enable_gcs) {
         rovctrl::io::GcsInputProvider::Config gcs_cfg{};
         gcs_cfg.bind_port      = 14600;
@@ -284,6 +284,20 @@ int app_main(int argc, char** argv)
         input = gcs;
     } else {
         input = teleop;
+    }
+
+    if (!input) {
+        std::cerr << "[ERR] Input provider not constructed.\n";
+        pwm_client.emergencyStop(1.0f);
+        pwm_client.shutdown();
+        return static_cast<int>(AppError::InputInitFailed);
+    }
+
+    if (!input->init()) {
+        std::cerr << "[ERR] Input provider init() failed.\n";
+        pwm_client.emergencyStop(1.0f);
+        pwm_client.shutdown();
+        return static_cast<int>(AppError::InputInitFailed);
     }
 
     // ===================== Manual controller =====================
@@ -304,20 +318,18 @@ int app_main(int argc, char** argv)
 
     rovctrl::control_core::ControllerManager ctrl_mgr(cm_opt);
 
-// IMPORTANT: build ControllerPtr (unique_ptr<IController, IControllerDeleter>)
-auto manual_ctrl =
-    rovctrl::control_core::ControllerManager::make_controller<rovctrl::controllers::ManualController>(mc_cfg);
+    auto manual_ctrl =
+        rovctrl::control_core::ControllerManager::make_controller<rovctrl::controllers::ManualController>(mc_cfg);
 
-if (!ctrl_mgr.init_manual_only(std::move(manual_ctrl))) {
-    std::cerr << "[ERR] ControllerManager init_manual_only failed: "
-              << ctrl_mgr.status().last_error << "\n";
-    pwm_client.emergencyStop(1.0f);
-    pwm_client.shutdown();
-    return -60;
-}
+    if (!ctrl_mgr.init_manual_only(std::move(manual_ctrl))) {
+        std::cerr << "[ERR] ControllerManager init_manual_only failed: "
+                  << ctrl_mgr.status().last_error << "\n";
+        pwm_client.emergencyStop(1.0f);
+        pwm_client.shutdown();
+        return static_cast<int>(AppError::ControlLoopException);
+    }
 
-(void)ctrl_mgr.set_mode(rovctrl::control_core::ControlMode::kManual);
-
+    (void)ctrl_mgr.set_mode(rovctrl::control_core::ControlMode::kManual);
 
     // ===================== ControlLoop =====================
     rovctrl::control_core::ControlLoop::Config loop_cfg{};

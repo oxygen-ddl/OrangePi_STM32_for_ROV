@@ -154,7 +154,6 @@ if (PWMCTRL_ENABLE_COMM_GCS)
             src/io/gcs/gcs_link_udp.cpp
             src/io/gcs/gcs_session.cpp
             src/io/gcs/gcs_telemetry_adapter.cpp
-            src/io/gcs/crc32c.cpp
         )
     endif()
 endif()
@@ -184,7 +183,9 @@ target_link_libraries(pwm_control_program
         ${YAMLCPP_TARGET}
         Threads::Threads
         shared_msgs
+        proto_gcs
 )
+
 
 # =============================================================================
 # Link libpwm_host (prefer target, fallback to prebuilt)

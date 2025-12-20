@@ -103,6 +103,14 @@ set(SRC_CONTROL_CORE
     src/control_core/control_guard.cpp
     src/control_core/thruster_allocation.cpp
     src/control_core/trajectory_tracking.cpp
+    src/control_core/app_context.cpp
+    
+    # 新增：loop 子目录
+    src/control_core/loop/control_loop_run.cpp
+    src/control_core/loop/control_loop_nav.cpp
+    src/control_core/loop/control_loop_pwm_log.cpp
+    src/control_core/loop/control_loop_helpers.cpp
+    
 )
 
 set(SRC_CONTROLLERS
@@ -138,6 +146,9 @@ set(SRC_IO
 
 set(SRC_UTILS
     src/utils/config_loader.cpp
+    src/utils/config_loader_pwm_client.cpp
+    src/utils/config_loader_alloc.cpp
+    src/utils/config_loader_trajectory.cpp
 )
 
 # =============================================================================

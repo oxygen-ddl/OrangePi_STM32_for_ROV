@@ -1,28 +1,86 @@
 # config/pwm_client.yaml
+#
+# Purpose
+# - Configure PWM safety layer + motor mapping for STM32 thruster driver.
+# - This file is consumed by pwm_control_program (C++) via utils::load_pwm_client_config().
+#
+# Consistency notes
+# - ctrl_hz should match control loop loop_hz (or be an integer multiple).
+# - If group_mode=AB_ALTERNATE, each group is refreshed at ctrl_hz/2.
 
-# ========== 基本频率与斜率 ==========
-ctrl_hz: 100.0          # 与控制循环 loop_hz 一般保持一致
-max_step_pct: 0.2       # 每步最大占空比变化百分比
+# ============================================================
+# 0) Backend selection (offline / online)
+# ============================================================
+# When dummy_backend=true:
+# - No UDP packets will be sent to STM32.
+# - Used for integration testing on Ubuntu without hardware.
+dummy_backend: false
+dummy_print_frames: false   # Print the "would-send" PWM frames to stdout (debug only)
 
-# ========== 占空比范围 ==========
-min_pct: 5.0            # 约 1000 us
-mid_pct: 7.5            # 约 1500 us
-max_pct: 10.0           # 约 2000 us
+# ============================================================
+# 1) Transport (optional; recommended for future)
+# ============================================================
+# NOTE: Current pwm_client.cpp uses pwm_host_default_config().
+# If you later expose host_cfg.stm32_ip/port, enable these fields.
+transport:
+  stm32:
+    ip: "192.168.2.16"
+    port: 8000
+  send_hz: 50
+  socket_sndbuf: 0        # 0=不修改
+  nonblock_send: 0        # 0=阻塞 sendto；1=非阻塞
 
-enable_reverse_protection: true   # 防止瞬间反向
+  orangepi:
+    # 仅用于“显式绑定本地网卡”的场景；一般可以省略，让 OS 自己选
+    ip: "192.168.2.24"
 
-# ========== 分组配置 ==========
-# 约定：逻辑 1–4 = 水平推进器，逻辑 5–8 = 垂向推进器
-groupA_mask: 0x0F       # CH1-4
-groupB_mask: 0xF0       # CH5-8
-group_mode: 1           # PWM_CTRL_GROUP_MODE_AB_ALTERNATE（AB 交替）
+  gcs:
+    listen_ip: "0.0.0.0"
+    listen_port: 14600
 
-# ========== 逻辑电机 → 物理 PWM 通道映射 ==========
-# motorch_to_pwmch[i] = 逻辑电机 (i+1) 对应的物理 PWM 通道号
-# 你当前的接线关系：1↔5, 2↔6, 3↔7, 4↔8
+
+# ============================================================
+# 2) Safety layer timing
+# ============================================================
+ctrl_hz: 100.0              # Suggested: equal to main control loop frequency
+max_step_pct: 0.2           # Max duty change per step (%). Lower => gentler but slower response.
+
+# ============================================================
+# 3) PWM duty range (percent)
+# ============================================================
+min_pct: 5.0                # ~1000us
+mid_pct: 7.5                # ~1500us
+max_pct: 10.0               # ~2000us
+
+# Reverse protection:
+# - Prevent sudden direction reversal that may cause large current spikes.
+enable_reverse_protection: true
+
+# ============================================================
+# 4) Grouping policy (A/B)
+# ============================================================
+# Convention: logical 1–4 = horizontal thrusters, logical 5–8 = vertical thrusters
+groupA_mask: 0x0F           # CH1-4
+groupB_mask: 0xF0           # CH5-8
+group_mode: 1               # PWM_CTRL_GROUP_MODE_AB_ALTERNATE
+
+# ============================================================
+# 5) Logical motor -> physical PWM channel mapping
+# ============================================================
+# motorch_to_pwmch[i] maps logical motor (i+1) -> physical PWM channel number.
+# 0 means default mapping (i+1).
+#
+# Current wiring: 1↔5, 2↔6, 3↔7, 4↔8
 motorch_to_pwmch: [5, 6, 7, 8, 1, 2, 3, 4]
 
-# ========== 电机方向 ==========
-# 0 正向，非 0 视为反向。具体要按你试出来的“正转/反转”体感再调整。
-# 先全部设为 0，实测发现个别反向，再改对应逻辑通道为 1 即可。
+# ============================================================
+# 6) Motor direction (logical)
+# ============================================================
+# 0 = normal, 1 = reverse
+#
+# Validation procedure (recommended):
+# 1) Use a single-motor test mode (or set only one channel slightly above mid_pct)
+# 2) Confirm thrust direction for surge/sway/heave according to body axes:
+#    x_forward, y_starboard, z_down (NED body)
+# 3) Only then mark the corresponding logical motor as reversed.
 motor_reverse: [0, 0, 0, 0, 0, 0, 0, 0]

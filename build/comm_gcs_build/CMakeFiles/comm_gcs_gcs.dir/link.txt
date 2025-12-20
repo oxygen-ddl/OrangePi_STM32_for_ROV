@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcomm_gcs_gcs.a  CMakeFiles/comm_gcs_gcs.dir/src/session/gcs_session.cpp.o
-/usr/bin/ranlib libcomm_gcs_gcs.a

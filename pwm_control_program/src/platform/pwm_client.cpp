@@ -14,32 +14,40 @@ namespace rovctrl::platform {
 
 namespace {
 
-/// 将 C++ 侧的 motor 映射配置拷贝到 C 侧 pwm_ctrl_config_t，顺便做边界检查
-///
-/// - motorch_to_pwmch[i]：逻辑电机 (i+1) → 物理 PWM 通道号
-///   * 合法：1..PWM_HOST_CH_NUM
-///   * 0    ：表示“默认映射 i+1”，交由 pwm_control 自行处理
-/// - motor_reverse[i]：0 正向，非 0 视为 1（反向）
-void sanitize_motor_mapping(const PwmClientConfig& cfg,
-                            pwm_ctrl_config_t&     ctrl_cfg)
+// 将 C++ 侧 motor 映射配置拷贝到 C 侧 pwm_ctrl_config_t，并做边界检查
+static void sanitize_motor_mapping(const PwmClientConfig& cfg,
+                                   pwm_ctrl_config_t&     ctrl_cfg)
 {
-    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
+    // 注意：PWM_HOST_CH_NUM 是 C 库的通道数；我们按两者较小值遍历更稳妥
+    const std::size_t n =
+        (kNumPwmChannels < static_cast<std::size_t>(PWM_HOST_CH_NUM))
+            ? kNumPwmChannels
+            : static_cast<std::size_t>(PWM_HOST_CH_NUM);
+
+    for (std::size_t i = 0; i < n; ++i) {
         const int map_val = cfg.motorch_to_pwmch[i];
 
         if (map_val < 0 || map_val > PWM_HOST_CH_NUM) {
-            // 非法映射：打印告警并回退为 0（由 pwm_control 使用默认 1..N）
             std::cerr << "[PwmClient] WARN: motorch_to_pwmch[" << i
-                      << "] = " << map_val
-                      << " out of range, fallback to 0 (default mapping)\n";
-            ctrl_cfg.motorch_to_pwmch[i] = 0;  // 0 → 默认映射
+                      << "]=" << map_val
+                      << " out of range (0.."<< PWM_HOST_CH_NUM
+                      << "), fallback to 0\n";
+            ctrl_cfg.motorch_to_pwmch[i] = 0; // 0 => default mapping
         } else {
-            ctrl_cfg.motorch_to_pwmch[i] = map_val; // 0 或 1..N
+            ctrl_cfg.motorch_to_pwmch[i] = map_val; // 0 or 1..N
         }
 
-        // 归一 motor_reverse：0 正向，其它都视为 1
         ctrl_cfg.motor_reverse[i] = (cfg.motor_reverse[i] ? 1 : 0);
     }
+
+    // 若 C 侧通道数比 C++ 侧大，剩余部分清零（保险）
+    for (std::size_t i = n; i < static_cast<std::size_t>(PWM_HOST_CH_NUM); ++i) {
+        ctrl_cfg.motorch_to_pwmch[i] = 0;
+        ctrl_cfg.motor_reverse[i]    = 0;
+    }
 }
+
+static int clamp_nonneg_int(int v) { return (v < 0) ? 0 : v; }
 
 } // anonymous namespace
 
@@ -49,10 +57,7 @@ void sanitize_motor_mapping(const PwmClientConfig& cfg,
 
 PwmClient::~PwmClient()
 {
-    // RAII：对象析构时自动做一次安全关闭
-    if (inited_) {
-        shutdown();
-    }
+    if (inited_) shutdown();
 }
 
 void PwmClient::set_error(int err_code, const std::string& msg)
@@ -75,36 +80,79 @@ void PwmClient::clear_error()
 
 bool PwmClient::init(const PwmClientConfig& cfg)
 {
-    // 如果已经初始化，先关掉旧的实例
-    if (inited_) {
-        shutdown();
-    }
+    if (inited_) shutdown();
 
     cfg_ = cfg;
     clear_error();
 
+    // ------------------------------
+    // Dummy backend
+    // ------------------------------
+    if (cfg_.dummy_backend) {
+        dummy_  = true;
+        inited_ = true;
+
+        for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
+            target_pct_[i]  = cfg_.mid_pct;
+            current_pct_[i] = cfg_.mid_pct;
+        }
+
+        std::cerr << "[PwmClient] Dummy backend enabled (no STM32).\n";
+        return true;
+    }
+
+    dummy_ = false;
+
     // ------------------------------------------------------------------------
-    // 1) 初始化 libpwm_host（UDP 连接到 STM32）
+    // 1) libpwm_host init (UDP -> STM32)
     // ------------------------------------------------------------------------
     pwm_host_config_t host_cfg{};
     pwm_host_default_config(&host_cfg);
 
-    // 如有需要，可在这里根据 cfg_ 设置 host_cfg.stm32_ip / stm32_port
-    // std::snprintf(host_cfg.stm32_ip, sizeof(host_cfg.stm32_ip), "%s", cfg_.stm32_ip.c_str());
-    // host_cfg.stm32_port = ...;
+    // Scheme B: override from cfg_.transport
+    if (!cfg_.transport.stm32.ip.empty()) {
+        host_cfg.stm32_ip = cfg_.transport.stm32.ip.c_str();
+    }
+    if (cfg_.transport.stm32.port != 0) {
+        host_cfg.stm32_port = cfg_.transport.stm32.port;
+    }
+
+    // send_hz
+    if (cfg_.transport.send_hz > 0) {
+        host_cfg.send_hz = clamp_nonneg_int(cfg_.transport.send_hz);
+    }
+
+    // socket_sndbuf: 0 => do not modify
+    if (cfg_.transport.socket_sndbuf != 0) {
+        host_cfg.socket_sndbuf = cfg_.transport.socket_sndbuf;
+    }
+
+    host_cfg.nonblock_send = cfg_.transport.nonblock_send ? 1 : 0;
+
+    std::cerr << "[PwmClient] libpwm_host target: "
+              << (host_cfg.stm32_ip ? host_cfg.stm32_ip : "<null>")
+              << ":" << host_cfg.stm32_port
+              << " send_hz=" << host_cfg.send_hz
+              << " nonblock_send=" << host_cfg.nonblock_send
+              << " socket_sndbuf=" << host_cfg.socket_sndbuf
+              << "\n";
 
     const pwmh_result_t rc_host = pwm_host_init(&host_cfg);
-    if (rc_host != PWMH_OK) {
+
+    // IMPORTANT: 这里的“成功码”请按你的 libpwm_host.h 修正：
+    // - 如果有 PWMH_OK / PWMH_SUCCESS 等，用它；
+    // - 若 rc_host==0 表示成功，就改成 (rc_host != 0) 判错。
+    if (rc_host != 0) {
         std::ostringstream oss;
-        oss << "[PwmClient] pwm_host_init failed, rc=" << rc_host
-            << " (" << pwm_host_strerror(rc_host) << ")";
-        set_error(-rc_host, oss.str());
+        oss << "[PwmClient] pwm_host_init failed, rc=" << static_cast<int>(rc_host);
+        set_error(static_cast<int>(rc_host), oss.str());
+        pwm_host_close(); // defensive
         inited_ = false;
         return false;
     }
 
     // ------------------------------------------------------------------------
-    // 2) 初始化 pwm_control 安全层
+    // 2) pwm_control init (safety layer)
     // ------------------------------------------------------------------------
     pwm_ctrl_config_t ctrl_cfg;
     std::memset(&ctrl_cfg, 0, sizeof(ctrl_cfg));
@@ -116,11 +164,10 @@ bool PwmClient::init(const PwmClientConfig& cfg)
     ctrl_cfg.max_pct      = cfg_.max_pct;
 
     ctrl_cfg.enable_reverse_protection = cfg_.enable_reverse_protection ? 1 : 0;
-    ctrl_cfg.groupA_mask = static_cast<pwm_channel_mask_t>(cfg_.groupA_mask);
-    ctrl_cfg.groupB_mask = static_cast<pwm_channel_mask_t>(cfg_.groupB_mask);
-    ctrl_cfg.group_mode  = static_cast<pwm_ctrl_group_mode_t>(cfg_.group_mode);
+    ctrl_cfg.groupA_mask               = static_cast<pwm_channel_mask_t>(cfg_.groupA_mask);
+    ctrl_cfg.groupB_mask               = static_cast<pwm_channel_mask_t>(cfg_.groupB_mask);
+    ctrl_cfg.group_mode                = static_cast<pwm_ctrl_group_mode_t>(cfg_.group_mode);
 
-    // 逻辑电机 ↔ 物理通道映射 + 方向反转归一
     sanitize_motor_mapping(cfg_, ctrl_cfg);
 
     const int rc_ctrl = pwm_ctrl_init(&ctrl_cfg);
@@ -140,14 +187,16 @@ bool PwmClient::init(const PwmClientConfig& cfg)
 
 void PwmClient::shutdown()
 {
-    if (!inited_) {
+    if (!inited_) return;
+
+    if (dummy_) {
+        inited_ = false;
+        dummy_  = false;
+        clear_error();
         return;
     }
 
-    // 1) 尽量安全归中位（忽略错误，毕竟是在退出阶段）
     (void)pwm_ctrl_emergency_stop(1.0f);
-
-    // 2) 关闭安全层与 UDP 库
     pwm_ctrl_deinit();
     pwm_host_close();
 
@@ -164,6 +213,12 @@ int PwmClient::setAllMid()
     if (!inited_) {
         set_error(PWM_CTRL_ERR_NOT_INIT, "[PwmClient] setAllMid: not initialized");
         return PWM_CTRL_ERR_NOT_INIT;
+    }
+
+    if (dummy_) {
+        for (std::size_t i = 0; i < kNumPwmChannels; ++i) target_pct_[i] = cfg_.mid_pct;
+        clear_error();
+        return 0;
     }
 
     const int rc = pwm_ctrl_set_all_target_mid();
@@ -185,13 +240,22 @@ int PwmClient::setTarget(int ch, float pct)
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    // 通道号保护：底层 API 以 1..PWM_HOST_CH_NUM 为合法范围
     if (ch < 1 || ch > PWM_HOST_CH_NUM) {
         std::ostringstream oss;
         oss << "[PwmClient] setTarget: invalid channel " << ch
             << " (must be 1.." << PWM_HOST_CH_NUM << ")";
         set_error(PWM_CTRL_ERR_INVALID_ARG, oss.str());
         return PWM_CTRL_ERR_INVALID_ARG;
+    }
+
+    if (dummy_) {
+        float v = pct;
+        if (v < 0.0f) v = cfg_.mid_pct;
+        if (v < cfg_.min_pct) v = cfg_.min_pct;
+        if (v > cfg_.max_pct) v = cfg_.max_pct;
+        target_pct_[static_cast<std::size_t>(ch - 1)] = v;
+        clear_error();
+        return 0;
     }
 
     const int rc = pwm_ctrl_set_target_pct(ch, pct);
@@ -212,6 +276,17 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct)
     if (!inited_) {
         set_error(PWM_CTRL_ERR_NOT_INIT, "[PwmClient] setTargets: not initialized");
         return PWM_CTRL_ERR_NOT_INIT;
+    }
+
+    if (dummy_) {
+        for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
+            float v = pct[i];
+            if (v < cfg_.min_pct) v = cfg_.min_pct;
+            if (v > cfg_.max_pct) v = cfg_.max_pct;
+            target_pct_[i] = v;
+        }
+        clear_error();
+        return 0;
     }
 
     float arr[PWM_HOST_CH_NUM];
@@ -242,19 +317,40 @@ int PwmClient::step()
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    // 先处理一下心跳 ACK / 统计信息
-    //
-    // 这里使用 1 ms 的短等待，相当于“软实时轮询”：
-    //   - 避免完全非阻塞导致忙等；
-    //   - 不会显著拉长 100 Hz 控制周期。
+    if (dummy_) {
+        const float max_d = (cfg_.max_step_pct > 0.0f) ? cfg_.max_step_pct : 0.2f;
+
+        for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
+            const float t = target_pct_[i];
+            float&      c = current_pct_[i];
+
+            float d = t - c;
+            if (d >  max_d) d =  max_d;
+            if (d < -max_d) d = -max_d;
+            c += d;
+
+            if (c < cfg_.min_pct) c = cfg_.min_pct;
+            if (c > cfg_.max_pct) c = cfg_.max_pct;
+        }
+
+        if (cfg_.dummy_print_frames) {
+            std::cerr << "[PwmClient][Dummy] current_pct=[";
+            for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
+                std::cerr << current_pct_[i] << (i + 1 == kNumPwmChannels ? "" : ", ");
+            }
+            std::cerr << "]\n";
+        }
+
+        clear_error();
+        return 0;
+    }
+
     const int poll_rc = pwm_host_poll(1);
     if (poll_rc < 0) {
-        // 软性告警：记录错误，但不直接标记为“致命失效”，交由上层决定是否中止
         std::ostringstream oss;
         oss << "[PwmClient] pwm_host_poll error, rc=" << poll_rc;
         status_.last_error     = poll_rc;
         status_.last_error_msg = oss.str();
-        // status_.ok 保持当前值
     }
 
     const int rc = pwm_ctrl_step();
@@ -265,7 +361,6 @@ int PwmClient::step()
         return rc;
     }
 
-    // 核心控制 step 成功，认为客户端处于“健康”状态
     clear_error();
     return rc;
 }
@@ -275,6 +370,12 @@ int PwmClient::emergencyStop(float seconds)
     if (!inited_) {
         set_error(PWM_CTRL_ERR_NOT_INIT, "[PwmClient] emergencyStop: not initialized");
         return PWM_CTRL_ERR_NOT_INIT;
+    }
+
+    if (dummy_) {
+        for (std::size_t i = 0; i < kNumPwmChannels; ++i) target_pct_[i] = cfg_.mid_pct;
+        clear_error();
+        return 0;
     }
 
     const int rc = pwm_ctrl_emergency_stop(seconds);
@@ -296,13 +397,18 @@ int PwmClient::setMotorReverse(int motor_id, bool enable)
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    // motor_id 语义：逻辑电机编号 1..8
     if (motor_id < 1 || motor_id > PWM_HOST_CH_NUM) {
         std::ostringstream oss;
         oss << "[PwmClient] setMotorReverse: invalid motor_id " << motor_id
             << " (must be 1.." << PWM_HOST_CH_NUM << ")";
         set_error(PWM_CTRL_ERR_INVALID_ARG, oss.str());
         return PWM_CTRL_ERR_INVALID_ARG;
+    }
+
+    if (dummy_) {
+        cfg_.motor_reverse[static_cast<std::size_t>(motor_id - 1)] = enable ? 1 : 0;
+        clear_error();
+        return 0;
     }
 
     const int rc = pwm_ctrl_set_motor_reverse(motor_id, enable ? 1 : 0);
@@ -324,10 +430,11 @@ int PwmClient::setMotorReverse(int motor_id, bool enable)
 
 bool PwmClient::getLastApplied(std::array<float, kNumPwmChannels>& out_pct)
 {
-    if (!inited_) {
-        // 注意：这里不覆盖 status_.last_error，避免影响控制主路径的错误判断；
-        //       仅通过返回 false 通知调用方“未初始化”。
-        return false;
+    if (!inited_) return false;
+
+    if (dummy_) {
+        out_pct = current_pct_;
+        return true;
     }
 
     pwm_ctrl_state_t st{};

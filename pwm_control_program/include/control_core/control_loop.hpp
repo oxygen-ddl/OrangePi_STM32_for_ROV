@@ -24,11 +24,11 @@
 #include "control_core/control_intent.hpp"
 #include "control_core/thruster_allocation.hpp"
 #include "controllers/controller_manager.hpp"
-#include "io/input/input_provider.hpp"          // for rovctrl::io::InputProviderPtr
+#include "io/input/input_provider.hpp" // for rovctrl::io::InputProviderPtr
 #include "platform/pwm_client.hpp"
 
 namespace shared::msg {
-struct NavState;  // forward decl only; definition stays in .cpp
+struct NavState; // forward decl only; definition stays in .cpp
 }
 
 namespace rovctrl::control_core {
@@ -50,8 +50,8 @@ public:
         // --- safety & arbitration ---
         ControlGuardConfig guard_cfg{};
 
-        bool allow_run_without_nav               = true;
-        bool enter_failsafe_on_controller_error  = true;
+        bool allow_run_without_nav              = true;
+        bool enter_failsafe_on_controller_error = true;
 
         // --- allocation ---
         ThrusterAllocationConfig thruster_alloc{};
@@ -83,18 +83,25 @@ public:
     };
 
 public:
-    ControlLoop(const Config& cfg,
-                rovctrl::platform::PwmClient&   pwm,
-                rovctrl::io::InputProviderPtr   input,
-                ControllerManager&&             ctrl_mgr,
-                std::atomic_bool*               external_stop_flag = nullptr);
+    ControlLoop(const Config&                  cfg,
+                rovctrl::platform::PwmClient&  pwm,
+                rovctrl::io::InputProviderPtr  input,
+                ControllerManager&&            ctrl_mgr,
+                std::atomic_bool*              external_stop_flag = nullptr);
 
+    // NOTE: Defined in .cpp (NavSub is incomplete here).
     ~ControlLoop() noexcept;
 
     ControlLoop(const ControlLoop&)            = delete;
     ControlLoop& operator=(const ControlLoop&) = delete;
+
+    // 保守做法：先禁用 move（你当前策略）
     ControlLoop(ControlLoop&&)                 = delete;
     ControlLoop& operator=(ControlLoop&&)      = delete;
+
+    // 若你决定允许 move（推荐的工程做法），用下面替换上面两行：
+    // ControlLoop(ControlLoop&&) noexcept        = default;
+    // ControlLoop& operator=(ControlLoop&&) noexcept = default;
 
     int run();
 
@@ -102,19 +109,19 @@ public:
 
 private:
     // =============== 配置与依赖对象 ===============
-    Config                        cfg_{};
-    rovctrl::platform::PwmClient& pwm_;
-    rovctrl::io::InputProviderPtr input_;
-    ControllerManager             ctrl_mgr_;
-    std::atomic_bool*             external_stop_{nullptr};
+    Config                         cfg_{};
+    rovctrl::platform::PwmClient&  pwm_;
+    rovctrl::io::InputProviderPtr  input_;
+    ControllerManager              ctrl_mgr_;
+    std::atomic_bool*              external_stop_{nullptr};
 
     // =============== Guard（安全/仲裁）==============
     ControlGuard guard_;
 
     // =============== 控制状态与 I/O 缓存 ===============
     ControlState  state_{};
-    ControlIntent intent_{};          // raw input
-    GuardResult   guard_result_{};    // post-arbitration
+    ControlIntent intent_{};        // raw input
+    GuardResult   guard_result_{};  // post-arbitration
 
     ControlReference ref_{};
     ControlOutput    output_{};
@@ -124,7 +131,11 @@ private:
 
     // =============== 导航状态反馈（PIMPL） ===============
     struct NavSub;
-    std::unique_ptr<NavSub> nav_sub_;
+    struct NavSubDeleter {
+    void operator()(NavSub*) noexcept;
+};
+    std::unique_ptr<NavSub, NavSubDeleter> nav_sub_;
+
     bool last_nav_valid_{false};
 
     // =============== PWM 日志（PIMPL，避免头文件引入 <fstream>） ===============
@@ -135,10 +146,16 @@ private:
 
 private:
     // 与 .cpp 保持一致的私有步骤接口（避免签名漂移）
-    bool update_nav_feedback_(shared::msg::NavState& nav_out);  // returns nav_ok
+    bool update_nav_feedback_(shared::msg::NavState& nav_out); // returns nav_ok
     void build_reference_from_guard_();
     bool build_thruster_command_(ThrusterArray& thr_out);
     void execute_failsafe_(FailsafeAction a);
+
+    // 由 pwm_control_program/src/control_core/control_loop_pwm_log.cpp 提供实现
+    std::unique_ptr<PwmLog> make_pwm_logger_();
+
+    // 由 pwm_control_program/src/control_core/control_loop_helpers.cpp 提供实现
+    std::uint64_t now_mono_ns_() const;
 };
 
 } // namespace rovctrl::control_core

@@ -1,5 +1,6 @@
 #include "platform/pwm_client.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -18,7 +19,6 @@ namespace {
 static void sanitize_motor_mapping(const PwmClientConfig& cfg,
                                    pwm_ctrl_config_t&     ctrl_cfg)
 {
-    // 注意：PWM_HOST_CH_NUM 是 C 库的通道数；我们按两者较小值遍历更稳妥
     const std::size_t n =
         (kNumPwmChannels < static_cast<std::size_t>(PWM_HOST_CH_NUM))
             ? kNumPwmChannels
@@ -30,7 +30,7 @@ static void sanitize_motor_mapping(const PwmClientConfig& cfg,
         if (map_val < 0 || map_val > PWM_HOST_CH_NUM) {
             std::cerr << "[PwmClient] WARN: motorch_to_pwmch[" << i
                       << "]=" << map_val
-                      << " out of range (0.."<< PWM_HOST_CH_NUM
+                      << " out of range (0.." << PWM_HOST_CH_NUM
                       << "), fallback to 0\n";
             ctrl_cfg.motorch_to_pwmch[i] = 0; // 0 => default mapping
         } else {
@@ -40,7 +40,6 @@ static void sanitize_motor_mapping(const PwmClientConfig& cfg,
         ctrl_cfg.motor_reverse[i] = (cfg.motor_reverse[i] ? 1 : 0);
     }
 
-    // 若 C 侧通道数比 C++ 侧大，剩余部分清零（保险）
     for (std::size_t i = n; i < static_cast<std::size_t>(PWM_HOST_CH_NUM); ++i) {
         ctrl_cfg.motorch_to_pwmch[i] = 0;
         ctrl_cfg.motor_reverse[i]    = 0;
@@ -49,7 +48,14 @@ static void sanitize_motor_mapping(const PwmClientConfig& cfg,
 
 static int clamp_nonneg_int(int v) { return (v < 0) ? 0 : v; }
 
-} // anonymous namespace
+static const char* backend_str(bool dummy) noexcept { return dummy ? "DUMMY" : "STM32"; }
+
+static float clampf(float v, float lo, float hi) noexcept
+{
+    return std::max(lo, std::min(v, hi));
+}
+
+} // namespace
 
 // ============================================================================
 // 析构 / 状态管理
@@ -97,7 +103,9 @@ bool PwmClient::init(const PwmClientConfig& cfg)
             current_pct_[i] = cfg_.mid_pct;
         }
 
-        std::cerr << "[PwmClient] Dummy backend enabled (no STM32).\n";
+        std::cerr << "[PwmClient] backend=" << backend_str(dummy_)
+                  << " dummy_print_frames=" << (cfg_.dummy_print_frames ? 1 : 0)
+                  << " (no STM32)\n";
         return true;
     }
 
@@ -109,7 +117,7 @@ bool PwmClient::init(const PwmClientConfig& cfg)
     pwm_host_config_t host_cfg{};
     pwm_host_default_config(&host_cfg);
 
-    // Scheme B: override from cfg_.transport
+    // Override from cfg_.transport
     if (!cfg_.transport.stm32.ip.empty()) {
         host_cfg.stm32_ip = cfg_.transport.stm32.ip.c_str();
     }
@@ -117,19 +125,17 @@ bool PwmClient::init(const PwmClientConfig& cfg)
         host_cfg.stm32_port = cfg_.transport.stm32.port;
     }
 
-    // send_hz
     if (cfg_.transport.send_hz > 0) {
         host_cfg.send_hz = clamp_nonneg_int(cfg_.transport.send_hz);
     }
 
-    // socket_sndbuf: 0 => do not modify
     if (cfg_.transport.socket_sndbuf != 0) {
         host_cfg.socket_sndbuf = cfg_.transport.socket_sndbuf;
     }
 
     host_cfg.nonblock_send = cfg_.transport.nonblock_send ? 1 : 0;
 
-    std::cerr << "[PwmClient] libpwm_host target: "
+    std::cerr << "[PwmClient] backend=" << backend_str(dummy_) << " libpwm_host target: "
               << (host_cfg.stm32_ip ? host_cfg.stm32_ip : "<null>")
               << ":" << host_cfg.stm32_port
               << " send_hz=" << host_cfg.send_hz
@@ -138,10 +144,6 @@ bool PwmClient::init(const PwmClientConfig& cfg)
               << "\n";
 
     const pwmh_result_t rc_host = pwm_host_init(&host_cfg);
-
-    // IMPORTANT: 这里的“成功码”请按你的 libpwm_host.h 修正：
-    // - 如果有 PWMH_OK / PWMH_SUCCESS 等，用它；
-    // - 若 rc_host==0 表示成功，就改成 (rc_host != 0) 判错。
     if (rc_host != 0) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_host_init failed, rc=" << static_cast<int>(rc_host);
@@ -182,6 +184,8 @@ bool PwmClient::init(const PwmClientConfig& cfg)
 
     inited_ = true;
     clear_error();
+
+    std::cerr << "[PwmClient] backend=" << backend_str(dummy_) << " init OK\n";
     return true;
 }
 
@@ -190,6 +194,7 @@ void PwmClient::shutdown()
     if (!inited_) return;
 
     if (dummy_) {
+        std::cerr << "[PwmClient] shutdown backend=" << backend_str(dummy_) << "\n";
         inited_ = false;
         dummy_  = false;
         clear_error();
@@ -200,6 +205,7 @@ void PwmClient::shutdown()
     pwm_ctrl_deinit();
     pwm_host_close();
 
+    std::cerr << "[PwmClient] shutdown backend=" << backend_str(dummy_) << "\n";
     inited_ = false;
     clear_error();
 }
@@ -249,10 +255,7 @@ int PwmClient::setTarget(int ch, float pct)
     }
 
     if (dummy_) {
-        float v = pct;
-        if (v < 0.0f) v = cfg_.mid_pct;
-        if (v < cfg_.min_pct) v = cfg_.min_pct;
-        if (v > cfg_.max_pct) v = cfg_.max_pct;
+        const float v = clampf(pct, cfg_.min_pct, cfg_.max_pct);
         target_pct_[static_cast<std::size_t>(ch - 1)] = v;
         clear_error();
         return 0;
@@ -280,18 +283,22 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct)
 
     if (dummy_) {
         for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
-            float v = pct[i];
-            if (v < cfg_.min_pct) v = cfg_.min_pct;
-            if (v > cfg_.max_pct) v = cfg_.max_pct;
-            target_pct_[i] = v;
+            target_pct_[i] = clampf(pct[i], cfg_.min_pct, cfg_.max_pct);
         }
         clear_error();
         return 0;
     }
 
     float arr[PWM_HOST_CH_NUM];
-    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
-        arr[i] = pct[static_cast<std::size_t>(i)];
+    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) arr[i] = cfg_.mid_pct;
+
+    const std::size_t n =
+        (kNumPwmChannels < static_cast<std::size_t>(PWM_HOST_CH_NUM))
+            ? kNumPwmChannels
+            : static_cast<std::size_t>(PWM_HOST_CH_NUM);
+
+    for (std::size_t i = 0; i < n; ++i) {
+        arr[i] = pct[i];
     }
 
     const int rc = pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, arr);
@@ -329,8 +336,7 @@ int PwmClient::step()
             if (d < -max_d) d = -max_d;
             c += d;
 
-            if (c < cfg_.min_pct) c = cfg_.min_pct;
-            if (c > cfg_.max_pct) c = cfg_.max_pct;
+            c = clampf(c, cfg_.min_pct, cfg_.max_pct);
         }
 
         if (cfg_.dummy_print_frames) {
@@ -349,6 +355,7 @@ int PwmClient::step()
     if (poll_rc < 0) {
         std::ostringstream oss;
         oss << "[PwmClient] pwm_host_poll error, rc=" << poll_rc;
+        status_.ok             = false;
         status_.last_error     = poll_rc;
         status_.last_error_msg = oss.str();
     }

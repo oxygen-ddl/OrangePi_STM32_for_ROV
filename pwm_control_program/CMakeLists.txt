@@ -19,8 +19,8 @@ option(PWMCTRL_STRICT_WARNINGS "Enable strict warnings (-Wall/-Wextra/...)" ON)
 option(PWMCTRL_ASAN           "Enable AddressSanitizer/UBSan (Debug only recommended)" OFF)
 option(PWMCTRL_FORCE_STDCXXFS "Force link stdc++fs for old toolchains" OFF)
 
-# comm_gcs：默认开，但必须“存在才启用”，避免阻塞主工程编译
-option(PWMCTRL_ENABLE_COMM_GCS "Enable comm_gcs module if present" ON)
+# Route B: GCS comm is external process via shm; pwm_control_program reads shm.
+option(PWMCTRL_ENABLE_GCS_SHM "Enable GCS input via shared memory subscriber" ON)
 
 # =============================================================================
 # Repo paths
@@ -52,8 +52,7 @@ elseif (TARGET yaml-cpp)
     set(YAMLCPP_TARGET yaml-cpp)
 endif()
 
-# ---- Eigen (header-only): single, consistent logic ----
-# Prefer user-specified -DEIGEN3_INCLUDE_DIR=/path if provided
+# ---- Eigen (header-only) ----
 if (NOT DEFINED EIGEN3_INCLUDE_DIR)
     find_path(EIGEN3_INCLUDE_DIR
         NAMES Eigen/Dense
@@ -104,13 +103,11 @@ set(SRC_CONTROL_CORE
     src/control_core/thruster_allocation.cpp
     src/control_core/trajectory_tracking.cpp
     src/control_core/app_context.cpp
-    
-    # 新增：loop 子目录
+
     src/control_core/loop/control_loop_run.cpp
     src/control_core/loop/control_loop_nav.cpp
     src/control_core/loop/control_loop_pwm_log.cpp
     src/control_core/loop/control_loop_helpers.cpp
-    
 )
 
 set(SRC_CONTROLLERS
@@ -124,23 +121,31 @@ set(SRC_PLATFORM
     src/platform/timebase.cpp
 )
 
-# IO（不把 gcs 写死进去，gcs 用可选模块逻辑单独 append）
+# IO: Route B -> NO internal src/io/gcs/*
 set(SRC_IO
-    # ---- teleop ----
     src/io/teleop/teleop_keyboard.cpp
-
-    # ---- input ----
     src/io/input/teleop_input.cpp
-    src/io/input/gcs_input_adapter.cpp
+
     src/io/input/telemetry_frame.cpp
-    src/io/input/gcs_input_provider.cpp
+
+    # wire adapter (internal ControlIntent <-> shared/msg ControlIntent)
+    src/io/input/control_intent_wire_adapter.cpp
+
+    # multi input arbitration
     src/io/input/multi_input_provider.cpp
 
-    # ---- nav ----
+    # shm-based GCS input provider (enabled by option)
+    src/io/input/gcs_intent_subscriber_shm.cpp
+    src/io/input/gcs_shm_input_provider.cpp
+
+    # NOTE: keep gcs_intent_wire.cpp ONLY if it is your "wire codec" file
+    # and does NOT include/compile old io/gcs/* stack.
+    # If you already renamed it or it conflicts, remove this line accordingly.
+    
+
     src/io/nav/nav_state_source_shm.cpp
     src/io/nav/nav_state_subscriber.cpp
 
-    # ---- log ----
     src/io/log/pwm_logger.cpp
 )
 
@@ -152,24 +157,6 @@ set(SRC_UTILS
 )
 
 # =============================================================================
-# Optional comm_gcs module (only if present)
-# =============================================================================
-set(SRC_GCS "")
-set(PWMCTRL_HAS_COMM_GCS OFF)
-
-if (PWMCTRL_ENABLE_COMM_GCS)
-    if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/include/io/gcs"
-        AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/io/gcs")
-        set(PWMCTRL_HAS_COMM_GCS ON)
-        list(APPEND SRC_GCS
-            src/io/gcs/gcs_link_udp.cpp
-            src/io/gcs/gcs_session.cpp
-            src/io/gcs/gcs_telemetry_adapter.cpp
-        )
-    endif()
-endif()
-
-# =============================================================================
 # Target
 # =============================================================================
 add_executable(pwm_control_program
@@ -178,7 +165,6 @@ add_executable(pwm_control_program
     ${SRC_CONTROLLERS}
     ${SRC_PLATFORM}
     ${SRC_IO}
-    ${SRC_GCS}
     ${SRC_UTILS}
 )
 
@@ -189,14 +175,24 @@ target_include_directories(pwm_control_program
         "${EIGEN3_INCLUDE_DIR}"
 )
 
+# =============================================================================
+# Compile defs (feature gates)
+# =============================================================================
+if (PWMCTRL_ENABLE_GCS_SHM)
+    target_compile_definitions(pwm_control_program PRIVATE PWMCTRL_ENABLE_GCS_SHM=1)
+else()
+    target_compile_definitions(pwm_control_program PRIVATE PWMCTRL_ENABLE_GCS_SHM=0)
+endif()
+
+# =============================================================================
+# Link libraries
+# =============================================================================
 target_link_libraries(pwm_control_program
     PRIVATE
         ${YAMLCPP_TARGET}
         Threads::Threads
         shared_msgs
-        proto_gcs
 )
-
 
 # =============================================================================
 # Link libpwm_host (prefer target, fallback to prebuilt)
@@ -248,12 +244,24 @@ if (PWMCTRL_FORCE_STDCXXFS)
 endif()
 
 # =============================================================================
+# Hard guard: forbid internal src/io/gcs/*
+# =============================================================================
+get_target_property(_pwm_srcs pwm_control_program SOURCES)
+foreach(s IN LISTS _pwm_srcs)
+    if (s MATCHES "/src/io/gcs/")
+        message(FATAL_ERROR
+            "[pwm_control_program] Route B forbids compiling internal src/io/gcs/* : ${s}\n"
+            "Remove it from sources; use shm-based GCS input instead.")
+    endif()
+endforeach()
+
+# =============================================================================
 # Diagnostics
 # =============================================================================
-message(STATUS "[pwm_control_program] UWSYS_ROOT        = ${UWSYS_ROOT}")
-message(STATUS "[pwm_control_program] UWSYS_SHARED_DIR  = ${UWSYS_SHARED_DIR}")
-message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR   = ${PWM_INCLUDE_DIR}")
-message(STATUS "[pwm_control_program] PWM_LIB_DIR       = ${PWM_LIB_DIR}")
-message(STATUS "[pwm_control_program] YAMLCPP_TARGET    = ${YAMLCPP_TARGET}")
-message(STATUS "[pwm_control_program] BUILD_TYPE        = ${CMAKE_BUILD_TYPE}")
-message(STATUS "[pwm_control_program] HAS_COMM_GCS      = ${PWMCTRL_HAS_COMM_GCS}")
+message(STATUS "[pwm_control_program] UWSYS_ROOT           = ${UWSYS_ROOT}")
+message(STATUS "[pwm_control_program] UWSYS_SHARED_DIR     = ${UWSYS_SHARED_DIR}")
+message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR      = ${PWM_INCLUDE_DIR}")
+message(STATUS "[pwm_control_program] PWM_LIB_DIR          = ${PWM_LIB_DIR}")
+message(STATUS "[pwm_control_program] YAMLCPP_TARGET       = ${YAMLCPP_TARGET}")
+message(STATUS "[pwm_control_program] BUILD_TYPE           = ${CMAKE_BUILD_TYPE}")
+message(STATUS "[pwm_control_program] ENABLE_GCS_SHM(RouteB)= ${PWMCTRL_ENABLE_GCS_SHM}")

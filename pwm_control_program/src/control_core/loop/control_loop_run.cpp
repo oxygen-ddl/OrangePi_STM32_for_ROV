@@ -83,12 +83,77 @@ int ControlLoop::run()
               << " Hz, active_controller=" << ctrl_mgr_.active_controller_name()
               << ", mode=" << static_cast<int>(ctrl_mgr_.mode()) << "\n";
 
+    // ---------------- helpers (define once, not per-iteration) ----------------
+
+    auto log_pwm_cmd_applied = [&](double t_s, const ThrusterArray& thr_cmd) {
+        if (!pwm_logger_ || !pwm_logger_->is_open()) return;
+
+        std::array<float, 8> cmd{};
+        std::array<float, 8> applied{};
+        for (std::size_t i = 0; i < 8; ++i) {
+            cmd[i]     = thr_cmd[i];
+            applied[i] = thr_cmd[i]; // TODO: 若能读到 safety-layer applied，替换
+        }
+        pwm_logger_->logCmdAndApplied(t_s, cmd, applied);
+    };
+
+    auto neutral_and_step = [&](double t_s) {
+        ThrusterArray thr_cmd{};
+        thr_cmd.fill(0.0f); // 0 -> neutral
+        (void)pwm_.setTargets(thr_cmd);
+        (void)pwm_.step();
+        log_pwm_cmd_applied(t_s, thr_cmd);
+    };
+
+    auto has_active_command_from_intent = [&](const ControlIntent& in) -> bool {
+    // 1) 任何显式“非运动”命令都视为 active，避免被归中逻辑吞掉
+    if (in.request_exit) return true;
+    if (in.has_estop_cmd) return true;  // estop / clear_estop
+    if (in.has_arm_cmd)   return true;  // arm / disarm
+    if (in.has_mode_request && in.mode_request != ControlMode::kNone) return true;
+
+    if (in.has_ref)       return true;
+    if (in.has_ref_delta) return true;
+
+    // 2) 遥控输入：只有当 DOF 确实“非零”时，才认为 active
+    //    这样才能让“无输入归中”在松手/停止按键后触发
+    if (in.has_teleop_dof) {
+        constexpr double eps = 0.02; // 经验阈值：抑制抖动/浮点噪声
+        const auto absd = [](double x) { return (x >= 0.0) ? x : -x; };
+
+        const auto& c = in.teleop_dof_cmd;
+        if (absd(c.surge) > eps) return true;
+        if (absd(c.sway)  > eps) return true;
+        if (absd(c.heave) > eps) return true;
+        if (absd(c.roll)  > eps) return true;
+        if (absd(c.pitch) > eps) return true;
+        if (absd(c.yaw)   > eps) return true;
+
+        // DOF 全部接近 0：视为“无外界运动命令”
+        return false;
+    }
+
+    // 3) 其他情况：无外界输入/命令
+    return false;
+};
+
+
+
+    double no_input_sec = 0.0;
+    const double no_input_neutral_sec =
+        (cfg_.no_input_neutral_ms > 0) ? (cfg_.no_input_neutral_ms / 1000.0) : 0.2;
+
+    // ---------------- main loop ----------------
     while (true) {
+        // 外部退出（Ctrl+C / UI quit 等）
         if (external_stop_ && external_stop_->load()) {
+            const double t_s = duration_d(clock::now() - start_time_).count();
             std::cout << "[ControlLoop] external stop flag set, exiting loop.\n";
+            neutral_and_step(t_s); // 退出前归中一次
             break;
         }
 
+        // 固定周期调度
         auto now = clock::now();
         if (now < next_tick) {
             std::this_thread::sleep_until(next_tick);
@@ -114,20 +179,33 @@ int ControlLoop::run()
         shared::msg::NavState nav{};
         const bool nav_ok = update_nav_feedback_(nav);
 
+        // 只有 Auto 模式要求导航（Manual/Teleop 不需要）
+        const ControlMode mode_now = ctrl_mgr_.mode();
+        const bool nav_required = (mode_now == ControlMode::kAuto);
+
         if (!nav_ok) {
             ++nav_miss_counter;
 
-            if (!cfg_.allow_run_without_nav) {
-                std::cerr << "[ControlLoop] NavState missing and allow_run_without_nav=false, entering failsafe.\n";
-                execute_failsafe_(FailsafeAction::kEmergencyStop);
-                return -8;
-            }
+            if (nav_required) {
+                if (!cfg_.allow_run_without_nav) {
+                    std::cerr << "[ControlLoop] NavState missing in AUTO mode and allow_run_without_nav=false, entering failsafe.\n";
+                    execute_failsafe_(FailsafeAction::kEmergencyStop);
+                    return -8;
+                }
 
-            if (nav_miss_counter == 100 ||
-                (cfg_.step_error_log_interval > 0 &&
-                 nav_miss_counter % cfg_.step_error_log_interval == 0)) {
-                std::cerr << "[ControlLoop] Warning: no stable NavState for "
-                          << nav_miss_counter << " cycles.\n";
+                if (nav_miss_counter == 100 ||
+                    (cfg_.step_error_log_interval > 0 &&
+                     nav_miss_counter % cfg_.step_error_log_interval == 0)) {
+                    std::cerr << "[ControlLoop] Warning(AUTO): no stable NavState for "
+                              << nav_miss_counter << " cycles.\n";
+                }
+            } else {
+                // Manual / Failsafe：忽略导航缺失，避免干扰遥控
+                // Manual / Failsafe：忽略导航缺失，避免干扰遥控
+            if (nav_miss_counter == 1) {
+                std::cout << "[ControlLoop] NavState missing (ignored in mode="
+                          << static_cast<int>(mode_now) << ").\n";
+                }
             }
         } else {
             nav_miss_counter = 0;
@@ -141,9 +219,23 @@ int ControlLoop::run()
             return -10;
         }
 
+        // input 请求退出
         if (intent.request_exit) {
             std::cout << "[ControlLoop] Input provider requested exit.\n";
+            neutral_and_step(t_s);
             break;
+        }
+
+        // 无输入 watchdog：达到阈值后归中并跳过控制器计算
+        if (!has_active_command_from_intent(intent)) {
+            no_input_sec += dt;
+        } else {
+            no_input_sec = 0.0;
+        }
+
+        if (no_input_sec >= no_input_neutral_sec) {
+            neutral_and_step(t_s);
+            continue;
         }
 
         // guard
@@ -155,6 +247,7 @@ int ControlLoop::run()
 
             if (guard_result_.effective_intent.request_exit) {
                 std::cout << "[ControlLoop] Guard requested exit.\n";
+                neutral_and_step(t_s);
                 break;
             }
 
@@ -218,23 +311,15 @@ int ControlLoop::run()
 
         step_err_count = 0;
 
-        if (pwm_logger_ && pwm_logger_->is_open()) {
-            std::array<float, 8> cmd{};
-            std::array<float, 8> applied{};
-
-            for (std::size_t i = 0; i < 8; ++i) {
-                cmd[i]     = thr_cmd[i];
-                applied[i] = thr_cmd[i]; // TODO: 若能读到 safety-layer applied，替换
-            }
-
-            pwm_logger_->logCmdAndApplied(t_s, cmd, applied);
-        }
+        log_pwm_cmd_applied(t_s, thr_cmd);
     }
 
-    execute_failsafe_(FailsafeAction::kEmergencyStop);
+    // 正常退出：再保险归中一次（比无条件 E-Stop 更符合“退出键结束程序”的语义）
+    neutral_and_step(duration_d(clock::now() - start_time_).count());
 
     std::cout << "[ControlLoop] loop exited normally.\n";
     return 0;
 }
+
 
 } // namespace rovctrl::control_core

@@ -16,7 +16,7 @@
 
 #include "controllers/manual_controller.hpp"
 
-#include "io/input/gcs_input_provider.hpp"
+#include "io/input/gcs_shm_input_provider.hpp"
 #include "io/input/multi_input_provider.hpp"
 #include "io/input/teleop_input.hpp"
 
@@ -208,16 +208,30 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     }
 
     if (opt.enable_gcs) {
-        rovctrl::io::GcsInputProvider::Config gcs_cfg{};
-        gcs_cfg.bind_port      = clamp_u16_from_int(opt.gcs_bind_port, 14600); // 旧行为默认 14600
-        gcs_cfg.default_ttl_ms = clamp_u32_from_int(opt.gcs_ttl_ms, 200);    // 旧行为默认 200
-        gcs = std::make_shared<rovctrl::io::GcsInputProvider>(gcs_cfg);
+        // NEW: shm-based GCS input (comm_gcs publishes into shm)
+        rovctrl::io::input::GcsShmInputProvider::Config gcs_cfg{};
+        gcs_cfg.enable    = true;
+
+        // Default shm name (as you requested): /rovctrl_gcs_intent_v1
+        // If you already have an opt field, replace this with opt.gcs_shm_name etc.
+        gcs_cfg.shm_name  = "/rovctrl_gcs_intent_v1";
+
+        // 0 => auto / use publisher size
+        gcs_cfg.shm_size  = 0;
+
+        // Allow pwm_control_program start before comm_gcs
+        gcs_cfg.lazy_init = true;
+
+        gcs = std::make_shared<rovctrl::io::input::GcsShmInputProvider>(gcs_cfg);
     }
 
     if (teleop && gcs) {
         rovctrl::io::MultiInputProvider::Config mix_cfg{};
         mix_cfg.gcs_priority   = true;
+
+        // TTL: keep the prior behavior (still useful for Guard staleness judgement)
         mix_cfg.default_ttl_ms = clamp_u32_from_int(opt.gcs_ttl_ms, 200);
+
         out_ctx.input = std::make_shared<rovctrl::io::MultiInputProvider>(teleop, gcs, mix_cfg);
     } else if (gcs) {
         out_ctx.input = gcs;
@@ -228,13 +242,10 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     if (!out_ctx.input) {
         br.ok       = false;
         br.err_code = 62;
-        br.err_msg  = "Input provider not constructed.";
-        out_ctx.shutdown(log, 1.0f);
-        return br;
+            br.err_msg  = "Input provider not constructed.";
+            out_ctx.shutdown(log, 1.0f);
+            return br;
     }
-
-
-
     // ===================== Manual controller + ControllerManager =====================
     // 保持旧行为：init_manual_only + 手动模式
     rovctrl::controllers::ManualControllerConfig mc_cfg{};

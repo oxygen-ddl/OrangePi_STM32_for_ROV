@@ -55,6 +55,11 @@ public:
 
         // --- allocation ---
         ThrusterAllocationConfig thruster_alloc{};
+
+        // 当输入源长期无更新时，经过该时间阈值将输出回到 neutral（ms）
+        // 0 表示使用默认值（由 run() 内部兜底，例如 200ms）
+        std::uint32_t no_input_neutral_ms = 0;
+        
     };
 
     // ================= PWM 日志后端接口（方案 A：对外可见，cpp 里实现） =================

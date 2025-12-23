@@ -1,0 +1,2 @@
+/usr/bin/ar qc libproto_gcs.a  CMakeFiles/proto_gcs.dir/src/crc32c.cpp.o
+/usr/bin/ranlib libproto_gcs.a

@@ -1,30 +1,46 @@
 cmake_minimum_required(VERSION 3.14)
 project(comm_gcs LANGUAGES CXX)
 
+# =============================================================================
+# Repo paths (for shared/msg/* includes)
+# =============================================================================
+get_filename_component(UWSYS_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+set(UWSYS_SHARED_DIR "${UWSYS_ROOT}/shared")
+
+message(STATUS "[comm_gcs] UWSYS_ROOT      = ${UWSYS_ROOT}")
+message(STATUS "[comm_gcs] UWSYS_SHARED_DIR= ${UWSYS_SHARED_DIR}")
+
 # pthread / std::thread
 find_package(Threads REQUIRED)
 
 # =============================================================================
-# 1) Base UDP transport library: comm_gcs
+# Common include dirs
+#   - ${UWSYS_ROOT} is REQUIRED for: #include "shared/msg/xxx.hpp"
+# =============================================================================
+set(COMM_GCS_PUBLIC_INCLUDES
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${UWSYS_ROOT}
+)
+
+# =============================================================================
+# 1) Base UDP transport + shm publisher: comm_gcs
 # =============================================================================
 add_library(comm_gcs
     src/udp_client.cpp
     src/udp_endpoint.cpp
     src/udp_server.cpp
-    src/session/gcs_session.cpp
+    src/intent_publisher_shm.cpp
 )
-
 
 target_include_directories(comm_gcs
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        ${COMM_GCS_PUBLIC_INCLUDES}
 )
 
 target_compile_features(comm_gcs PUBLIC cxx_std_17)
 target_compile_options(comm_gcs PRIVATE -Wall -Wextra -Wpedantic)
 
-# std::thread needs -pthread
 target_link_libraries(comm_gcs
     PUBLIC
         Threads::Threads
@@ -32,21 +48,16 @@ target_link_libraries(comm_gcs
 )
 
 # =============================================================================
-# 2) GCS protocol/session/codec library: comm_gcs_gcs
-#    - depends on comm_gcs (UDP)
-#    - depends on proto_gcs (wire structs + crc32c implementation)
+# 2) GCS protocol/session/codec: comm_gcs_gcs
 # =============================================================================
 add_library(comm_gcs_gcs
     src/session/gcs_session.cpp
-
-    # 如果你 codec 目录下有 .cpp，请在这里加入，例如：
-    # src/codec/gcs_codec.cpp
+    # src/codec/gcs_codec.cpp   # 如果后续有 .cpp，就加在这里
 )
 
 target_include_directories(comm_gcs_gcs
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
+        ${COMM_GCS_PUBLIC_INCLUDES}
 )
 
 target_compile_features(comm_gcs_gcs PUBLIC cxx_std_17)

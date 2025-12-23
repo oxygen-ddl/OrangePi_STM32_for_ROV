@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcomm_gcs.a  CMakeFiles/comm_gcs.dir/src/udp_client.cpp.o CMakeFiles/comm_gcs.dir/src/udp_endpoint.cpp.o CMakeFiles/comm_gcs.dir/src/udp_server.cpp.o CMakeFiles/comm_gcs.dir/src/intent_publisher_shm.cpp.o
+/usr/bin/ranlib libcomm_gcs.a

@@ -26,7 +26,15 @@ bool MultiInputProvider::init()
 {
     bool ok = true;
     if (teleop_) ok = teleop_->init() && ok;
-    if (gcs_)    ok = gcs_->init() && ok;
+
+    // GCS（现在通常是 shm provider）允许在 comm_gcs 尚未启动时“延迟可用”，
+    // 因此 init() 失败不一定是致命错误：仍返回总体 ok，让系统能启动起来。
+    // 具体 provider 内部可通过 lazy_init 在 poll() 阶段反复尝试。
+    if (gcs_) {
+        const bool g_ok = gcs_->init();
+        ok = g_ok && ok;
+    }
+
     return ok;
 }
 
@@ -53,8 +61,23 @@ bool MultiInputProvider::poll(cc::ControlState& state, cc::ControlIntent& out)
     cc::ControlIntent t{};
     cc::ControlIntent g{};
 
-    if (teleop_ && !teleop_->poll(state, t)) return false;
-    if (gcs_    && !gcs_->poll(state, g))    return false;
+    // Teleop: 严格处理（失败通常意味着输入设备/tty等异常）
+    if (teleop_) {
+        if (!teleop_->poll(state, t)) return false;
+    }
+
+    // GCS: 迁移到 comm_gcs + shm 后，这里应当“软失败”。
+    // 典型场景：
+    //   - comm_gcs 进程还没启动（shm 不存在）
+    //   - shm 版本/魔数尚未稳定
+    //   - 短暂读失败（seqlock 竞争）
+    //
+    // 这些都不应当导致控制循环退出；而是当作本周期无 GCS 输入。
+    if (gcs_) {
+        if (!gcs_->poll(state, g)) {
+            g.clear_all(); // treat as "no payload"
+        }
+    }
 
     const bool t_has = has_payload_(t);
     const bool g_has = has_payload_(g);

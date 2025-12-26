@@ -1,0 +1,52 @@
+# config/trajectory.yaml
+
+trajectory:
+  frame: "NED"          # 或 "ENU"，与 NavState 保持一致
+  angle_unit: "rad"     # yaw 单位，后端不需要猜
+  type: "piecewise"     # 简单分段线性插值
+
+  # t 是从控制开始算的相对时间（秒）
+  waypoints:
+    # 起点：t=0，保持当前位置一小段时间
+    - t: 0.0
+      x: 0.0
+      y: 0.0
+      z: -0.5         # NED 中 z 为“向下为正”；如果是 ENU 配置成对应含义
+      yaw: 0.0
+      vx: 0.0
+      vy: 0.0
+      vz: 0.0
+      yaw_rate: 0.0
+
+    # 例如 20 秒内前进 2 米，深度 1m，航向 0
+    - t: 20.0
+      x: 2.0
+      y: 0.0
+      z: -1.0
+      yaw: 0.0
+      vx: 0.1     # 期望稳态速度，可选
+      vy: 0.0
+      vz: 0.0
+      yaw_rate: 0.0
+
+    # 再 20 秒内向左平移 2 米，同时保持深度
+    - t: 40.0
+      x: 2.0
+      y: 2.0
+      z: -1.0
+      yaw: 0.0
+      vx: 0.0
+      vy: 0.1
+      vz: 0.0
+      yaw_rate: 0.0
+
+    # 继续保持在终点
+    - t: 60.0
+      x: 2.0
+      y: 2.0
+      z: -1.0
+      yaw: 0.0
+      vx: 0.0
+      vy: 0.0
+      vz: 0.0
+      yaw_rate: 0.0

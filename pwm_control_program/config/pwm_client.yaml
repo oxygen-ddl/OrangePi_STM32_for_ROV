@@ -1,0 +1,86 @@
+# config/pwm_client.yaml
+#
+# Purpose
+# - Configure PWM safety layer + motor mapping for STM32 thruster driver.
+# - This file is consumed by pwm_control_program (C++) via utils::load_pwm_client_config().
+#
+# Consistency notes
+# - ctrl_hz should match control loop loop_hz (or be an integer multiple).
+# - If group_mode=AB_ALTERNATE, each group is refreshed at ctrl_hz/2.
+
+# ============================================================
+# 0) Backend selection (offline / online)
+# ============================================================
+# When dummy_backend=true:
+# - No UDP packets will be sent to STM32.
+# - Used for integration testing on Ubuntu without hardware.
+dummy_backend: false
+dummy_print_frames: false   # Print the "would-send" PWM frames to stdout (debug only)
+
+# ============================================================
+# 1) Transport (optional; recommended for future)
+# ============================================================
+# NOTE: Current pwm_client.cpp uses pwm_host_default_config().
+# If you later expose host_cfg.stm32_ip/port, enable these fields.
+transport:
+  stm32:
+    ip: "192.168.2.16"
+    port: 8000
+  send_hz: 50
+  socket_sndbuf: 0        # 0=不修改
+  nonblock_send: 0        # 0=阻塞 sendto；1=非阻塞
+
+  orangepi:
+    # 仅用于“显式绑定本地网卡”的场景；一般可以省略，让 OS 自己选
+    ip: "192.168.2.24"
+
+  gcs:
+    listen_ip: "0.0.0.0"
+    listen_port: 14600
+
+
+# ============================================================
+# 2) Safety layer timing
+# ============================================================
+ctrl_hz: 100.0              # Suggested: equal to main control loop frequency
+max_step_pct: 0.2           # Max duty change per step (%). Lower => gentler but slower response.
+
+# ============================================================
+# 3) PWM duty range (percent)
+# ============================================================
+min_pct: 5.0                # ~1000us
+mid_pct: 7.5                # ~1500us
+max_pct: 10.0               # ~2000us
+
+# Reverse protection:
+# - Prevent sudden direction reversal that may cause large current spikes.
+enable_reverse_protection: true
+
+# ============================================================
+# 4) Grouping policy (A/B)
+# ============================================================
+# Convention: logical 1–4 = horizontal thrusters, logical 5–8 = vertical thrusters
+groupA_mask: 0x0F           # CH1-4
+groupB_mask: 0xF0           # CH5-8
+group_mode: 1               # PWM_CTRL_GROUP_MODE_AB_ALTERNATE
+
+# ============================================================
+# 5) Logical motor -> physical PWM channel mapping
+# ============================================================
+# motorch_to_pwmch[i] maps logical motor (i+1) -> physical PWM channel number.
+# 0 means default mapping (i+1).
+#
+# Current wiring: 1↔5, 2↔6, 3↔7, 4↔8
+motorch_to_pwmch: [5, 6, 7, 8, 1, 2, 3, 4]
+
+# ============================================================
+# 6) Motor direction (logical)
+# ============================================================
+# 0 = normal, 1 = reverse
+#
+# Validation procedure (recommended):
+# 1) Use a single-motor test mode (or set only one channel slightly above mid_pct)
+# 2) Confirm thrust direction for surge/sway/heave according to body axes:
+#    x_forward, y_starboard, z_down (NED body)
+# 3) Only then mark the corresponding logical motor as reversed.
+motor_reverse: [0, 0, 0, 0, 0, 0, 0, 0]

@@ -1,0 +1,246 @@
+# config/control_params.yaml
+
+# =========================
+# 1. 载体与推进器配置
+# =========================
+vehicle:
+  name: "rov_pool_v1"
+
+  frames:
+    # 导航坐标系类型：ned / enu
+    nav_frame: "ned"
+    # 机体系轴向约定，便于文档对齐
+    body_axes: ["x_forward", "y_starboard", "z_down"]
+
+  dof:
+    # 与代码里的 DofIndex / body_wrench 对齐：Fx, Fy, Fz, Mx, My, Mz
+    order: [Fx, Fy, Fz, Mx, My, Mz]
+
+    # 当前只控制这 4 个 DOF，其余保留给将来 Roll/Pitch 使用
+    active:
+      Fx: true    # Surge
+      Fy: true    # Sway
+      Fz: true    # Heave
+      Mx: false   # Roll（暂不控制）
+      My: false   # Pitch（暂不控制）
+      Mz: true    # Yaw
+
+  thrusters:
+    order: [P5, P6, P7, P8, P1, P2, P3, P4]
+    count: 8
+
+    allocation_matrix:
+      rows: [Fx, Fy, Fz, Mx, My, Mz]
+      # 6 x 8，按行展开
+      data:
+        - [0.000,   0.000,   0.000,   0.000,  -0.707,   0.707,  -0.707,   0.707]   # Fx
+        - [0.000,   0.000,   0.000,   0.000,   0.707,   0.707,  -0.707,  -0.707]   # Fy
+        - [1.000,   1.000,   1.000,   1.000,   0.000,   0.000,   0.000,   0.000]   # Fz
+        - [106.94,  106.94, -112.66, -112.66, 16.617,  16.617, -16.617, -16.617]  # Mx
+        - [-153.34, 153.34, -153.34, 153.34,  16.617, -16.617, 16.617, -16.617]   # My
+        - [0.000,  -0.000,   0.000,   0.000, 212.012, -212.012,-215.844, 215.844] # Mz
+
+      # 控制器真正参与求解的 DOF 行
+      active_rows: [Fx, Fy, Fz, Mz]
+
+    limits:
+      # 归一化推进器指令范围 [-1, 1]
+      norm_min: -1.0
+      norm_max:  1.0
+
+      # 4DOF 上的力 / 力矩限幅（用于 PID/SMC/MPC 输出限幅）
+      wrench_limits:
+        Fx_max:  300.0     # N
+        Fx_min: -300.0
+        Fy_max:  300.0
+        Fy_min: -300.0
+        Fz_max:  300.0
+        Fz_min: -300.0
+        Mz_max:  200.0     # N·m
+        Mz_min: -200.0
+
+      # 推进器归一化指令的斜率限制（保护电机/电源）
+      norm_slew_rate:
+        enabled: true
+        max_delta_per_step: 0.05   # 每个控制周期最大变化量（无量纲）
+
+# =========================
+# 2. 控制器配置
+# =========================
+controllers:
+  # -----------------------
+  # 2.1 PID 控制（4DOF）
+  # -----------------------
+  pid:
+    enabled: true
+
+    # 通用 PID 策略参数（所有环共享的默认项，可被每个 axis 覆盖）
+    defaults:
+      anti_windup:
+        enabled: true
+        i_min: -50.0      # 积分项限幅
+        i_max:  50.0
+      derivative_filter:
+        enabled: true
+        cutoff_hz: 5.0    # D 项一阶低通滤波
+      deadband:
+        enabled: true
+        error_deadband: 0.005  # 误差小于该阈值视为 0
+      rate_limit:
+        enabled: true
+        max_abs_du: 50.0       # 输出（力/力矩）每秒变化上限，用于抑制尖峰
+
+    # ---- 1) Heave：深度环 ----
+    depth:
+      enable: true
+      ref_source: "trajectory"    # trajectory / teleop / constant
+      state_channel: "depth"      # 对应 nav.channels.depth
+
+      kp: 2.0
+      ki: 0.5
+      kd: 0.1
+
+      output_channel: "Fz"        # 映射到底层 wrench[2]
+      max_output:  300.0
+      min_output: -300.0
+
+      anti_windup:
+        enabled: true
+        i_min: -100.0
+        i_max:  100.0
+
+    # ---- 2) Yaw：航向角环 ----
+    yaw_angle:
+      enable: true
+      ref_source: "trajectory"
+      state_channel: "yaw"        # 对应 nav.channels.yaw
+
+      kp: 1.5
+      ki: 0.2
+      kd: 0.05
+
+      output_channel: "Mz"        # 映射到底层 wrench[5]
+      max_output:  200.0
+      min_output: -200.0
+
+      wrap_around:
+        enabled: true
+        range: [-3.14159, 3.14159]   # 误差自动 wrap 到 [-pi, pi]
+
+    # ---- 3) Surge：前向速度控制 ----
+    surge_velocity:
+      enable: true
+      ref_source: "trajectory"     # 期望 surge 速度
+      state_channel: "vel_x"       # 对应 nav.channels.vel_x
+
+      kp: 50.0
+      ki: 5.0
+      kd: 0.0
+
+      output_channel: "Fx"
+      max_output:  200.0
+      min_output: -200.0
+
+    # ---- 4) Sway：横移速度控制 ----
+    sway_velocity:
+      enable: false                # 先关掉，等需要侧向控制时再打开
+      ref_source: "trajectory"
+      state_channel: "vel_y"       # 对应 nav.channels.vel_y
+
+      kp: 50.0
+      ki: 5.0
+      kd: 0.0
+
+      output_channel: "Fy"
+      max_output:  200.0
+      min_output: -200.0
+
+  # -----------------------
+  # 2.2 SMC（预留）
+  # -----------------------
+  smc:
+    enabled: false
+    depth:
+      lambda: 0.8
+      k: 50.0
+      boundary: 0.05
+      output_channel: "Fz"
+    yaw:
+      lambda: 1.0
+      k: 30.0
+      boundary: 0.05
+      output_channel: "Mz"
+
+  # -----------------------
+  # 2.3 MPC（预留）
+  # -----------------------
+  mpc:
+    enabled: false
+    Ts: 0.01           # 采样时间
+    horizon_steps: 20  # 预测步长
+    Q_diag: [10, 10, 20, 0.1, 0.1, 5]
+    R_diag: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+# =========================
+# 3. 导航 / 轨迹 / IPC 配置
+# =========================
+nav:
+  # 与 NavState 中的字段对应关系（便于控制模块统一访问）
+  channels:
+    depth: "depth"     # 对应 shared::msg::NavState::depth
+    yaw:   "rpy[2]"    # yaw
+    vel_x: "vel[0]"
+    vel_y: "vel[1]"
+
+  health_thresholds:
+    # 当 NavHealth 或 status_flags 不满足条件时，控制层可自动降级
+    require_eskf_ok: true
+    require_dvl_ok_for_velocity: false
+    # 连续丢失 NavState 后的降级策略阈值（cycle 数）
+    max_miss_cycles: 200
+
+trajectory:
+  # 当前运行模式：pool_test / sea_trial / debug 等
+  profile: "pool_test"
+
+  # 参考源：teleop / file / inline
+  source: "file"
+
+  file:
+    path: "./config/trajectory.yaml"
+    # 参考字段名称，与 ControlReference 中字段对应
+    time_key: "t"
+    pos_keys: ["x", "y", "z"]
+    yaw_key: "yaw"
+
+  # 若 source=inline，可以在这里写死一条简单阶跃或圆轨迹
+
+# =========================
+# 4. IPC / 日志 / 运行模式
+# =========================
+ipc:
+  nav_state_shm:
+    name: "/rov_nav_state_v1"
+    size: 0       # 0 表示自动按 NavState 结构体大小
+
+logging:
+  control_loop:
+    enabled: true
+    log_dt_stats: false    # 是否记录 dt 统计
+  pwm_logger:
+    enabled: true
+    mode: "CmdAndApplied"  # 或 "AppliedOnly"
+    root_dir: "./logs"
+  nav_state_snapshots:
+    enabled: true
+    interval_steps: 100    # 每多少个控制周期 dump 一次状态（调试用）
+
+modes:
+  # 初始控制模式：manual / auto / failsafe
+  initial_mode: "manual"
+
+  # 当导航健康度下降到 INVALID 时的自动切换策略
+  on_nav_invalid:
+    switch_to: "failsafe"
+    # failsafe 模式下推进器行为：zero / heave_hold / custom
+    failsafe_behavior: "zero"

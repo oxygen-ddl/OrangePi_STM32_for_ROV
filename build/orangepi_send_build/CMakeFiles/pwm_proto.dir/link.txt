@@ -1,0 +1,2 @@
+/usr/bin/ar qc libpwm_proto.a  CMakeFiles/pwm_proto.dir/src/crc16_ccitt.cpp.o CMakeFiles/pwm_proto.dir/src/protocol_pack.c.o CMakeFiles/pwm_proto.dir/src/PwmFrameBuilder.cpp.o CMakeFiles/pwm_proto.dir/src/UdpSender.cpp.o
+/usr/bin/ranlib libpwm_proto.a

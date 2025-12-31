@@ -28,13 +28,13 @@ The CXX compiler identification is GNU, found in "/home/wys/orangepi/UnderwaterR
 Determining if the C compiler works passed with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_f8719/fast && /usr/bin/make -f CMakeFiles/cmTC_f8719.dir/build.make CMakeFiles/cmTC_f8719.dir/build
+Run Build Command(s):/usr/bin/make cmTC_6bf73/fast && /usr/bin/make -f CMakeFiles/cmTC_6bf73.dir/build.make CMakeFiles/cmTC_6bf73.dir/build
 make[1]: 进入目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
-Building C object CMakeFiles/cmTC_f8719.dir/testCCompiler.c.o
-/usr/lib/ccache/cc    -o CMakeFiles/cmTC_f8719.dir/testCCompiler.c.o   -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/testCCompiler.c
-Linking C executable cmTC_f8719
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f8719.dir/link.txt --verbose=1
-/usr/lib/ccache/cc      CMakeFiles/cmTC_f8719.dir/testCCompiler.c.o  -o cmTC_f8719 
+Building C object CMakeFiles/cmTC_6bf73.dir/testCCompiler.c.o
+/usr/lib/ccache/cc    -o CMakeFiles/cmTC_6bf73.dir/testCCompiler.c.o   -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_6bf73
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_6bf73.dir/link.txt --verbose=1
+/usr/lib/ccache/cc      CMakeFiles/cmTC_6bf73.dir/testCCompiler.c.o  -o cmTC_6bf73 
 make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
 
 
@@ -42,10 +42,10 @@ make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_
 Detecting C compiler ABI info compiled with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_69645/fast && /usr/bin/make -f CMakeFiles/cmTC_69645.dir/build.make CMakeFiles/cmTC_69645.dir/build
+Run Build Command(s):/usr/bin/make cmTC_a4584/fast && /usr/bin/make -f CMakeFiles/cmTC_a4584.dir/build.make CMakeFiles/cmTC_a4584.dir/build
 make[1]: Entering directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o
-/usr/lib/ccache/cc   -v -o CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c
+Building C object CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o
+/usr/lib/ccache/cc   -v -o CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c
 Using built-in specs.
 COLLECT_GCC=/usr/bin/cc
 OFFLOAD_TARGET_NAMES=nvptx-none:hsa
@@ -81,9 +81,9 @@ GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils fo
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
 COLLECT_GCC_OPTIONS='-v' '-c' '-o' 'CMakeFiles/cmTC_76c9c.dir/CMakeCCompilerABI.c.o' '-mtune=generic' '-march=x86-64'
-Linking C executable cmTC_69645
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_69645.dir/link.txt --verbose=1
-/usr/lib/ccache/cc     -v CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o  -o cmTC_69645 
+Linking C executable cmTC_a4584
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a4584.dir/link.txt --verbose=1
+/usr/lib/ccache/cc     -v CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o  -o cmTC_a4584 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/cc
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper
@@ -95,9 +95,9 @@ Thread model: posix
 gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_69645' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/cclf0jT9.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_69645 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_69645' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a4584' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYGab0C.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_a4584 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a4584' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp'
 
 
@@ -121,10 +121,10 @@ Parsed C implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command(s):/usr/bin/make cmTC_69645/fast && /usr/bin/make -f CMakeFiles/cmTC_69645.dir/build.make CMakeFiles/cmTC_69645.dir/build]
+  ignore line: [Run Build Command(s):/usr/bin/make cmTC_a4584/fast && /usr/bin/make -f CMakeFiles/cmTC_a4584.dir/build.make CMakeFiles/cmTC_a4584.dir/build]
   ignore line: [make[1]: Entering directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building C object CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o]
-  ignore line: [/usr/lib/ccache/cc   -v -o CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c]
+  ignore line: [Building C object CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/usr/lib/ccache/cc   -v -o CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o   -c /usr/share/cmake-3.16/Modules/CMakeCCompilerABI.c]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/cc]
   ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:hsa]
@@ -160,9 +160,9 @@ Parsed C implicit link information from above output:
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
   ignore line: [COLLECT_GCC_OPTIONS='-v' '-c' '-o' 'CMakeFiles/cmTC_76c9c.dir/CMakeCCompilerABI.c.o' '-mtune=generic' '-march=x86-64']
-  ignore line: [Linking C executable cmTC_69645]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_69645.dir/link.txt --verbose=1]
-  ignore line: [/usr/lib/ccache/cc     -v CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o  -o cmTC_69645 ]
+  ignore line: [Linking C executable cmTC_a4584]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a4584.dir/link.txt --verbose=1]
+  ignore line: [/usr/lib/ccache/cc     -v CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o  -o cmTC_a4584 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/cc]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper]
@@ -174,13 +174,13 @@ Parsed C implicit link information from above output:
   ignore line: [gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_69645' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/cclf0jT9.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_69645 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a4584' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccYGab0C.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_a4584 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o -lgcc --push-state --as-needed -lgcc_s --pop-state -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/cclf0jT9.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccYGab0C.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -198,7 +198,7 @@ Parsed C implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_69645] ==> ignore
+    arg [cmTC_a4584] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o] ==> ignore
@@ -210,7 +210,7 @@ Parsed C implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/9/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../..]
-    arg [CMakeFiles/cmTC_69645.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [CMakeFiles/cmTC_a4584.dir/CMakeCCompilerABI.c.o] ==> ignore
     arg [-lgcc] ==> lib [gcc]
     arg [--push-state] ==> ignore
     arg [--as-needed] ==> ignore
@@ -240,13 +240,13 @@ Parsed C implicit link information from above output:
 Determining if the CXX compiler works passed with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_94dbe/fast && /usr/bin/make -f CMakeFiles/cmTC_94dbe.dir/build.make CMakeFiles/cmTC_94dbe.dir/build
+Run Build Command(s):/usr/bin/make cmTC_db880/fast && /usr/bin/make -f CMakeFiles/cmTC_db880.dir/build.make CMakeFiles/cmTC_db880.dir/build
 make[1]: 进入目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
-Building CXX object CMakeFiles/cmTC_94dbe.dir/testCXXCompiler.cxx.o
-/usr/lib/ccache/c++     -o CMakeFiles/cmTC_94dbe.dir/testCXXCompiler.cxx.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
-Linking CXX executable cmTC_94dbe
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_94dbe.dir/link.txt --verbose=1
-/usr/lib/ccache/c++       CMakeFiles/cmTC_94dbe.dir/testCXXCompiler.cxx.o  -o cmTC_94dbe 
+Building CXX object CMakeFiles/cmTC_db880.dir/testCXXCompiler.cxx.o
+/usr/lib/ccache/c++     -o CMakeFiles/cmTC_db880.dir/testCXXCompiler.cxx.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_db880
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_db880.dir/link.txt --verbose=1
+/usr/lib/ccache/c++       CMakeFiles/cmTC_db880.dir/testCXXCompiler.cxx.o  -o cmTC_db880 
 make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
 
 
@@ -254,10 +254,10 @@ make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_
 Detecting CXX compiler ABI info compiled with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_30647/fast && /usr/bin/make -f CMakeFiles/cmTC_30647.dir/build.make CMakeFiles/cmTC_30647.dir/build
+Run Build Command(s):/usr/bin/make cmTC_51157/fast && /usr/bin/make -f CMakeFiles/cmTC_51157.dir/build.make CMakeFiles/cmTC_51157.dir/build
 make[1]: Entering directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o
-/usr/lib/ccache/c++    -v -o CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp
+Building CXX object CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o
+/usr/lib/ccache/c++    -v -o CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp
 Using built-in specs.
 COLLECT_GCC=/usr/bin/c++
 OFFLOAD_TARGET_NAMES=nvptx-none:hsa
@@ -297,9 +297,9 @@ GNU assembler version 2.34 (x86_64-linux-gnu) using BFD version (GNU Binutils fo
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
 COLLECT_GCC_OPTIONS='-v' '-c' '-o' 'CMakeFiles/cmTC_c03ae.dir/CMakeCXXCompilerABI.cpp.o' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
-Linking CXX executable cmTC_30647
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_30647.dir/link.txt --verbose=1
-/usr/lib/ccache/c++      -v CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_30647 
+Linking CXX executable cmTC_51157
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_51157.dir/link.txt --verbose=1
+/usr/lib/ccache/c++      -v CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_51157 
 Using built-in specs.
 COLLECT_GCC=/usr/bin/c++
 COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper
@@ -311,9 +311,9 @@ Thread model: posix
 gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) 
 COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/
 LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_30647' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
- /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrRD0zR.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_30647 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
-COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_30647' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_51157' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
+ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccKhKHWh.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_51157 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o
+COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_51157' '-shared-libgcc' '-mtune=generic' '-march=x86-64'
 make[1]: Leaving directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp'
 
 
@@ -343,10 +343,10 @@ Parsed CXX implicit link information from above output:
   link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
   ignore line: [Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp]
   ignore line: []
-  ignore line: [Run Build Command(s):/usr/bin/make cmTC_30647/fast && /usr/bin/make -f CMakeFiles/cmTC_30647.dir/build.make CMakeFiles/cmTC_30647.dir/build]
+  ignore line: [Run Build Command(s):/usr/bin/make cmTC_51157/fast && /usr/bin/make -f CMakeFiles/cmTC_51157.dir/build.make CMakeFiles/cmTC_51157.dir/build]
   ignore line: [make[1]: Entering directory '/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp']
-  ignore line: [Building CXX object CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o]
-  ignore line: [/usr/lib/ccache/c++    -v -o CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Building CXX object CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/usr/lib/ccache/c++    -v -o CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.16/Modules/CMakeCXXCompilerABI.cpp]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/c++]
   ignore line: [OFFLOAD_TARGET_NAMES=nvptx-none:hsa]
@@ -386,9 +386,9 @@ Parsed CXX implicit link information from above output:
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
   ignore line: [COLLECT_GCC_OPTIONS='-v' '-c' '-o' 'CMakeFiles/cmTC_c03ae.dir/CMakeCXXCompilerABI.cpp.o' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
-  ignore line: [Linking CXX executable cmTC_30647]
-  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_30647.dir/link.txt --verbose=1]
-  ignore line: [/usr/lib/ccache/c++      -v CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_30647 ]
+  ignore line: [Linking CXX executable cmTC_51157]
+  ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_51157.dir/link.txt --verbose=1]
+  ignore line: [/usr/lib/ccache/c++      -v CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_51157 ]
   ignore line: [Using built-in specs.]
   ignore line: [COLLECT_GCC=/usr/bin/c++]
   ignore line: [COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper]
@@ -400,13 +400,13 @@ Parsed CXX implicit link information from above output:
   ignore line: [gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2) ]
   ignore line: [COMPILER_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/]
   ignore line: [LIBRARY_PATH=/usr/lib/gcc/x86_64-linux-gnu/9/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib/:/lib/x86_64-linux-gnu/:/lib/../lib/:/usr/lib/x86_64-linux-gnu/:/usr/lib/../lib/:/usr/lib/gcc/x86_64-linux-gnu/9/../../../:/lib/:/usr/lib/]
-  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_30647' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
-  link line: [ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccrRD0zR.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_30647 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
+  ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_51157' '-shared-libgcc' '-mtune=generic' '-march=x86-64']
+  link line: [ /usr/lib/gcc/x86_64-linux-gnu/9/collect2 -plugin /usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so -plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper -plugin-opt=-fresolution=/tmp/ccKhKHWh.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --build-id --eh-frame-hdr -m elf_x86_64 --hash-style=gnu --as-needed -dynamic-linker /lib64/ld-linux-x86-64.so.2 -pie -z now -z relro -o cmTC_51157 /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o /usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o -L/usr/lib/gcc/x86_64-linux-gnu/9 -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu -L/usr/lib/gcc/x86_64-linux-gnu/9/../../../../lib -L/lib/x86_64-linux-gnu -L/lib/../lib -L/usr/lib/x86_64-linux-gnu -L/usr/lib/../lib -L/usr/lib/gcc/x86_64-linux-gnu/9/../../.. CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc /usr/lib/gcc/x86_64-linux-gnu/9/crtendS.o /usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crtn.o]
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/collect2] ==> ignore
     arg [-plugin] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/liblto_plugin.so] ==> ignore
     arg [-plugin-opt=/usr/lib/gcc/x86_64-linux-gnu/9/lto-wrapper] ==> ignore
-    arg [-plugin-opt=-fresolution=/tmp/ccrRD0zR.res] ==> ignore
+    arg [-plugin-opt=-fresolution=/tmp/ccKhKHWh.res] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
     arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
     arg [-plugin-opt=-pass-through=-lc] ==> ignore
@@ -424,7 +424,7 @@ Parsed CXX implicit link information from above output:
     arg [-znow] ==> ignore
     arg [-zrelro] ==> ignore
     arg [-o] ==> ignore
-    arg [cmTC_30647] ==> ignore
+    arg [cmTC_51157] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/Scrt1.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/../../../x86_64-linux-gnu/crti.o] ==> ignore
     arg [/usr/lib/gcc/x86_64-linux-gnu/9/crtbeginS.o] ==> ignore
@@ -436,7 +436,7 @@ Parsed CXX implicit link information from above output:
     arg [-L/usr/lib/x86_64-linux-gnu] ==> dir [/usr/lib/x86_64-linux-gnu]
     arg [-L/usr/lib/../lib] ==> dir [/usr/lib/../lib]
     arg [-L/usr/lib/gcc/x86_64-linux-gnu/9/../../..] ==> dir [/usr/lib/gcc/x86_64-linux-gnu/9/../../..]
-    arg [CMakeFiles/cmTC_30647.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [CMakeFiles/cmTC_51157.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
     arg [-lstdc++] ==> lib [stdc++]
     arg [-lm] ==> lib [m]
     arg [-lgcc_s] ==> lib [gcc_s]
@@ -462,13 +462,13 @@ Parsed CXX implicit link information from above output:
 Determining if the include file pthread.h exists passed with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_70609/fast && /usr/bin/make -f CMakeFiles/cmTC_70609.dir/build.make CMakeFiles/cmTC_70609.dir/build
+Run Build Command(s):/usr/bin/make cmTC_b42a8/fast && /usr/bin/make -f CMakeFiles/cmTC_b42a8.dir/build.make CMakeFiles/cmTC_b42a8.dir/build
 make[1]: 进入目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
-Building C object CMakeFiles/cmTC_70609.dir/CheckIncludeFile.c.o
-/usr/lib/ccache/cc    -o CMakeFiles/cmTC_70609.dir/CheckIncludeFile.c.o   -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
-Linking C executable cmTC_70609
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_70609.dir/link.txt --verbose=1
-/usr/lib/ccache/cc      CMakeFiles/cmTC_70609.dir/CheckIncludeFile.c.o  -o cmTC_70609 
+Building C object CMakeFiles/cmTC_b42a8.dir/CheckIncludeFile.c.o
+/usr/lib/ccache/cc    -o CMakeFiles/cmTC_b42a8.dir/CheckIncludeFile.c.o   -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp/CheckIncludeFile.c
+Linking C executable cmTC_b42a8
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b42a8.dir/link.txt --verbose=1
+/usr/lib/ccache/cc      CMakeFiles/cmTC_b42a8.dir/CheckIncludeFile.c.o  -o cmTC_b42a8 
 make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
 
 
@@ -476,13 +476,13 @@ make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_
 Determining if the function pthread_create exists in the pthread passed with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_f25cb/fast && /usr/bin/make -f CMakeFiles/cmTC_f25cb.dir/build.make CMakeFiles/cmTC_f25cb.dir/build
+Run Build Command(s):/usr/bin/make cmTC_cd131/fast && /usr/bin/make -f CMakeFiles/cmTC_cd131.dir/build.make CMakeFiles/cmTC_cd131.dir/build
 make[1]: 进入目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
-Building C object CMakeFiles/cmTC_f25cb.dir/CheckFunctionExists.c.o
-/usr/lib/ccache/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_f25cb.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.16/Modules/CheckFunctionExists.c
-Linking C executable cmTC_f25cb
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f25cb.dir/link.txt --verbose=1
-/usr/lib/ccache/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_f25cb.dir/CheckFunctionExists.c.o  -o cmTC_f25cb  -lpthread 
+Building C object CMakeFiles/cmTC_cd131.dir/CheckFunctionExists.c.o
+/usr/lib/ccache/cc   -DCHECK_FUNCTION_EXISTS=pthread_create   -o CMakeFiles/cmTC_cd131.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.16/Modules/CheckFunctionExists.c
+Linking C executable cmTC_cd131
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_cd131.dir/link.txt --verbose=1
+/usr/lib/ccache/cc  -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_cd131.dir/CheckFunctionExists.c.o  -o cmTC_cd131  -lpthread 
 make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
 
 
@@ -490,13 +490,13 @@ make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_
 Determining if the function clock_gettime exists in the rt passed with the following output:
 Change Dir: /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_25171/fast && /usr/bin/make -f CMakeFiles/cmTC_25171.dir/build.make CMakeFiles/cmTC_25171.dir/build
+Run Build Command(s):/usr/bin/make cmTC_c0fe6/fast && /usr/bin/make -f CMakeFiles/cmTC_c0fe6.dir/build.make CMakeFiles/cmTC_c0fe6.dir/build
 make[1]: 进入目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
-Building C object CMakeFiles/cmTC_25171.dir/CheckFunctionExists.c.o
-/usr/lib/ccache/cc   -DCHECK_FUNCTION_EXISTS=clock_gettime   -std=gnu11 -o CMakeFiles/cmTC_25171.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.16/Modules/CheckFunctionExists.c
-Linking C executable cmTC_25171
-/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_25171.dir/link.txt --verbose=1
-/usr/lib/ccache/cc  -DCHECK_FUNCTION_EXISTS=clock_gettime    CMakeFiles/cmTC_25171.dir/CheckFunctionExists.c.o  -o cmTC_25171  -lrt 
+Building C object CMakeFiles/cmTC_c0fe6.dir/CheckFunctionExists.c.o
+/usr/lib/ccache/cc   -DCHECK_FUNCTION_EXISTS=clock_gettime   -std=gnu11 -o CMakeFiles/cmTC_c0fe6.dir/CheckFunctionExists.c.o   -c /usr/share/cmake-3.16/Modules/CheckFunctionExists.c
+Linking C executable cmTC_c0fe6
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c0fe6.dir/link.txt --verbose=1
+/usr/lib/ccache/cc  -DCHECK_FUNCTION_EXISTS=clock_gettime    CMakeFiles/cmTC_c0fe6.dir/CheckFunctionExists.c.o  -o cmTC_c0fe6  -lrt 
 make[1]: 离开目录“/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles/CMakeTmp”
 
 

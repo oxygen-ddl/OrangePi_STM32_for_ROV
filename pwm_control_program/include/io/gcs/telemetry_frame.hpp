@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-#include "io/gcs/gcs_protocol.hpp"
+#include "proto_gcs/gcs_protocol.hpp"
 #include "control_core/control_mode.hpp"
 
 namespace rovctrl::io {

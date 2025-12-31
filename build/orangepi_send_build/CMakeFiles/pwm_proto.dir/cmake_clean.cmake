@@ -1,10 +1,10 @@
 file(REMOVE_RECURSE
+  "../lib/libpwm_proto.a"
+  "../lib/libpwm_proto.pdb"
   "CMakeFiles/pwm_proto.dir/src/PwmFrameBuilder.cpp.o"
   "CMakeFiles/pwm_proto.dir/src/UdpSender.cpp.o"
   "CMakeFiles/pwm_proto.dir/src/crc16_ccitt.cpp.o"
   "CMakeFiles/pwm_proto.dir/src/protocol_pack.c.o"
-  "libpwm_proto.a"
-  "libpwm_proto.pdb"
 )
 
 # Per-language clean rules from dependency scanning.

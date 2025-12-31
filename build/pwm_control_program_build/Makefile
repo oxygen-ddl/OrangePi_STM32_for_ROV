@@ -503,32 +503,32 @@ src/io/input/control_intent_wire_adapter.cpp.s:
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.s
 .PHONY : src/io/input/control_intent_wire_adapter.cpp.s
 
-src/io/input/gcs_intent_subscriber_shm.o: src/io/input/gcs_intent_subscriber_shm.cpp.o
+src/io/input/control_intent_wire_codec.o: src/io/input/control_intent_wire_codec.cpp.o
 
-.PHONY : src/io/input/gcs_intent_subscriber_shm.o
+.PHONY : src/io/input/control_intent_wire_codec.o
 
 # target to build an object file
-src/io/input/gcs_intent_subscriber_shm.cpp.o:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o
-.PHONY : src/io/input/gcs_intent_subscriber_shm.cpp.o
+src/io/input/control_intent_wire_codec.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o
+.PHONY : src/io/input/control_intent_wire_codec.cpp.o
 
-src/io/input/gcs_intent_subscriber_shm.i: src/io/input/gcs_intent_subscriber_shm.cpp.i
+src/io/input/control_intent_wire_codec.i: src/io/input/control_intent_wire_codec.cpp.i
 
-.PHONY : src/io/input/gcs_intent_subscriber_shm.i
+.PHONY : src/io/input/control_intent_wire_codec.i
 
 # target to preprocess a source file
-src/io/input/gcs_intent_subscriber_shm.cpp.i:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.i
-.PHONY : src/io/input/gcs_intent_subscriber_shm.cpp.i
+src/io/input/control_intent_wire_codec.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.i
+.PHONY : src/io/input/control_intent_wire_codec.cpp.i
 
-src/io/input/gcs_intent_subscriber_shm.s: src/io/input/gcs_intent_subscriber_shm.cpp.s
+src/io/input/control_intent_wire_codec.s: src/io/input/control_intent_wire_codec.cpp.s
 
-.PHONY : src/io/input/gcs_intent_subscriber_shm.s
+.PHONY : src/io/input/control_intent_wire_codec.s
 
 # target to generate assembly for a file
-src/io/input/gcs_intent_subscriber_shm.cpp.s:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.s
-.PHONY : src/io/input/gcs_intent_subscriber_shm.cpp.s
+src/io/input/control_intent_wire_codec.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.s
+.PHONY : src/io/input/control_intent_wire_codec.cpp.s
 
 src/io/input/gcs_shm_input_provider.o: src/io/input/gcs_shm_input_provider.cpp.o
 
@@ -556,6 +556,60 @@ src/io/input/gcs_shm_input_provider.s: src/io/input/gcs_shm_input_provider.cpp.s
 src/io/input/gcs_shm_input_provider.cpp.s:
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.s
 .PHONY : src/io/input/gcs_shm_input_provider.cpp.s
+
+src/io/input/intent_subscriber_shm.o: src/io/input/intent_subscriber_shm.cpp.o
+
+.PHONY : src/io/input/intent_subscriber_shm.o
+
+# target to build an object file
+src/io/input/intent_subscriber_shm.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o
+.PHONY : src/io/input/intent_subscriber_shm.cpp.o
+
+src/io/input/intent_subscriber_shm.i: src/io/input/intent_subscriber_shm.cpp.i
+
+.PHONY : src/io/input/intent_subscriber_shm.i
+
+# target to preprocess a source file
+src/io/input/intent_subscriber_shm.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.i
+.PHONY : src/io/input/intent_subscriber_shm.cpp.i
+
+src/io/input/intent_subscriber_shm.s: src/io/input/intent_subscriber_shm.cpp.s
+
+.PHONY : src/io/input/intent_subscriber_shm.s
+
+# target to generate assembly for a file
+src/io/input/intent_subscriber_shm.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.s
+.PHONY : src/io/input/intent_subscriber_shm.cpp.s
+
+src/io/input/key_event_subscriber_shm.o: src/io/input/key_event_subscriber_shm.cpp.o
+
+.PHONY : src/io/input/key_event_subscriber_shm.o
+
+# target to build an object file
+src/io/input/key_event_subscriber_shm.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o
+.PHONY : src/io/input/key_event_subscriber_shm.cpp.o
+
+src/io/input/key_event_subscriber_shm.i: src/io/input/key_event_subscriber_shm.cpp.i
+
+.PHONY : src/io/input/key_event_subscriber_shm.i
+
+# target to preprocess a source file
+src/io/input/key_event_subscriber_shm.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.i
+.PHONY : src/io/input/key_event_subscriber_shm.cpp.i
+
+src/io/input/key_event_subscriber_shm.s: src/io/input/key_event_subscriber_shm.cpp.s
+
+.PHONY : src/io/input/key_event_subscriber_shm.s
+
+# target to generate assembly for a file
+src/io/input/key_event_subscriber_shm.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.s
+.PHONY : src/io/input/key_event_subscriber_shm.cpp.s
 
 src/io/input/multi_input_provider.o: src/io/input/multi_input_provider.cpp.o
 
@@ -665,86 +719,59 @@ src/io/log/pwm_logger.cpp.s:
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.s
 .PHONY : src/io/log/pwm_logger.cpp.s
 
-src/io/nav/nav_state_source_shm.o: src/io/nav/nav_state_source_shm.cpp.o
+src/io/nav/nav_view_shm_source.o: src/io/nav/nav_view_shm_source.cpp.o
 
-.PHONY : src/io/nav/nav_state_source_shm.o
-
-# target to build an object file
-src/io/nav/nav_state_source_shm.cpp.o:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o
-.PHONY : src/io/nav/nav_state_source_shm.cpp.o
-
-src/io/nav/nav_state_source_shm.i: src/io/nav/nav_state_source_shm.cpp.i
-
-.PHONY : src/io/nav/nav_state_source_shm.i
-
-# target to preprocess a source file
-src/io/nav/nav_state_source_shm.cpp.i:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.i
-.PHONY : src/io/nav/nav_state_source_shm.cpp.i
-
-src/io/nav/nav_state_source_shm.s: src/io/nav/nav_state_source_shm.cpp.s
-
-.PHONY : src/io/nav/nav_state_source_shm.s
-
-# target to generate assembly for a file
-src/io/nav/nav_state_source_shm.cpp.s:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.s
-.PHONY : src/io/nav/nav_state_source_shm.cpp.s
-
-src/io/nav/nav_state_subscriber.o: src/io/nav/nav_state_subscriber.cpp.o
-
-.PHONY : src/io/nav/nav_state_subscriber.o
+.PHONY : src/io/nav/nav_view_shm_source.o
 
 # target to build an object file
-src/io/nav/nav_state_subscriber.cpp.o:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o
-.PHONY : src/io/nav/nav_state_subscriber.cpp.o
+src/io/nav/nav_view_shm_source.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o
+.PHONY : src/io/nav/nav_view_shm_source.cpp.o
 
-src/io/nav/nav_state_subscriber.i: src/io/nav/nav_state_subscriber.cpp.i
+src/io/nav/nav_view_shm_source.i: src/io/nav/nav_view_shm_source.cpp.i
 
-.PHONY : src/io/nav/nav_state_subscriber.i
+.PHONY : src/io/nav/nav_view_shm_source.i
 
 # target to preprocess a source file
-src/io/nav/nav_state_subscriber.cpp.i:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.i
-.PHONY : src/io/nav/nav_state_subscriber.cpp.i
+src/io/nav/nav_view_shm_source.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.i
+.PHONY : src/io/nav/nav_view_shm_source.cpp.i
 
-src/io/nav/nav_state_subscriber.s: src/io/nav/nav_state_subscriber.cpp.s
+src/io/nav/nav_view_shm_source.s: src/io/nav/nav_view_shm_source.cpp.s
 
-.PHONY : src/io/nav/nav_state_subscriber.s
+.PHONY : src/io/nav/nav_view_shm_source.s
 
 # target to generate assembly for a file
-src/io/nav/nav_state_subscriber.cpp.s:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.s
-.PHONY : src/io/nav/nav_state_subscriber.cpp.s
+src/io/nav/nav_view_shm_source.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.s
+.PHONY : src/io/nav/nav_view_shm_source.cpp.s
 
-src/io/teleop/teleop_keyboard.o: src/io/teleop/teleop_keyboard.cpp.o
+src/io/nav/nav_view_subscriber_shm.o: src/io/nav/nav_view_subscriber_shm.cpp.o
 
-.PHONY : src/io/teleop/teleop_keyboard.o
+.PHONY : src/io/nav/nav_view_subscriber_shm.o
 
 # target to build an object file
-src/io/teleop/teleop_keyboard.cpp.o:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o
-.PHONY : src/io/teleop/teleop_keyboard.cpp.o
+src/io/nav/nav_view_subscriber_shm.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o
+.PHONY : src/io/nav/nav_view_subscriber_shm.cpp.o
 
-src/io/teleop/teleop_keyboard.i: src/io/teleop/teleop_keyboard.cpp.i
+src/io/nav/nav_view_subscriber_shm.i: src/io/nav/nav_view_subscriber_shm.cpp.i
 
-.PHONY : src/io/teleop/teleop_keyboard.i
+.PHONY : src/io/nav/nav_view_subscriber_shm.i
 
 # target to preprocess a source file
-src/io/teleop/teleop_keyboard.cpp.i:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.i
-.PHONY : src/io/teleop/teleop_keyboard.cpp.i
+src/io/nav/nav_view_subscriber_shm.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.i
+.PHONY : src/io/nav/nav_view_subscriber_shm.cpp.i
 
-src/io/teleop/teleop_keyboard.s: src/io/teleop/teleop_keyboard.cpp.s
+src/io/nav/nav_view_subscriber_shm.s: src/io/nav/nav_view_subscriber_shm.cpp.s
 
-.PHONY : src/io/teleop/teleop_keyboard.s
+.PHONY : src/io/nav/nav_view_subscriber_shm.s
 
 # target to generate assembly for a file
-src/io/teleop/teleop_keyboard.cpp.s:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.s
-.PHONY : src/io/teleop/teleop_keyboard.cpp.s
+src/io/nav/nav_view_subscriber_shm.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.s
+.PHONY : src/io/nav/nav_view_subscriber_shm.cpp.s
 
 src/main.o: src/main.cpp.o
 
@@ -986,12 +1013,18 @@ help:
 	@echo "... src/io/input/control_intent_wire_adapter.o"
 	@echo "... src/io/input/control_intent_wire_adapter.i"
 	@echo "... src/io/input/control_intent_wire_adapter.s"
-	@echo "... src/io/input/gcs_intent_subscriber_shm.o"
-	@echo "... src/io/input/gcs_intent_subscriber_shm.i"
-	@echo "... src/io/input/gcs_intent_subscriber_shm.s"
+	@echo "... src/io/input/control_intent_wire_codec.o"
+	@echo "... src/io/input/control_intent_wire_codec.i"
+	@echo "... src/io/input/control_intent_wire_codec.s"
 	@echo "... src/io/input/gcs_shm_input_provider.o"
 	@echo "... src/io/input/gcs_shm_input_provider.i"
 	@echo "... src/io/input/gcs_shm_input_provider.s"
+	@echo "... src/io/input/intent_subscriber_shm.o"
+	@echo "... src/io/input/intent_subscriber_shm.i"
+	@echo "... src/io/input/intent_subscriber_shm.s"
+	@echo "... src/io/input/key_event_subscriber_shm.o"
+	@echo "... src/io/input/key_event_subscriber_shm.i"
+	@echo "... src/io/input/key_event_subscriber_shm.s"
 	@echo "... src/io/input/multi_input_provider.o"
 	@echo "... src/io/input/multi_input_provider.i"
 	@echo "... src/io/input/multi_input_provider.s"
@@ -1004,15 +1037,12 @@ help:
 	@echo "... src/io/log/pwm_logger.o"
 	@echo "... src/io/log/pwm_logger.i"
 	@echo "... src/io/log/pwm_logger.s"
-	@echo "... src/io/nav/nav_state_source_shm.o"
-	@echo "... src/io/nav/nav_state_source_shm.i"
-	@echo "... src/io/nav/nav_state_source_shm.s"
-	@echo "... src/io/nav/nav_state_subscriber.o"
-	@echo "... src/io/nav/nav_state_subscriber.i"
-	@echo "... src/io/nav/nav_state_subscriber.s"
-	@echo "... src/io/teleop/teleop_keyboard.o"
-	@echo "... src/io/teleop/teleop_keyboard.i"
-	@echo "... src/io/teleop/teleop_keyboard.s"
+	@echo "... src/io/nav/nav_view_shm_source.o"
+	@echo "... src/io/nav/nav_view_shm_source.i"
+	@echo "... src/io/nav/nav_view_shm_source.s"
+	@echo "... src/io/nav/nav_view_subscriber_shm.o"
+	@echo "... src/io/nav/nav_view_subscriber_shm.i"
+	@echo "... src/io/nav/nav_view_subscriber_shm.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

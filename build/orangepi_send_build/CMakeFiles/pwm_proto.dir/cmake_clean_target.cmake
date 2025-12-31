@@ -1,3 +1,3 @@
 file(REMOVE_RECURSE
-  "libpwm_proto.a"
+  "../lib/libpwm_proto.a"
 )

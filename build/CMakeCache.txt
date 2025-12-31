@@ -211,17 +211,17 @@ CMAKE_STRIP:FILEPATH=/usr/bin/strip
 // Studio IDE projects all commands are done without /nologo.
 CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 
-//Build comm_gcs apps
-COMM_GCS_BUILD_APPS:BOOL=ON
-
-//Build comm_gcs tests
-COMM_GCS_BUILD_TESTS:BOOL=ON
-
 //Path to a file.
 EIGEN3_INCLUDE_DIR:PATH=/usr/include/eigen3
 
+//Build gateway tests
+GATEWAY_BUILD_TESTS:BOOL=OFF
+
 //Enable AddressSanitizer/UBSan (Debug only recommended)
 PWMCTRL_ASAN:BOOL=OFF
+
+//Enable gateway dependency (headers and/or link)
+PWMCTRL_ENABLE_GATEWAY:BOOL=ON
 
 //Enable GCS input via shared memory subscriber
 PWMCTRL_ENABLE_GCS_SHM:BOOL=ON
@@ -238,6 +238,9 @@ PWM_INCLUDE_DIR:PATH=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for
 //orangepi_send build dir (fallback)
 PWM_LIB_DIR:PATH=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/orangepi_send/build
 
+//Build all tests
+ROV_BUILD_TESTS:BOOL=OFF
+
 //Value Computed by CMake
 ROV_PWM_STACK_BINARY_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build
 
@@ -247,11 +250,17 @@ ROV_PWM_STACK_SOURCE_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangeP
 //Path to a library.
 RT_LIB:FILEPATH=/usr/lib/x86_64-linux-gnu/librt.so
 
-//Value Computed by CMake
-comm_gcs_BINARY_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/comm_gcs_build
+//UnderwaterRobotSystem root
+UWSYS_ROOT:PATH=/home/wys/orangepi/UnderwaterRobotSystem
+
+//shared module dir
+UWSYS_SHARED_DIR:PATH=/home/wys/orangepi/UnderwaterRobotSystem/shared
 
 //Value Computed by CMake
-comm_gcs_SOURCE_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/comm_gcs
+gateway_BINARY_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build
+
+//Value Computed by CMake
+gateway_SOURCE_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway
 
 //Value Computed by CMake
 orangepi_send_BINARY_DIR:STATIC=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/orangepi_send_build

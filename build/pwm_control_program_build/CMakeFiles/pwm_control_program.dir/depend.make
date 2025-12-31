@@ -14,11 +14,16 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/ap
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/controllers/manual_controller.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/input/gcs_shm_input_provider.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/input/multi_input_provider.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/input/teleop_input.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/include/utils/config_loader.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: ../pwm_control_program/src/control_core/app_context.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -237,8 +242,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/ap
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: ../pwm_control_program/src/control_core/app_main.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -453,6 +460,7 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/co
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_guard.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_guard.cpp.o: ../pwm_control_program/src/control_core/control_guard.cpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_guard.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_guard.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/control_core/control_guard.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/control_core/control_intent.hpp
@@ -462,8 +470,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/co
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: ../pwm_control_program/src/control_core/control_loop.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -680,9 +690,11 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/platform/timebase.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/src/control_core/loop/control_loop_helpers.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -899,10 +911,14 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/nav/nav_state_source.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/nav/nav_view_shm_source.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: ../pwm_control_program/src/control_core/loop/control_loop_nav.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_nav.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -1120,8 +1136,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/include/io/log/pwm_logger.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: ../pwm_control_program/src/control_core/loop/control_loop_pwm_log.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_pwm_log.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -1338,9 +1356,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/include/platform/pwm_client.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: ../pwm_control_program/src/control_core/loop/control_loop_run.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: /usr/include/eigen3/Eigen/Cholesky
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: /usr/include/eigen3/Eigen/Core
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_run.cpp.o: /usr/include/eigen3/Eigen/Dense
@@ -1785,24 +1804,39 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/contro
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_adapter.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/include/platform/timebase.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: ../pwm_control_program/src/io/input/control_intent_wire_adapter.cpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
 
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o: ../pwm_control_program/include/io/input/gcs_intent_subscriber_shm.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o: ../pwm_control_program/src/io/input/gcs_intent_subscriber_shm.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: ../pwm_control_program/include/control_core/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: ../pwm_control_program/src/io/input/control_intent_wire_codec.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/control_core/control_intent.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_adapter.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/gcs_intent_subscriber_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/gcs_shm_input_provider.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/include/platform/timebase.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: ../pwm_control_program/src/io/input/gcs_shm_input_provider.cpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
+
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o: ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o: ../pwm_control_program/src/io/input/intent_subscriber_shm.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
+
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o: ../pwm_control_program/include/io/input/key_event_subscriber_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o: ../pwm_control_program/src/io/input/key_event_subscriber_shm.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/key_event.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/key_event_shm.hpp
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/multi_input_provider.cpp.o: ../pwm_control_program/include/control_core/control_intent.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/multi_input_provider.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
@@ -1817,30 +1851,30 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleme
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/control_core/control_intent.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/io/input/teleop_input.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/io/teleop/teleop_keyboard.h
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/include/platform/timebase.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: ../pwm_control_program/src/io/input/teleop_input.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.o: ../pwm_control_program/include/io/log/pwm_logger.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.o: ../pwm_control_program/src/io/log/pwm_logger.cpp
 
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: ../pwm_control_program/include/io/nav/nav_state_source.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: ../pwm_control_program/include/io/nav/nav_state_source_shm.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: ../pwm_control_program/src/io/nav/nav_state_source_shm.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: ../pwm_control_program/include/io/nav/nav_state_source.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: ../pwm_control_program/include/io/nav/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: ../pwm_control_program/include/io/nav/nav_view_shm_source.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: ../pwm_control_program/src/io/nav/nav_view_shm_source.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
 
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o: ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o: ../pwm_control_program/src/io/nav/nav_state_subscriber.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
-
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o: ../orangepi_send/include/libpwm_host.h
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o: ../orangepi_send/include/pwm_control.h
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o: ../pwm_control_program/include/io/teleop/teleop_keyboard.h
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o: ../pwm_control_program/src/io/teleop/teleop_keyboard.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o: ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o: ../pwm_control_program/src/io/nav/nav_view_subscriber_shm.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o: /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/main.cpp.o: ../pwm_control_program/include/control_core/app_main.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/main.cpp.o: ../pwm_control_program/src/main.cpp

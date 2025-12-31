@@ -5,13 +5,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# =============================================================================
-# shared 模块（仓库根目录下的 shared）
-# 当前位置：<repo_root>/OrangePi_STM32_for_ROV
-# shared 位置：<repo_root>/shared
-# =============================================================================
-set(UWSYS_SHARED_DIR "${CMAKE_CURRENT_LIST_DIR}/../shared")
+# ---- unify roots ----
+get_filename_component(UWSYS_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+set(UWSYS_ROOT "${UWSYS_ROOT}" CACHE PATH "UnderwaterRobotSystem root")
 
+set(UWSYS_SHARED_DIR "${UWSYS_ROOT}/shared" CACHE PATH "shared module dir")
+
+# ---- unify outputs ----
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# ---- global options ----
+option(ROV_BUILD_TESTS "Build all tests" OFF)
+set(GATEWAY_BUILD_TESTS ${ROV_BUILD_TESTS} CACHE BOOL "" FORCE)
+
+find_package(Threads REQUIRED)
+
+# =============================================================================
+# shared
+# =============================================================================
 if (EXISTS "${UWSYS_SHARED_DIR}/CMakeLists.txt")
     add_subdirectory(
         ${UWSYS_SHARED_DIR}
@@ -22,8 +35,7 @@ else()
 endif()
 
 # =============================================================================
-# 子项目：proto_gcs（当前目录下）
-# 统一管理 GCS 协议头 + CRC32C 等协议相关实现
+# proto_gcs
 # =============================================================================
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/proto_gcs/CMakeLists.txt")
     add_subdirectory(
@@ -35,19 +47,19 @@ else()
 endif()
 
 # =============================================================================
-# 子项目：comm_gcs（当前目录下，可选：如果目录存在就编）
+# gateway (optional)
 # =============================================================================
-if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/comm_gcs/CMakeLists.txt")
+if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/gateway/CMakeLists.txt")
     add_subdirectory(
-        ${CMAKE_CURRENT_LIST_DIR}/comm_gcs
-        ${CMAKE_BINARY_DIR}/comm_gcs_build
+        ${CMAKE_CURRENT_LIST_DIR}/gateway
+        ${CMAKE_BINARY_DIR}/gateway_build
     )
 else()
-    message(STATUS "comm_gcs module not found at: ${CMAKE_CURRENT_LIST_DIR}/comm_gcs (skip)")
+    message(STATUS "gateway module not found at: ${CMAKE_CURRENT_LIST_DIR}/gateway (skip)")
 endif()
 
 # =============================================================================
-# 子项目：orangepi_send（当前目录下）
+# orangepi_send
 # =============================================================================
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/orangepi_send/CMakeLists.txt")
     add_subdirectory(
@@ -59,7 +71,7 @@ else()
 endif()
 
 # =============================================================================
-# 子项目：pwm_control_program（当前目录下）
+# pwm_control_program
 # =============================================================================
 if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/pwm_control_program/CMakeLists.txt")
     add_subdirectory(

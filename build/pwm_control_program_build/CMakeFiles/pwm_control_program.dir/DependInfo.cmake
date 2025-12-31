@@ -18,15 +18,16 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/controllers/manual_controller.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/controllers/pid_controller.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/pid_controller.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/control_intent_wire_adapter.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o"
-  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/gcs_intent_subscriber_shm.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/control_intent_wire_codec.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/gcs_shm_input_provider.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/intent_subscriber_shm.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/key_event_subscriber_shm.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/multi_input_provider.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/multi_input_provider.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/telemetry_frame.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/telemetry_frame.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/teleop_input.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/log/pwm_logger.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.o"
-  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_state_source_shm.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o"
-  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_state_subscriber.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o"
-  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/teleop/teleop_keyboard.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_view_shm_source.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_view_subscriber_shm.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/main.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/main.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/platform/pwm_client.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/platform/pwm_client.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/platform/timebase.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/platform/timebase.cpp.o"
@@ -39,6 +40,7 @@ set(CMAKE_CXX_COMPILER_ID "GNU")
 
 # Preprocessor definitions for this target.
 set(CMAKE_TARGET_DEFINITIONS_CXX
+  "PWMCTRL_ENABLE_GATEWAY=1"
   "PWMCTRL_ENABLE_GCS_SHM=1"
   )
 
@@ -47,11 +49,15 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "../pwm_control_program/include"
   "../orangepi_send/include"
   "/usr/include/eigen3"
+  "../gateway/include"
   "/home/wys/orangepi/UnderwaterRobotSystem"
+  "../proto_gcs/include"
   )
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/proto_gcs_build/CMakeFiles/proto_gcs.dir/DependInfo.cmake"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build/CMakeFiles/gateway_core.dir/DependInfo.cmake"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/orangepi_send_build/CMakeFiles/pwm_host.dir/DependInfo.cmake"
   )
 

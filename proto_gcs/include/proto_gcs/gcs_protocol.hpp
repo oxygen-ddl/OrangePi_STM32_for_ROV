@@ -15,25 +15,23 @@ namespace rovctrl::io::gcs {
 // Protocol constants / version
 // ============================================================================
 
-inline constexpr std::uint32_t kMagic        = 0x524F5647u;  // 'ROVG' (ROV GCS)
+inline constexpr std::uint32_t kMagic        = 0x524F5647u;  // 'ROVG'
 inline constexpr std::uint16_t kProtoVersion = 1;
 
 // Payload sizing: keep UDP packets modest; avoid fragmentation.
 inline constexpr std::size_t kMaxPayloadBytes = 1024;
 
-// Max packet size (header + payload). Used by UDP RX buffer.
-inline constexpr std::size_t kMaxPacketSize = 40u + kMaxPayloadBytes;
-
+// NOTE: header is 48 bytes (packed). Keep this derived from sizeof(PacketHeader)
+// via kHeaderBytes below to avoid silent drift.
 inline constexpr std::size_t kAutoNameMaxLen = 16; // SetModeCmd::auto_controller
 inline constexpr std::size_t kCtrlNameMaxLen = 16; // StatusTelemetry controller names
 
-// flags
+// Flags (wire)
 inline constexpr std::uint16_t FLAG_ACK_REQ = 0x0001;
 inline constexpr std::uint16_t FLAG_IS_ACK  = 0x0002;
 
 // ============================================================================
-// Wire enums
-// NOTE: all wire enums MUST have fixed underlying types.
+// Wire enums (fixed underlying types)
 // ============================================================================
 
 enum class MsgType : std::uint8_t {
@@ -66,8 +64,8 @@ enum class AckCode : std::uint16_t {
     NOT_SUPPORTED    = 5
 };
 
-// This enum exists to satisfy gcs_link_udp.cpp mapping code.
-// It should stay aligned with control_core::ControlMode numeric values.
+// This enum exists to satisfy mapping code.
+// Keep numeric values aligned with your control modes.
 enum class WireControlMode : std::uint8_t {
     Unknown  = 0,
     Manual   = 1,
@@ -77,7 +75,8 @@ enum class WireControlMode : std::uint8_t {
 
 // ============================================================================
 // Wire structs (POD, packed, fixed-size)
-// Endianness: currently host endian as you stated. If needed, upgrade later.
+// Endianness: CURRENTLY HOST ENDIAN. This is only safe when both ends share
+// the same endianness. Upgrade to explicit LE/BE later if needed.
 // ============================================================================
 
 #pragma pack(push, 1)
@@ -86,26 +85,28 @@ struct PacketHeader final {
     std::uint32_t magic   = kMagic;        // 4
     std::uint16_t version = kProtoVersion; // 2
 
-    std::uint8_t  msg_type  = 0;           // MsgType (1)
-    std::uint8_t  reserved0 = 0;           // (1)
+    std::uint8_t  msg_type  = 0;           // 1
+    std::uint8_t  reserved0 = 0;           // 1
 
-    std::uint16_t flags     = 0;           // FLAG_* (2)
-    std::uint16_t reserved1 = 0;           // (2)
+    std::uint16_t flags     = 0;           // 2
+    std::uint16_t reserved1 = 0;           // 2
 
-    std::uint32_t seq        = 0;          // (4) monotonic seq for dedup
-    std::uint64_t session_id = 0;          // (8) 0 means no session
+    std::uint32_t seq        = 0;          // 4
+    std::uint64_t session_id = 0;          // 8
 
-    std::uint32_t payload_len = 0;         // (4) bytes
+    std::uint32_t payload_len  = 0;        // 4
+    std::uint32_t ack_seq      = 0;        // 4
 
-    // ---- Layout fix: add 4 bytes so header becomes exactly 40 bytes ----
-    // This also gives you a handy sender-side timestamp (optional).
-    // 0 means "not provided".
-    std::uint32_t send_time_ms = 0;        // (4) optional: steady ms
+    std::uint32_t send_time_ms = 0;        // 4
 
-    // CRC32C (Castagnoli)
-    std::uint32_t header_crc32c  = 0;      // (4) CRC of header with CRC fields zeroed
-    std::uint32_t payload_crc32c = 0;      // (4) CRC of payload (0 if payload_len==0)
+    // NEW: pad/reserved to reach 48 bytes total
+    std::uint32_t reserved2    = 0;        // 4
+
+    std::uint32_t header_crc32c  = 0;      // 4
+    std::uint32_t payload_crc32c = 0;      // 4
 };
+static_assert(sizeof(PacketHeader) == 48, "PacketHeader size must be 48 bytes");
+
 
 struct ConnectReq final {
     std::uint64_t gcs_nonce = 0;
@@ -114,7 +115,7 @@ struct ConnectReq final {
 struct ConnectAck final {
     std::uint64_t gcs_nonce_echo = 0;
     std::uint64_t rov_nonce      = 0;
-    std::uint32_t rov_caps       = 0;   // capability bitmask (reserved)
+    std::uint32_t rov_caps       = 0;   // reserved
     std::uint32_t result_code    = 0;   // 0=OK
 };
 
@@ -122,13 +123,12 @@ struct ConnectConfirm final {
     std::uint64_t rov_nonce_echo = 0;
 };
 
-// Heartbeat payload (optional, can be 0 bytes by setting payload_len=0)
 struct Heartbeat final {
     std::uint32_t now_ms = 0;
 };
 
 struct SetModeCmd final {
-    std::uint8_t  mode      = 0; // WireControlMode numeric value (aligned to ControlMode)
+    std::uint8_t  mode      = 0; // WireControlMode numeric value
     std::uint8_t  reserved0 = 0;
     std::uint16_t reserved1 = 0;
 
@@ -145,10 +145,10 @@ struct EstopCmd final {
     std::uint16_t reserved1 = 0;
 };
 
+// ACK payload: keep tiny. ack_seq is in PacketHeader.ack_seq.
 struct AckPayload final {
-    std::uint32_t ack_seq  = 0;
     std::uint16_t ack_code = 0; // AckCode
-    std::uint16_t reason   = 0; // reserved
+    std::uint16_t reason   = 0; // reserved for future use
 };
 
 struct StatusTelemetry final {
@@ -167,27 +167,47 @@ struct StatusTelemetry final {
     std::uint32_t consecutive_failures = 0;
     std::uint32_t auto_fail_limit      = 0;
 
-    std::uint64_t t_ns = 0;  // steady ns or nav_t_ns (sender-defined)
+    std::uint64_t t_ns = 0;
 };
 
+// New in v1: MotorTestCmd
+struct MotorTestCmd {
+    std::uint8_t enable;
+    std::uint8_t motor_id;
+    std::uint8_t mode;
+    std::uint8_t reserved0;
+    float        value;
+    std::uint16_t duration_ms;
+    std::uint16_t reserved1;
+    std::uint32_t cmd_id;
+};
+
+
 #pragma pack(pop)
+
+// ============================================================================
+// Derived constants (keep in sync automatically)
+// ============================================================================
+
+inline constexpr std::size_t kHeaderBytes   = sizeof(PacketHeader);
+inline constexpr std::size_t kMaxPacketSize = kHeaderBytes + kMaxPayloadBytes;
 
 // ============================================================================
 // Layout invariants (do NOT break silently)
 // ============================================================================
 
-static_assert(sizeof(PacketHeader)   == 40, "PacketHeader size must be 40 bytes");
-static_assert(alignof(PacketHeader)  == 1,  "PacketHeader must be packed (align=1)");
-static_assert(std::is_trivially_copyable<PacketHeader>::value,
-              "PacketHeader must be trivially copyable");
+static_assert(sizeof(PacketHeader)  == 48, "PacketHeader size must be 48 bytes");
+static_assert(alignof(PacketHeader) == 1,  "PacketHeader must be packed (align=1)");
+static_assert(std::is_trivially_copyable<PacketHeader>::value, "PacketHeader must be trivially copyable");
+static_assert(std::is_standard_layout<PacketHeader>::value, "PacketHeader must be standard layout");
 
+static_assert(sizeof(AckPayload)     == 4,  "AckPayload size must be 4 bytes");
 static_assert(sizeof(ConnectReq)     == 8,  "ConnectReq size must be 8");
 static_assert(sizeof(ConnectAck)     == 24, "ConnectAck size must be 24");
 static_assert(sizeof(ConnectConfirm) == 8,  "ConnectConfirm size must be 8");
 static_assert(sizeof(SetModeCmd)     == 20, "SetModeCmd size must be 20");
 static_assert(sizeof(SetDofCmd)      == 24, "SetDofCmd size must be 24");
-static_assert(sizeof(EstopCmd)       == 4,  "EstopCmd size must be 4");
-static_assert(sizeof(AckPayload)     == 8,  "AckPayload size must be 8");
+static_assert(sizeof(EstopCmd)       == 4,  "EstopCmd size must be 4 bytes");
 
 // ============================================================================
 // CRC32C API (implementation in .cpp)

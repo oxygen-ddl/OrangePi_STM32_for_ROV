@@ -1,4 +1,6 @@
 file(REMOVE_RECURSE
+  "../bin/pwm_control_program"
+  "../bin/pwm_control_program.pdb"
   "CMakeFiles/pwm_control_program.dir/src/control_core/app_context.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/control_core/app_main.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/control_core/control_guard.cpp.o"
@@ -13,15 +15,16 @@ file(REMOVE_RECURSE
   "CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/controllers/pid_controller.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_adapter.cpp.o"
-  "CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/input/multi_input_provider.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/input/telemetry_frame.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/input/teleop_input.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.o"
-  "CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o"
-  "CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o"
-  "CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/main.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/platform/pwm_client.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/platform/timebase.cpp.o"
@@ -29,8 +32,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_alloc.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o"
-  "pwm_control_program"
-  "pwm_control_program.pdb"
 )
 
 # Per-language clean rules from dependency scanning.

@@ -55,7 +55,7 @@ CMAKE_BINARY_DIR = /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_R
 # The main recursive "all" target.
 all: shared_build/all
 all: proto_gcs_build/all
-all: comm_gcs_build/all
+all: gateway_build/all
 all: orangepi_send_build/all
 all: pwm_control_program_build/all
 
@@ -64,7 +64,7 @@ all: pwm_control_program_build/all
 # The main recursive "preinstall" target.
 preinstall: shared_build/preinstall
 preinstall: proto_gcs_build/preinstall
-preinstall: comm_gcs_build/preinstall
+preinstall: gateway_build/preinstall
 preinstall: orangepi_send_build/preinstall
 preinstall: pwm_control_program_build/preinstall
 
@@ -73,39 +73,43 @@ preinstall: pwm_control_program_build/preinstall
 # The main recursive "clean" target.
 clean: shared_build/clean
 clean: proto_gcs_build/clean
-clean: comm_gcs_build/clean
+clean: gateway_build/clean
 clean: orangepi_send_build/clean
 clean: pwm_control_program_build/clean
 
 .PHONY : clean
 
 #=============================================================================
-# Directory level rules for directory comm_gcs_build
+# Directory level rules for directory gateway_build
 
 # Recursive "all" directory target.
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/gcs_client.dir/all
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/gcs_server.dir/all
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
-comm_gcs_build/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
+gateway_build/all: gateway_build/CMakeFiles/intentd.dir/all
+gateway_build/all: gateway_build/CMakeFiles/nav_view_dump.dir/all
+gateway_build/all: gateway_build/CMakeFiles/gcs_client.dir/all
+gateway_build/all: gateway_build/CMakeFiles/intent_dump.dir/all
+gateway_build/all: gateway_build/CMakeFiles/gcs_server.dir/all
+gateway_build/all: gateway_build/CMakeFiles/nav_viewd.dir/all
+gateway_build/all: gateway_build/CMakeFiles/teleop_local.dir/all
+gateway_build/all: gateway_build/CMakeFiles/gateway_core.dir/all
 
-.PHONY : comm_gcs_build/all
+.PHONY : gateway_build/all
 
 # Recursive "preinstall" directory target.
-comm_gcs_build/preinstall:
+gateway_build/preinstall:
 
-.PHONY : comm_gcs_build/preinstall
+.PHONY : gateway_build/preinstall
 
 # Recursive "clean" directory target.
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/clean
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/clean
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/gcs_client.dir/clean
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/gcs_server.dir/clean
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/clean
-comm_gcs_build/clean: comm_gcs_build/CMakeFiles/comm_gcs.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/intentd.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/nav_view_dump.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/gcs_client.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/intent_dump.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/gcs_server.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/nav_viewd.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/teleop_local.dir/clean
+gateway_build/clean: gateway_build/CMakeFiles/gateway_core.dir/clean
 
-.PHONY : comm_gcs_build/clean
+.PHONY : gateway_build/clean
 
 #=============================================================================
 # Directory level rules for directory orangepi_send_build
@@ -188,7 +192,7 @@ shared_build/clean:
 proto_gcs_build/CMakeFiles/proto_gcs.dir/all:
 	$(MAKE) -f proto_gcs_build/CMakeFiles/proto_gcs.dir/build.make proto_gcs_build/CMakeFiles/proto_gcs.dir/depend
 	$(MAKE) -f proto_gcs_build/CMakeFiles/proto_gcs.dir/build.make proto_gcs_build/CMakeFiles/proto_gcs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=16,17 "Built target proto_gcs"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=28,29 "Built target proto_gcs"
 .PHONY : proto_gcs_build/CMakeFiles/proto_gcs.dir/all
 
 # Build rule for subdir invocation for target.
@@ -209,175 +213,227 @@ proto_gcs_build/CMakeFiles/proto_gcs.dir/clean:
 .PHONY : proto_gcs_build/CMakeFiles/proto_gcs.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir
+# Target rules for target gateway_build/CMakeFiles/intentd.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
-comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=10,11 "Built target comm_gcs_test_session"
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all
+gateway_build/CMakeFiles/intentd.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/intentd.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/intentd.dir/build.make gateway_build/CMakeFiles/intentd.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/intentd.dir/build.make gateway_build/CMakeFiles/intentd.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=22,23 "Built target intentd"
+.PHONY : gateway_build/CMakeFiles/intentd.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 11
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/all
+gateway_build/CMakeFiles/intentd.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/intentd.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/rule
+.PHONY : gateway_build/CMakeFiles/intentd.dir/rule
 
 # Convenience name for target.
-comm_gcs_test_session: comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/rule
+intentd: gateway_build/CMakeFiles/intentd.dir/rule
 
-.PHONY : comm_gcs_test_session
+.PHONY : intentd
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/clean
+gateway_build/CMakeFiles/intentd.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/intentd.dir/build.make gateway_build/CMakeFiles/intentd.dir/clean
+.PHONY : gateway_build/CMakeFiles/intentd.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir
+# Target rules for target gateway_build/CMakeFiles/nav_view_dump.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
-comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=8,9 "Built target comm_gcs_test_codec"
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all
+gateway_build/CMakeFiles/nav_view_dump.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/nav_view_dump.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/nav_view_dump.dir/build.make gateway_build/CMakeFiles/nav_view_dump.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/nav_view_dump.dir/build.make gateway_build/CMakeFiles/nav_view_dump.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=24,25 "Built target nav_view_dump"
+.PHONY : gateway_build/CMakeFiles/nav_view_dump.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 11
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/all
+gateway_build/CMakeFiles/nav_view_dump.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/nav_view_dump.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/rule
+.PHONY : gateway_build/CMakeFiles/nav_view_dump.dir/rule
 
 # Convenience name for target.
-comm_gcs_test_codec: comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/rule
+nav_view_dump: gateway_build/CMakeFiles/nav_view_dump.dir/rule
 
-.PHONY : comm_gcs_test_codec
+.PHONY : nav_view_dump
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/clean
+gateway_build/CMakeFiles/nav_view_dump.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/nav_view_dump.dir/build.make gateway_build/CMakeFiles/nav_view_dump.dir/clean
+.PHONY : gateway_build/CMakeFiles/nav_view_dump.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/gcs_client.dir
+# Target rules for target gateway_build/CMakeFiles/gcs_client.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/gcs_client.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-comm_gcs_build/CMakeFiles/gcs_client.dir/all: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
-comm_gcs_build/CMakeFiles/gcs_client.dir/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_client.dir/build.make comm_gcs_build/CMakeFiles/gcs_client.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_client.dir/build.make comm_gcs_build/CMakeFiles/gcs_client.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=12,13 "Built target gcs_client"
-.PHONY : comm_gcs_build/CMakeFiles/gcs_client.dir/all
+gateway_build/CMakeFiles/gcs_client.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/gcs_client.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=16,17 "Built target gcs_client"
+.PHONY : gateway_build/CMakeFiles/gcs_client.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/gcs_client.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 11
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/gcs_client.dir/all
+gateway_build/CMakeFiles/gcs_client.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/gcs_client.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/gcs_client.dir/rule
+.PHONY : gateway_build/CMakeFiles/gcs_client.dir/rule
 
 # Convenience name for target.
-gcs_client: comm_gcs_build/CMakeFiles/gcs_client.dir/rule
+gcs_client: gateway_build/CMakeFiles/gcs_client.dir/rule
 
 .PHONY : gcs_client
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/gcs_client.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_client.dir/build.make comm_gcs_build/CMakeFiles/gcs_client.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/gcs_client.dir/clean
+gateway_build/CMakeFiles/gcs_client.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/clean
+.PHONY : gateway_build/CMakeFiles/gcs_client.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/gcs_server.dir
+# Target rules for target gateway_build/CMakeFiles/intent_dump.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/gcs_server.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-comm_gcs_build/CMakeFiles/gcs_server.dir/all: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
-comm_gcs_build/CMakeFiles/gcs_server.dir/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_server.dir/build.make comm_gcs_build/CMakeFiles/gcs_server.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_server.dir/build.make comm_gcs_build/CMakeFiles/gcs_server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=14,15 "Built target gcs_server"
-.PHONY : comm_gcs_build/CMakeFiles/gcs_server.dir/all
+gateway_build/CMakeFiles/intent_dump.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/intent_dump.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/intent_dump.dir/build.make gateway_build/CMakeFiles/intent_dump.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/intent_dump.dir/build.make gateway_build/CMakeFiles/intent_dump.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=20,21 "Built target intent_dump"
+.PHONY : gateway_build/CMakeFiles/intent_dump.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/gcs_server.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 11
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/gcs_server.dir/all
+gateway_build/CMakeFiles/intent_dump.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/intent_dump.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/gcs_server.dir/rule
+.PHONY : gateway_build/CMakeFiles/intent_dump.dir/rule
 
 # Convenience name for target.
-gcs_server: comm_gcs_build/CMakeFiles/gcs_server.dir/rule
+intent_dump: gateway_build/CMakeFiles/intent_dump.dir/rule
+
+.PHONY : intent_dump
+
+# clean rule for target.
+gateway_build/CMakeFiles/intent_dump.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/intent_dump.dir/build.make gateway_build/CMakeFiles/intent_dump.dir/clean
+.PHONY : gateway_build/CMakeFiles/intent_dump.dir/clean
+
+#=============================================================================
+# Target rules for target gateway_build/CMakeFiles/gcs_server.dir
+
+# All Build rule for target.
+gateway_build/CMakeFiles/gcs_server.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/gcs_server.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=18,19 "Built target gcs_server"
+.PHONY : gateway_build/CMakeFiles/gcs_server.dir/all
+
+# Build rule for subdir invocation for target.
+gateway_build/CMakeFiles/gcs_server.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/gcs_server.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
+.PHONY : gateway_build/CMakeFiles/gcs_server.dir/rule
+
+# Convenience name for target.
+gcs_server: gateway_build/CMakeFiles/gcs_server.dir/rule
 
 .PHONY : gcs_server
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/gcs_server.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_server.dir/build.make comm_gcs_build/CMakeFiles/gcs_server.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/gcs_server.dir/clean
+gateway_build/CMakeFiles/gcs_server.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/clean
+.PHONY : gateway_build/CMakeFiles/gcs_server.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir
+# Target rules for target gateway_build/CMakeFiles/nav_viewd.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all: comm_gcs_build/CMakeFiles/comm_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=6,7 "Built target comm_gcs_gcs"
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
+gateway_build/CMakeFiles/nav_viewd.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/nav_viewd.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/nav_viewd.dir/build.make gateway_build/CMakeFiles/nav_viewd.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/nav_viewd.dir/build.make gateway_build/CMakeFiles/nav_viewd.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=26,27 "Built target nav_viewd"
+.PHONY : gateway_build/CMakeFiles/nav_viewd.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 9
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/all
+gateway_build/CMakeFiles/nav_viewd.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/nav_viewd.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/rule
+.PHONY : gateway_build/CMakeFiles/nav_viewd.dir/rule
 
 # Convenience name for target.
-comm_gcs_gcs: comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/rule
+nav_viewd: gateway_build/CMakeFiles/nav_viewd.dir/rule
 
-.PHONY : comm_gcs_gcs
+.PHONY : nav_viewd
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/clean
+gateway_build/CMakeFiles/nav_viewd.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/nav_viewd.dir/build.make gateway_build/CMakeFiles/nav_viewd.dir/clean
+.PHONY : gateway_build/CMakeFiles/nav_viewd.dir/clean
 
 #=============================================================================
-# Target rules for target comm_gcs_build/CMakeFiles/comm_gcs.dir
+# Target rules for target gateway_build/CMakeFiles/teleop_local.dir
 
 # All Build rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs.dir/depend
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=1,2,3,4,5 "Built target comm_gcs"
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs.dir/all
+gateway_build/CMakeFiles/teleop_local.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+gateway_build/CMakeFiles/teleop_local.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/teleop_local.dir/build.make gateway_build/CMakeFiles/teleop_local.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/teleop_local.dir/build.make gateway_build/CMakeFiles/teleop_local.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=70,71 "Built target teleop_local"
+.PHONY : gateway_build/CMakeFiles/teleop_local.dir/all
 
 # Build rule for subdir invocation for target.
-comm_gcs_build/CMakeFiles/comm_gcs.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 7
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_build/CMakeFiles/comm_gcs.dir/all
+gateway_build/CMakeFiles/teleop_local.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 19
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/teleop_local.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs.dir/rule
+.PHONY : gateway_build/CMakeFiles/teleop_local.dir/rule
 
 # Convenience name for target.
-comm_gcs: comm_gcs_build/CMakeFiles/comm_gcs.dir/rule
+teleop_local: gateway_build/CMakeFiles/teleop_local.dir/rule
 
-.PHONY : comm_gcs
+.PHONY : teleop_local
 
 # clean rule for target.
-comm_gcs_build/CMakeFiles/comm_gcs.dir/clean:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs.dir/clean
-.PHONY : comm_gcs_build/CMakeFiles/comm_gcs.dir/clean
+gateway_build/CMakeFiles/teleop_local.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/teleop_local.dir/build.make gateway_build/CMakeFiles/teleop_local.dir/clean
+.PHONY : gateway_build/CMakeFiles/teleop_local.dir/clean
+
+#=============================================================================
+# Target rules for target gateway_build/CMakeFiles/gateway_core.dir
+
+# All Build rule for target.
+gateway_build/CMakeFiles/gateway_core.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
+	$(MAKE) -f gateway_build/CMakeFiles/gateway_core.dir/build.make gateway_build/CMakeFiles/gateway_core.dir/depend
+	$(MAKE) -f gateway_build/CMakeFiles/gateway_core.dir/build.make gateway_build/CMakeFiles/gateway_core.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 "Built target gateway_core"
+.PHONY : gateway_build/CMakeFiles/gateway_core.dir/all
+
+# Build rule for subdir invocation for target.
+gateway_build/CMakeFiles/gateway_core.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 17
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/gateway_core.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
+.PHONY : gateway_build/CMakeFiles/gateway_core.dir/rule
+
+# Convenience name for target.
+gateway_core: gateway_build/CMakeFiles/gateway_core.dir/rule
+
+.PHONY : gateway_core
+
+# clean rule for target.
+gateway_build/CMakeFiles/gateway_core.dir/clean:
+	$(MAKE) -f gateway_build/CMakeFiles/gateway_core.dir/build.make gateway_build/CMakeFiles/gateway_core.dir/clean
+.PHONY : gateway_build/CMakeFiles/gateway_core.dir/clean
 
 #=============================================================================
 # Target rules for target orangepi_send_build/CMakeFiles/pwm_proto.dir
@@ -386,7 +442,7 @@ comm_gcs_build/CMakeFiles/comm_gcs.dir/clean:
 orangepi_send_build/CMakeFiles/pwm_proto.dir/all:
 	$(MAKE) -f orangepi_send_build/CMakeFiles/pwm_proto.dir/build.make orangepi_send_build/CMakeFiles/pwm_proto.dir/depend
 	$(MAKE) -f orangepi_send_build/CMakeFiles/pwm_proto.dir/build.make orangepi_send_build/CMakeFiles/pwm_proto.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=52,53,54,55,56 "Built target pwm_proto"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=65,66,67,68,69 "Built target pwm_proto"
 .PHONY : orangepi_send_build/CMakeFiles/pwm_proto.dir/all
 
 # Build rule for subdir invocation for target.
@@ -413,7 +469,7 @@ orangepi_send_build/CMakeFiles/pwm_proto.dir/clean:
 orangepi_send_build/CMakeFiles/pwm_host.dir/all:
 	$(MAKE) -f orangepi_send_build/CMakeFiles/pwm_host.dir/build.make orangepi_send_build/CMakeFiles/pwm_host.dir/depend
 	$(MAKE) -f orangepi_send_build/CMakeFiles/pwm_host.dir/build.make orangepi_send_build/CMakeFiles/pwm_host.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=49,50,51 "Built target pwm_host"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=62,63,64 "Built target pwm_host"
 .PHONY : orangepi_send_build/CMakeFiles/pwm_host.dir/all
 
 # Build rule for subdir invocation for target.
@@ -437,15 +493,17 @@ orangepi_send_build/CMakeFiles/pwm_host.dir/clean:
 # Target rules for target pwm_control_program_build/CMakeFiles/pwm_control_program.dir
 
 # All Build rule for target.
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: orangepi_send_build/CMakeFiles/pwm_host.dir/all
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
 	$(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/depend
 	$(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48 "Built target pwm_control_program"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61 "Built target pwm_control_program"
 .PHONY : pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all
 
 # Build rule for subdir invocation for target.
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 34
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 52
 	$(MAKE) -f CMakeFiles/Makefile2 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles 0
 .PHONY : pwm_control_program_build/CMakeFiles/pwm_control_program.dir/rule

@@ -14,7 +14,10 @@ namespace rovctrl::control_core {
 
 static inline double clampd(double v, double lo, double hi) {
     return std::max(lo, std::min(v, hi));
+    
 }
+
+static inline double absd(double x) noexcept { return x < 0 ? -x : x; }
 
 ControlGuard::ControlGuard(ControlGuardConfig cfg)
     : cfg_(cfg)
@@ -30,7 +33,7 @@ void ControlGuard::reset()
     mode_           = ControlMode::kManual;
 
     last_intent_ns_  = 0;
-    last_intent_seq_ = 0;
+    last_intent_cmd_seq_ = 0;
     input_age_ms_    = 0;
 }
 
@@ -72,30 +75,38 @@ bool ControlGuard::is_intent_stale(std::uint64_t now_ns,
 //  - Auto 依赖 nav（若 enable_mode_gating==true）
 //  - Failsafe 永远允许（安全态）
 // -----------------------------------------------------------------------------
-bool ControlGuard::nav_ok_for_mode(const shared::msg::NavState* nav,
-                                   ControlMode m) const
+bool ControlGuard::nav_ok_for_mode(const shared::msg::NavStateView* nav,
+                                  rovctrl::control_core::ControlMode requested) const
 {
-    if (!cfg_.enable_mode_gating) return true;
+    // 1) 没有 nav 直接不 OK（通常用于 AUTO / stabilized 等模式）
+    if (!nav) return false;
 
-    if (m == ControlMode::kManual)   return true;
-    if (m == ControlMode::kFailsafe) return true;
-    if (m == ControlMode::kNone)     return true; // "keep" request, not a real mode
-    if (m == ControlMode::kUnknown)  return false;
+    // 2) 基础可用性：gateway 的 nav_viewd 已经给了 valid/health
+    //    valid==1 表示字段有限且 health OK/DEGRADED（按你的 builder 策略）
+    if (nav->valid == 0) return false;
 
-    // Auto：依赖导航健康状态
-    if (m == ControlMode::kAuto) {
-        if (!nav) return false;
-        if (nav->health == shared::msg::NavHealth::INVALID) return false;
+    // 3) 你原来用 reserved1 来存 ESKF OK 等状态位 —— 现在 view.reserved1 里就是 status_flags（由 nav_viewd 填）
+    //    只要你在 nav_view_builder.cpp 里做了：
+    //      v.reserved1 = static_cast<uint32_t>(s.status_flags);
+    //    这里就可以继续用 reserved1 做 bitmask。
+    const std::uint32_t flags = nav->reserved1;
+    const bool eskf_ok = (flags & shared::msg::NAV_FLAG_ESKF_OK) != 0;
 
-        const bool eskf_ok = (nav->status_flags & shared::msg::NAV_FLAG_ESKF_OK) != 0;
-        if (!eskf_ok) return false;
-
+    // 4) 根据模式决定是否强依赖 ESKF（示例：你按自己模式要求改）
+    switch (requested) {
+    case ControlMode::kManual:
+        // 手动模式一般不强依赖导航
         return true;
-    }
 
-    // 其它未知值：保守拒绝
-    return false;
+    case ControlMode::kAuto:
+        // 自动/闭环依赖导航
+        return eskf_ok;
+
+    default:
+        return eskf_ok;
+    }
 }
+
 
 ControlMode ControlGuard::downgrade_mode(ControlMode requested) const
 {
@@ -127,9 +138,27 @@ void ControlGuard::clamp_ref_delta(ControlIntent& inout) const
     // 当前保持钩子，不做假设。
 }
 
+// =========================================================
+// ControlGuard helpers (private)
+// =========================================================
+bool ControlGuard::is_neutral_for_clear_(const ControlIntent& intent) const noexcept
+{
+    // 你可以把 eps 做成 cfg 参数；先给一个工程上相对保守的默认值
+    constexpr double kEps = 0.05; // “基本回中立”的阈值，按你的摇杆映射调整
+
+    const auto& d = intent.teleop_dof_cmd;
+
+    return absd(d.surge) < kEps &&
+           absd(d.sway)  < kEps &&
+           absd(d.heave) < kEps &&
+           absd(d.roll)  < kEps &&
+           absd(d.pitch) < kEps &&
+           absd(d.yaw)   < kEps;
+}
+
 GuardResult ControlGuard::step(std::uint64_t now_ns,
                               const ControlState& /*state*/,
-                              const shared::msg::NavState* nav,
+                              const shared::msg::NavStateView* nav,   // <<< 改这里
                               const ControlIntent& intent)
 {
     GuardResult out{};
@@ -140,12 +169,12 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
     const bool req_exit = intent.request_exit;
 
     // 2) 更新“输入新鲜度”状态
-    // - seq 变化：认为新输入，刷新 last_intent_ns_
+    // - cmd_seq 变化：认为新输入，刷新 last_intent_ns_
     // - 否则：不主动累加 age（由 is_intent_stale 基于时间戳判定）
-    if (intent.seq != 0 && intent.seq != last_intent_seq_) {
-        last_intent_seq_ = intent.seq;
-        last_intent_ns_  = (intent.stamp_ns != 0) ? intent.stamp_ns : now_ns;
-        input_age_ms_    = 0; // 保留字段：可用于日志/调试
+    if (intent.cmd_seq != 0 && intent.cmd_seq != last_intent_cmd_seq_) {
+        last_intent_cmd_seq_ = intent.cmd_seq;
+        last_intent_ns_      = (intent.stamp_ns != 0) ? intent.stamp_ns : now_ns;
+        input_age_ms_        = 0; // 保留字段：可用于日志/调试
     }
 
     // 3) stale 判定
@@ -158,22 +187,56 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
         out.failsafe = FailsafeAction::kZeroOutput;
     }
 
-    // 4) 安全仲裁：E-STOP latch
-    // - 有效位 has_estop_cmd 控制是否采纳 estop/clear_estop
-    if (out.effective_intent.has_estop_cmd) {
-        if (out.effective_intent.estop) {
-            if (cfg_.estop_latch) {
-                estop_latched_ = true;
+    // 4) 安全仲裁：E-STOP latch (S2: hold-to-clear)
+    // - estop=1  => 立即锁存
+    // - clear_estop=1 + 中立态持续 hold_ms => 才允许解除
+    {
+        const bool has_estop_level = (out.effective_intent.estop != 0);
+        const bool has_clear_req   = (out.effective_intent.clear_estop != 0);
+
+        // (A) 任何时刻收到 estop=1：立即锁存，并重置“解除计时”
+        if (has_estop_level) {
+            estop_latched_ = true;
+            clear_hold_start_ns_ = 0;
+            clear_hold_ms_       = 0;
+        }
+        // (B) 只有在已锁存时，才考虑解除
+        else if (estop_latched_ && has_clear_req) {
+
+            // 必须“中立态”才允许开始计时
+            if (is_neutral_for_clear_(out.effective_intent)) {
+
+               if (clear_hold_start_ns_ == 0) {
+                    clear_hold_start_ns_ = now_ns;
+                    clear_hold_ms_       = 0;
+                } else if (now_ns >= clear_hold_start_ns_) {
+                    clear_hold_ms_ =
+                        static_cast<std::uint32_t>((now_ns - clear_hold_start_ns_) / 1000000ull);
+                }
+
+                // 解除门槛：建议 1500~2000ms（你偏 S2，可取更保守一些）
+                const std::uint32_t hold_threshold_ms =
+                    (cfg_.estop_clear_hold_ms > 0) ? cfg_.estop_clear_hold_ms : 2000;
+
+                if (clear_hold_ms_ >= hold_threshold_ms) {
+                    estop_latched_ = false;
+                    clear_hold_start_ns_ = 0;
+                    clear_hold_ms_       = 0;
+                }
             } else {
-                estop_latched_ = true; // 即使不 latch，这里也可用 level；按你策略调整
+                // 不满足中立态：解除计时复位（防误解锁）
+                clear_hold_start_ns_ = 0;
+                clear_hold_ms_       = 0;
             }
         }
-        if (out.effective_intent.clear_estop) {
-            // 是否允许解除由策略控制：这里允许解除
-            estop_latched_ = false;
+        // (C) 没有 clear 请求 或 未锁存：保持/清零计时
+        else {
+            clear_hold_start_ns_ = 0;
+            clear_hold_ms_       = 0;
         }
+
+        out.estop_latched = estop_latched_;
     }
-    out.estop_latched = estop_latched_;
 
     // 5) Arm/Disarm
     if (out.effective_intent.has_arm_cmd) {

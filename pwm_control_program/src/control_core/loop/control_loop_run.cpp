@@ -1,16 +1,23 @@
 /**
  * @file   control_loop_run.cpp
- * @brief  ControlLoop::run main loop (Path A)
+ * @brief  ControlLoop::run main loop (Path A) — engineered loop with NavStateView (B2)
+ *
+ * Key points:
+ *  - Nav feedback uses rovctrl::io::NavStateView (from gateway/nav_viewd via SHM).
+ *  - nav_view / nav_ok are defined per-iteration in the correct scope (no shadowing).
+ *  - age_ms_local is computed locally (optional), without mutating wire fields.
+ *  - Manual/Teleop do not hard-require nav; Auto can require nav per policy.
  */
 
 #include "control_core/control_loop.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <thread>
 
-#include "shared/msg/nav_state.hpp" // run() 里在栈上构造 NavState，必须 include 完整定义
+#include "io/nav/nav_state_view.hpp"   // rovctrl::io::NavStateView
 
 namespace rovctrl::control_core {
 
@@ -106,38 +113,38 @@ int ControlLoop::run()
     };
 
     auto has_active_command_from_intent = [&](const ControlIntent& in) -> bool {
-    // 1) 任何显式“非运动”命令都视为 active，避免被归中逻辑吞掉
-    if (in.request_exit) return true;
-    if (in.has_estop_cmd) return true;  // estop / clear_estop
-    if (in.has_arm_cmd)   return true;  // arm / disarm
-    if (in.has_mode_request && in.mode_request != ControlMode::kNone) return true;
+        // 1) 任何显式“非运动”命令都视为 active，避免被归中逻辑吞掉
+        if (in.request_exit) return true;
+        if (in.has_estop_cmd) return true;  // estop / clear_estop
+        if (in.has_arm_cmd)   return true;  // arm / disarm
+        if (in.has_mode_request && in.mode_request != ControlMode::kNone) return true;
 
-    if (in.has_ref)       return true;
-    if (in.has_ref_delta) return true;
+        if (in.has_ref)       return true;
+        if (in.has_ref_delta) return true;
 
-    // 2) 遥控输入：只有当 DOF 确实“非零”时，才认为 active
-    //    这样才能让“无输入归中”在松手/停止按键后触发
-    if (in.has_teleop_dof) {
-        constexpr double eps = 0.02; // 经验阈值：抑制抖动/浮点噪声
-        const auto absd = [](double x) { return (x >= 0.0) ? x : -x; };
+        // 1.5) 单电机测试：只要有有效 motor_test 也视为 active
+        if (in.has_motor_test && in.motor_test.enable != 0) return true;
 
-        const auto& c = in.teleop_dof_cmd;
-        if (absd(c.surge) > eps) return true;
-        if (absd(c.sway)  > eps) return true;
-        if (absd(c.heave) > eps) return true;
-        if (absd(c.roll)  > eps) return true;
-        if (absd(c.pitch) > eps) return true;
-        if (absd(c.yaw)   > eps) return true;
+        // 2) 遥控输入：只有当 DOF 确实“非零”时，才认为 active
+        if (in.has_teleop_dof) {
+            constexpr double eps = 0.02; // 抑制抖动/浮点噪声
+            const auto absd = [](double x) { return (x >= 0.0) ? x : -x; };
 
-        // DOF 全部接近 0：视为“无外界运动命令”
+            const auto& c = in.teleop_dof_cmd;
+            if (absd(c.surge) > eps) return true;
+            if (absd(c.sway)  > eps) return true;
+            if (absd(c.heave) > eps) return true;
+            if (absd(c.roll)  > eps) return true;
+            if (absd(c.pitch) > eps) return true;
+            if (absd(c.yaw)   > eps) return true;
+
+            // DOF 全部接近 0：视为“无外界运动命令”
+            return false;
+        }
+
+        // 3) 其他情况：无外界输入/命令
         return false;
-    }
-
-    // 3) 其他情况：无外界输入/命令
-    return false;
-};
-
-
+    };
 
     double no_input_sec = 0.0;
     const double no_input_neutral_sec =
@@ -161,7 +168,7 @@ int ControlLoop::run()
         } else {
             const auto lag = duration_d(now - next_tick).count();
             if (lag > 5.0 * dt_nom) {
-                next_tick = now;
+                next_tick = now; // large lag: reset schedule anchor
             }
         }
 
@@ -175,9 +182,20 @@ int ControlLoop::run()
         const double t_s = duration_d(now - start_time_).count();
         state_.timestamp_sec = t_s;
 
-        // nav update（NavSub 的懒初始化/订阅 init 在 update_nav_feedback_ 内部完成）
-        shared::msg::NavState nav{};
-        const bool nav_ok = update_nav_feedback_(nav);
+        // ---------------- nav update (B2: NavStateView) ----------------
+        rovctrl::io::NavStateView nav_view{};              // per-cycle snapshot
+        const bool nav_ok = update_nav_feedback_(nav_view);
+
+        // Optional: local age based on publish mono_ns (do not mutate wire fields)
+        std::uint32_t nav_age_ms_local = 0;
+        if (nav_ok && nav_view.pub_mono_ns != 0) {
+            const std::uint64_t now_ns = now_mono_ns_(); // steady ns
+            if (now_ns >= nav_view.pub_mono_ns) {
+                nav_age_ms_local = static_cast<std::uint32_t>(
+                    (now_ns - nav_view.pub_mono_ns) / 1000000ull
+                );
+            }
+        }
 
         // 只有 Auto 模式要求导航（Manual/Teleop 不需要）
         const ControlMode mode_now = ctrl_mgr_.mode();
@@ -188,7 +206,7 @@ int ControlLoop::run()
 
             if (nav_required) {
                 if (!cfg_.allow_run_without_nav) {
-                    std::cerr << "[ControlLoop] NavState missing in AUTO mode and allow_run_without_nav=false, entering failsafe.\n";
+                    std::cerr << "[ControlLoop] NavView missing in AUTO mode and allow_run_without_nav=false, entering failsafe.\n";
                     execute_failsafe_(FailsafeAction::kEmergencyStop);
                     return -8;
                 }
@@ -196,22 +214,21 @@ int ControlLoop::run()
                 if (nav_miss_counter == 100 ||
                     (cfg_.step_error_log_interval > 0 &&
                      nav_miss_counter % cfg_.step_error_log_interval == 0)) {
-                    std::cerr << "[ControlLoop] Warning(AUTO): no stable NavState for "
+                    std::cerr << "[ControlLoop] Warning(AUTO): no stable NavView for "
                               << nav_miss_counter << " cycles.\n";
                 }
             } else {
                 // Manual / Failsafe：忽略导航缺失，避免干扰遥控
-                // Manual / Failsafe：忽略导航缺失，避免干扰遥控
-            if (nav_miss_counter == 1) {
-                std::cout << "[ControlLoop] NavState missing (ignored in mode="
-                          << static_cast<int>(mode_now) << ").\n";
+                if (nav_miss_counter == 1) {
+                    std::cout << "[ControlLoop] NavView missing (ignored in mode="
+                              << static_cast<int>(mode_now) << ").\n";
                 }
             }
         } else {
             nav_miss_counter = 0;
         }
 
-        // poll input
+        // ---------------- poll input ----------------
         ControlIntent intent{};
         if (!input_->poll(state_, intent)) {
             std::cerr << "[ControlLoop] InputProvider::poll(state,intent) failed.\n";
@@ -238,10 +255,13 @@ int ControlLoop::run()
             continue;
         }
 
-        // guard
+        // ---------------- guard ----------------
         {
             const std::uint64_t now_ns = now_mono_ns_();
-            const shared::msg::NavState* nav_ptr = nav_ok ? &nav : nullptr;
+
+            // Path A/B2: Guard expects NavStateView*, not NavState*
+            const shared::msg::NavStateView* nav_ptr =
+                (nav_ok ? &nav_view.payload() : nullptr);
 
             guard_result_ = guard_.step(now_ns, state_, nav_ptr, intent);
 
@@ -263,6 +283,7 @@ int ControlLoop::run()
 
         build_reference_from_guard_();
 
+        // ---------------- controller compute ----------------
         output_ = ControlOutput{};
         if (!ctrl_mgr_.compute(state_, ref_, output_, dt)) {
             std::cerr << "[ControlLoop] ControllerManager::compute() failed: "
@@ -275,10 +296,14 @@ int ControlLoop::run()
             return -20;
         }
 
+        // ---------------- thruster command ----------------
         ThrusterArray thr_cmd{};
         if (!build_thruster_command_(thr_cmd)) {
             thr_cmd.fill(0.0f);
         }
+
+        // 单电机测试覆盖逻辑（在所有正常控制输出之后）
+        apply_motor_test_override(guard_result_.effective_intent, thr_cmd);
 
         {
             const int rc = pwm_.setTargets(thr_cmd);
@@ -312,6 +337,9 @@ int ControlLoop::run()
         step_err_count = 0;
 
         log_pwm_cmd_applied(t_s, thr_cmd);
+
+        // Optional debug hook: you can log nav_age_ms_local here if needed
+        (void)nav_age_ms_local;
     }
 
     // 正常退出：再保险归中一次（比无条件 E-Stop 更符合“退出键结束程序”的语义）
@@ -320,6 +348,5 @@ int ControlLoop::run()
     std::cout << "[ControlLoop] loop exited normally.\n";
     return 0;
 }
-
 
 } // namespace rovctrl::control_core

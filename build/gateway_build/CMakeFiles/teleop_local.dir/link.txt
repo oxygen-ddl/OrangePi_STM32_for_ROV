@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/teleop_local.dir/apps/teleop_local.cpp.o  -o ../bin/teleop_local  ../lib/libgateway_core.a ../lib/libproto_gcs.a -lpthread -lm /usr/lib/x86_64-linux-gnu/librt.so 

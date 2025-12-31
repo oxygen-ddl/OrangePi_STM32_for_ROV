@@ -15,11 +15,16 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/ap
  ../pwm_control_program/include/controllers/manual_controller.hpp
  ../pwm_control_program/include/io/input/gcs_shm_input_provider.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
  ../pwm_control_program/include/io/input/multi_input_provider.hpp
  ../pwm_control_program/include/io/input/teleop_input.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  ../pwm_control_program/include/utils/config_loader.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/app_context.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -238,8 +243,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/ap
  ../pwm_control_program/include/control_core/thruster_allocation.hpp
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/app_main.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -454,6 +461,7 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/co
  ../pwm_control_program/include/control_core/control_types.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/control_guard.cpp
  /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/control_loop.cpp.o
  ../pwm_control_program/include/control_core/control_guard.hpp
  ../pwm_control_program/include/control_core/control_intent.hpp
@@ -463,8 +471,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/co
  ../pwm_control_program/include/control_core/thruster_allocation.hpp
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/control_loop.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -681,9 +691,11 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
  ../pwm_control_program/include/control_core/thruster_allocation.hpp
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  ../pwm_control_program/include/platform/timebase.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_loop_helpers.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -900,10 +912,14 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
  ../pwm_control_program/include/control_core/thruster_allocation.hpp
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
- ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
+ ../pwm_control_program/include/io/nav/nav_state_source.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
+ ../pwm_control_program/include/io/nav/nav_view_shm_source.hpp
+ ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_loop_nav.cpp
- /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -1121,8 +1137,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
  ../pwm_control_program/include/io/log/pwm_logger.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_loop_pwm_log.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -1339,9 +1357,10 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
  ../pwm_control_program/include/control_core/thruster_allocation.hpp
  ../pwm_control_program/include/controllers/controller_manager.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/nav/nav_state_view.hpp
  ../pwm_control_program/include/platform/pwm_client.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_loop_run.cpp
- /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
  /usr/include/eigen3/Eigen/Cholesky
  /usr/include/eigen3/Eigen/Core
  /usr/include/eigen3/Eigen/Dense
@@ -1786,24 +1805,39 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/contro
  ../pwm_control_program/include/control_core/control_mode.hpp
  ../pwm_control_program/include/control_core/control_types.hpp
  ../pwm_control_program/include/io/input/control_intent_wire_adapter.hpp
+ ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
  ../pwm_control_program/include/platform/timebase.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/control_intent_wire_adapter.cpp
  /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_intent_subscriber_shm.cpp.o
- ../pwm_control_program/include/io/input/gcs_intent_subscriber_shm.hpp
- /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/gcs_intent_subscriber_shm.cpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/control_intent_wire_codec.cpp.o
+ ../pwm_control_program/include/control_core/control_intent.hpp
+ ../pwm_control_program/include/control_core/control_mode.hpp
+ ../pwm_control_program/include/control_core/control_types.hpp
+ ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/control_intent_wire_codec.cpp
  /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/gcs_shm_input_provider.cpp.o
  ../pwm_control_program/include/control_core/control_intent.hpp
  ../pwm_control_program/include/control_core/control_mode.hpp
  ../pwm_control_program/include/control_core/control_types.hpp
- ../pwm_control_program/include/io/input/control_intent_wire_adapter.hpp
- ../pwm_control_program/include/io/input/gcs_intent_subscriber_shm.hpp
+ ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
  ../pwm_control_program/include/io/input/gcs_shm_input_provider.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
  ../pwm_control_program/include/platform/timebase.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/gcs_shm_input_provider.cpp
  /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/intent_subscriber_shm.cpp.o
+ ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/intent_subscriber_shm.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/key_event_subscriber_shm.cpp.o
+ ../pwm_control_program/include/io/input/key_event_subscriber_shm.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/key_event_subscriber_shm.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/key_event.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/key_event_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/multi_input_provider.cpp.o
  ../pwm_control_program/include/control_core/control_intent.hpp
  ../pwm_control_program/include/control_core/control_mode.hpp
@@ -1818,30 +1852,30 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/input/teleop
  ../pwm_control_program/include/control_core/control_intent.hpp
  ../pwm_control_program/include/control_core/control_mode.hpp
  ../pwm_control_program/include/control_core/control_types.hpp
+ ../pwm_control_program/include/io/input/control_intent_wire_codec.hpp
  ../pwm_control_program/include/io/input/input_provider.hpp
+ ../pwm_control_program/include/io/input/intent_subscriber_shm.hpp
  ../pwm_control_program/include/io/input/teleop_input.hpp
- ../pwm_control_program/include/io/teleop/teleop_keyboard.h
  ../pwm_control_program/include/platform/timebase.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/teleop_input.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/control_intent_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/log/pwm_logger.cpp.o
  ../pwm_control_program/include/io/log/pwm_logger.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/log/pwm_logger.cpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_source_shm.cpp.o
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_shm_source.cpp.o
  ../pwm_control_program/include/io/nav/nav_state_source.hpp
- ../pwm_control_program/include/io/nav/nav_state_source_shm.hpp
- ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
  ../pwm_control_program/include/io/nav/nav_state_view.hpp
- /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_state_source_shm.cpp
- /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_state_subscriber.cpp.o
- ../pwm_control_program/include/io/nav/nav_state_subscriber.hpp
- /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_state_subscriber.cpp
- /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state.hpp
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/teleop/teleop_keyboard.cpp.o
- ../orangepi_send/include/libpwm_host.h
- ../orangepi_send/include/pwm_control.h
- ../pwm_control_program/include/io/teleop/teleop_keyboard.h
- /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/teleop/teleop_keyboard.cpp
+ ../pwm_control_program/include/io/nav/nav_view_shm_source.hpp
+ ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_view_shm_source.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/io/nav/nav_view_subscriber_shm.cpp.o
+ ../pwm_control_program/include/io/nav/nav_view_subscriber_shm.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/nav/nav_view_subscriber_shm.cpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/nav_state_view.hpp
+ /home/wys/orangepi/UnderwaterRobotSystem/shared/shm/nav_state_view_shm.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/main.cpp.o
  ../pwm_control_program/include/control_core/app_main.hpp
  /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/main.cpp

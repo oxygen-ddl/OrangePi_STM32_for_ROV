@@ -7,6 +7,7 @@ project(pwm_control_program LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)
@@ -22,21 +23,44 @@ option(PWMCTRL_FORCE_STDCXXFS "Force link stdc++fs for old toolchains" OFF)
 # Route B: GCS comm is external process via shm; pwm_control_program reads shm.
 option(PWMCTRL_ENABLE_GCS_SHM "Enable GCS input via shared memory subscriber" ON)
 
+# If you include or link gateway (for telemetry/session bridge)
+option(PWMCTRL_ENABLE_GATEWAY "Enable gateway dependency (headers and/or link)" ON)
+
 # =============================================================================
 # Repo paths
 # =============================================================================
-get_filename_component(UWSYS_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+# pwm_control_program/ is at: UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program
+# ROV_ROOT   = OrangePi_STM32_for_ROV
+# UWSYS_ROOT = UnderwaterRobotSystem
+get_filename_component(ROV_ROOT    "${CMAKE_CURRENT_LIST_DIR}/.."    ABSOLUTE)
+get_filename_component(UWSYS_ROOT  "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
 set(UWSYS_SHARED_DIR "${UWSYS_ROOT}/shared")
 
-get_filename_component(PWM_SEND_DIR "${CMAKE_CURRENT_LIST_DIR}/../orangepi_send" ABSOLUTE)
+get_filename_component(PWM_SEND_DIR "${ROV_ROOT}/orangepi_send" ABSOLUTE)
 set(PWM_INCLUDE_DIR "${PWM_SEND_DIR}/include" CACHE PATH "orangepi_send include dir")
 set(PWM_LIB_DIR     "${PWM_SEND_DIR}/build"   CACHE PATH "orangepi_send build dir (fallback)")
+
+set(PROTO_GCS_DIR "${ROV_ROOT}/proto_gcs")
+set(GATEWAY_DIR   "${ROV_ROOT}/gateway")
 
 if (NOT EXISTS "${UWSYS_SHARED_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "[pwm_control_program] shared/ not found at: ${UWSYS_SHARED_DIR}")
 endif()
 if (NOT EXISTS "${PWM_INCLUDE_DIR}")
     message(FATAL_ERROR "[pwm_control_program] orangepi_send include dir not found: ${PWM_INCLUDE_DIR}")
+endif()
+if (NOT EXISTS "${PROTO_GCS_DIR}/include/proto_gcs/gcs_protocol.hpp")
+    message(FATAL_ERROR "[pwm_control_program] proto_gcs header not found: ${PROTO_GCS_DIR}/include/proto_gcs/gcs_protocol.hpp")
+endif()
+
+if (PWMCTRL_ENABLE_GATEWAY)
+    if (NOT EXISTS "${GATEWAY_DIR}/include/gateway/session/gcs_session.hpp")
+        message(FATAL_ERROR
+            "[pwm_control_program] gateway header not found: "
+            "${GATEWAY_DIR}/include/gateway/session/gcs_session.hpp"
+        )
+    endif()
 endif()
 
 # =============================================================================
@@ -74,7 +98,11 @@ endif()
 
 message(STATUS "[pwm_control_program] EIGEN3_INCLUDE_DIR = ${EIGEN3_INCLUDE_DIR}")
 
-# ---- shared_msgs (fallback add_subdirectory) ----
+# =============================================================================
+# Subprojects / exported targets (DO NOT re-create if already defined)
+# =============================================================================
+
+# ---- shared_msgs (reuse if exists; fallback add_subdirectory) ----
 if (NOT TARGET shared_msgs)
     add_subdirectory(
         "${UWSYS_SHARED_DIR}"
@@ -89,8 +117,52 @@ if (NOT TARGET shared_msgs)
     )
 endif()
 
+# ---- proto_gcs (reuse if exists; fallback INTERFACE include-only) ----
+if (NOT TARGET proto_gcs)
+    add_library(proto_gcs INTERFACE)
+    target_include_directories(proto_gcs INTERFACE "${PROTO_GCS_DIR}/include")
+else()
+    # Ensure downstream can include "proto_gcs/gcs_protocol.hpp"
+    get_target_property(_proto_gcs_inc proto_gcs INTERFACE_INCLUDE_DIRECTORIES)
+    if (NOT _proto_gcs_inc)
+        target_include_directories(proto_gcs INTERFACE "${PROTO_GCS_DIR}/include")
+    endif()
+endif()
+
+# ---- gateway (reuse if exists; fallback add_subdirectory) ----
+# We want:
+#   - headers: ${GATEWAY_DIR}/include
+#   - link: gateway_core (if used by pwm_control_program)
+set(PWMCTRL_GATEWAY_LIB "")
+if (PWMCTRL_ENABLE_GATEWAY)
+    # If gateway_core is already defined by the top-level build, reuse it.
+    if (TARGET gateway_core)
+        set(PWMCTRL_GATEWAY_LIB gateway_core)
+    else()
+        # If gateway is part of this superbuild, bring it in safely.
+        if (EXISTS "${GATEWAY_DIR}/CMakeLists.txt")
+            add_subdirectory(
+                "${GATEWAY_DIR}"
+                "${CMAKE_BINARY_DIR}/_deps/gateway-build"
+            )
+        else()
+            message(FATAL_ERROR "[pwm_control_program] gateway/CMakeLists.txt not found at: ${GATEWAY_DIR}")
+        endif()
+
+        if (TARGET gateway_core)
+            set(PWMCTRL_GATEWAY_LIB gateway_core)
+        else()
+            # Still allow header-only usage if you insist, but warn early.
+            message(WARNING
+                "[pwm_control_program] gateway_core target not found after add_subdirectory(gateway).\n"
+                "Will only add gateway include dirs; linking may fail if you call non-inline gateway code."
+            )
+        endif()
+    endif()
+endif()
+
 # =============================================================================
-# Sources (grouped)
+# Sources (match your repo tree exactly)
 # =============================================================================
 set(SRC_APP
     src/main.cpp
@@ -121,32 +193,27 @@ set(SRC_PLATFORM
     src/platform/timebase.cpp
 )
 
-# IO: Route B -> NO internal src/io/gcs/*
-set(SRC_IO
-    src/io/teleop/teleop_keyboard.cpp
+set(SRC_IO_BASE
+    
     src/io/input/teleop_input.cpp
-
     src/io/input/telemetry_frame.cpp
 
-    # wire adapter (internal ControlIntent <-> shared/msg ControlIntent)
     src/io/input/control_intent_wire_adapter.cpp
-
-    # multi input arbitration
+    src/io/input/control_intent_wire_codec.cpp
     src/io/input/multi_input_provider.cpp
 
-    # shm-based GCS input provider (enabled by option)
-    src/io/input/gcs_intent_subscriber_shm.cpp
-    src/io/input/gcs_shm_input_provider.cpp
-
-    # NOTE: keep gcs_intent_wire.cpp ONLY if it is your "wire codec" file
-    # and does NOT include/compile old io/gcs/* stack.
-    # If you already renamed it or it conflicts, remove this line accordingly.
-    
-
-    src/io/nav/nav_state_source_shm.cpp
-    src/io/nav/nav_state_subscriber.cpp
-
     src/io/log/pwm_logger.cpp
+
+    # RouteB can still include a telemetry adapter (for outgoing telemetry)
+    
+)
+
+set(SRC_IO_SHM
+    src/io/input/intent_subscriber_shm.cpp
+    src/io/input/key_event_subscriber_shm.cpp
+    src/io/input/gcs_shm_input_provider.cpp
+    src/io/nav/nav_view_subscriber_shm.cpp
+    src/io/nav/nav_view_shm_source.cpp
 )
 
 set(SRC_UTILS
@@ -155,6 +222,11 @@ set(SRC_UTILS
     src/utils/config_loader_alloc.cpp
     src/utils/config_loader_trajectory.cpp
 )
+
+set(SRC_IO ${SRC_IO_BASE})
+if (PWMCTRL_ENABLE_GCS_SHM)
+    list(APPEND SRC_IO ${SRC_IO_SHM})
+endif()
 
 # =============================================================================
 # Target
@@ -175,14 +247,20 @@ target_include_directories(pwm_control_program
         "${EIGEN3_INCLUDE_DIR}"
 )
 
+# Add gateway include dir only when enabled (so bridge headers compile)
+if (PWMCTRL_ENABLE_GATEWAY)
+    target_include_directories(pwm_control_program PRIVATE
+        "${GATEWAY_DIR}/include"
+    )
+endif()
+
 # =============================================================================
 # Compile defs (feature gates)
 # =============================================================================
-if (PWMCTRL_ENABLE_GCS_SHM)
-    target_compile_definitions(pwm_control_program PRIVATE PWMCTRL_ENABLE_GCS_SHM=1)
-else()
-    target_compile_definitions(pwm_control_program PRIVATE PWMCTRL_ENABLE_GCS_SHM=0)
-endif()
+target_compile_definitions(pwm_control_program PRIVATE
+    PWMCTRL_ENABLE_GCS_SHM=$<BOOL:${PWMCTRL_ENABLE_GCS_SHM}>
+    PWMCTRL_ENABLE_GATEWAY=$<BOOL:${PWMCTRL_ENABLE_GATEWAY}>
+)
 
 # =============================================================================
 # Link libraries
@@ -192,7 +270,13 @@ target_link_libraries(pwm_control_program
         ${YAMLCPP_TARGET}
         Threads::Threads
         shared_msgs
+        proto_gcs
 )
+
+# Link gateway_core if available and enabled
+if (PWMCTRL_ENABLE_GATEWAY AND PWMCTRL_GATEWAY_LIB)
+    target_link_libraries(pwm_control_program PRIVATE ${PWMCTRL_GATEWAY_LIB})
+endif()
 
 # =============================================================================
 # Link libpwm_host (prefer target, fallback to prebuilt)
@@ -244,24 +328,29 @@ if (PWMCTRL_FORCE_STDCXXFS)
 endif()
 
 # =============================================================================
-# Hard guard: forbid internal src/io/gcs/*
+# Hard guard: forbid compiling the old internal GCS input stack (RouteB policy)
 # =============================================================================
 get_target_property(_pwm_srcs pwm_control_program SOURCES)
 foreach(s IN LISTS _pwm_srcs)
-    if (s MATCHES "/src/io/gcs/")
+    if (s MATCHES "/src/io/gcs/.*(link|session|udp|packet|client|server|input).*\\.cpp$")
         message(FATAL_ERROR
-            "[pwm_control_program] Route B forbids compiling internal src/io/gcs/* : ${s}\n"
-            "Remove it from sources; use shm-based GCS input instead.")
+            "[pwm_control_program] RouteB forbids compiling old internal GCS input stack: ${s}\n"
+            "Keep only gcs_telemetry_adapter.cpp (telemetry out). Input must come from SHM subscriber.")
     endif()
 endforeach()
 
 # =============================================================================
 # Diagnostics
 # =============================================================================
-message(STATUS "[pwm_control_program] UWSYS_ROOT           = ${UWSYS_ROOT}")
-message(STATUS "[pwm_control_program] UWSYS_SHARED_DIR     = ${UWSYS_SHARED_DIR}")
-message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR      = ${PWM_INCLUDE_DIR}")
-message(STATUS "[pwm_control_program] PWM_LIB_DIR          = ${PWM_LIB_DIR}")
-message(STATUS "[pwm_control_program] YAMLCPP_TARGET       = ${YAMLCPP_TARGET}")
-message(STATUS "[pwm_control_program] BUILD_TYPE           = ${CMAKE_BUILD_TYPE}")
-message(STATUS "[pwm_control_program] ENABLE_GCS_SHM(RouteB)= ${PWMCTRL_ENABLE_GCS_SHM}")
+message(STATUS "[pwm_control_program] ROV_ROOT               = ${ROV_ROOT}")
+message(STATUS "[pwm_control_program] UWSYS_ROOT             = ${UWSYS_ROOT}")
+message(STATUS "[pwm_control_program] UWSYS_SHARED_DIR       = ${UWSYS_SHARED_DIR}")
+message(STATUS "[pwm_control_program] PROTO_GCS_DIR          = ${PROTO_GCS_DIR}")
+message(STATUS "[pwm_control_program] GATEWAY_DIR            = ${GATEWAY_DIR}")
+message(STATUS "[pwm_control_program] PWM_INCLUDE_DIR        = ${PWM_INCLUDE_DIR}")
+message(STATUS "[pwm_control_program] PWM_LIB_DIR            = ${PWM_LIB_DIR}")
+message(STATUS "[pwm_control_program] YAMLCPP_TARGET         = ${YAMLCPP_TARGET}")
+message(STATUS "[pwm_control_program] BUILD_TYPE             = ${CMAKE_BUILD_TYPE}")
+message(STATUS "[pwm_control_program] PWMCTRL_ENABLE_GCS_SHM  = ${PWMCTRL_ENABLE_GCS_SHM}")
+message(STATUS "[pwm_control_program] PWMCTRL_ENABLE_GATEWAY  = ${PWMCTRL_ENABLE_GATEWAY}")
+message(STATUS "[pwm_control_program] PWMCTRL_GATEWAY_LIB     = ${PWMCTRL_GATEWAY_LIB}")

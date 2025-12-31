@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
+  "../lib/libproto_gcs.a"
+  "../lib/libproto_gcs.pdb"
   "CMakeFiles/proto_gcs.dir/src/crc32c.cpp.o"
-  "libproto_gcs.a"
-  "libproto_gcs.pdb"
 )
 
 # Per-language clean rules from dependency scanning.

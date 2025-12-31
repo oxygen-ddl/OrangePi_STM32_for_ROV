@@ -30,10 +30,24 @@ namespace rovctrl::control_core {
  * intent 是“输入侧”对控制侧的意图表达，不直接包含控制算法细节。
  * 允许同时存在 teleop 与 setpoint：由控制核心（Guard/Controller）决定如何融合。
  */
+
+struct MotorTestCmd final {
+    bool         enable      = false;   ///< true: 开启/维持单电机测试；false: 无测试（忽略其他字段）
+    std::uint8_t motor_id    = 0;       ///< 1..8，对应逻辑电机 ID
+    std::uint8_t mode        = 0;       ///< 0=归一化 [-1..1]，1=绝对 PWM 值
+    std::uint8_t reserved0   = 0;
+
+    float        value       = 0.0f;    ///< mode=0: [-1..1]，mode=1: 直接 PWM
+    std::uint16_t duration_ms = 0;      ///< 建议上限 1000ms，由 Guard/上层决定是否使用
+    std::uint16_t reserved1   = 0;
+
+    std::uint32_t cmd_id     = 0;       ///< 可选：命令编号/去重 ID，由上层自增
+};
+
 struct ControlIntent final
 {
     // ---- 元信息（调试/时序） ----
-    std::uint64_t seq      = 0;   ///< 输入序列号（输入源自增）
+    std::uint64_t cmd_seq  = 0;   ///< 输入序列号（输入源自增）
     std::uint64_t stamp_ns = 0;   ///< 输入产生时间（steady ns；若无法提供可置 0）
     std::uint32_t ttl_ms   = 0;   ///< 输入有效期（0 表示“使用控制侧默认 TTL”）
 
@@ -64,6 +78,10 @@ struct ControlIntent final
     ControlReference ref_delta{};
     bool             has_ref_delta = false;
 
+    // ---- 单电机测试（来自上层 / gateway）----
+    MotorTestCmd motor_test{};     ///< 单电机测试命令体
+    bool         has_motor_test = false; ///< 是否有有效的 motor_test 命令
+
     /**
      * @brief 清空为“无有效载荷”，但保留 seq/stamp/ttl（方便调试与链路对齐）
      */
@@ -71,25 +89,28 @@ struct ControlIntent final
     {
         request_exit = false;
 
-        estop = false;
-        clear_estop = false;
+        estop         = false;
+        clear_estop   = false;
         has_estop_cmd = false;
 
-        arm = false;
-        disarm = false;
+        arm         = false;
+        disarm      = false;
         has_arm_cmd = false;
 
-        mode_request = ControlMode::kNone;
+        mode_request     = ControlMode::kNone;
         has_mode_request = false;
 
         teleop_dof_cmd = DofCommand{};
         has_teleop_dof = false;
 
-        ref = ControlReference{};
-        has_ref = false;
+        ref         = ControlReference{};
+        has_ref     = false;
 
-        ref_delta = ControlReference{};
+        ref_delta   = ControlReference{};
         has_ref_delta = false;
+
+        motor_test     = MotorTestCmd{};
+        has_motor_test = false;
     }
 
     /**
@@ -97,9 +118,9 @@ struct ControlIntent final
      */
     void clear_all() noexcept
     {
-        seq = 0;
+        cmd_seq  = 0;
         stamp_ns = 0;
-        ttl_ms = 0;
+        ttl_ms   = 0;
         clear_payload();
     }
 };

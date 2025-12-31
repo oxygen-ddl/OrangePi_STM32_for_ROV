@@ -94,7 +94,7 @@ bool MultiInputProvider::poll(cc::ControlState& state, cc::ControlIntent& out)
     }
 
     out.clear_all();
-    out.seq      = ++seq_;
+    out.cmd_seq  = ++seq_;
     out.stamp_ns = static_cast<std::uint64_t>(rovctrl::platform::timebase::now_ns());
     out.ttl_ms   = cfg_.default_ttl_ms;
 

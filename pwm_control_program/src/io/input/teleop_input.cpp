@@ -1,174 +1,103 @@
-// src/io/teleop_input.cpp
+// pwm_control_program/src/io/input/teleop_input.cpp
+//
+// TeleopInputProvider – 通过 Intent SHM 获取最终 ControlIntent。
+// 说明：
+//   - 不再直接读取键盘或终端；
+//   - 键盘/GCS/UI → gateway → intent_mux → Intent SHM → 这里；
+//   - 本层只负责：订阅、解码、补时间戳/TTL。
 
 #include "io/input/teleop_input.hpp"
-#include "platform/timebase.hpp"
 
-#include <cerrno>
-#include <cstring>
+#include <cstdint>
 #include <iostream>
-#include <termios.h>
-#include <unistd.h>
 
-extern "C" {
-#include "io/teleop/teleop_keyboard.h"
-}
-
-namespace {
-
-constexpr int kNoKey = -1;
-constexpr int kMaxKeysPerPoll = 16;
-
-class TerminalRawGuard {
-public:
-    TerminalRawGuard()  = default;
-    ~TerminalRawGuard() { disable(); }
-
-    bool enable() {
-        if (enabled_) return true;
-
-        if (!::isatty(STDIN_FILENO)) {
-            std::cerr << "[Teleop] [WARN] stdin is not a TTY; raw mode disabled.\n";
-            return false;
-        }
-
-        if (::tcgetattr(STDIN_FILENO, &orig_) != 0) {
-            std::cerr << "[Teleop] [ERR] tcgetattr failed: " << std::strerror(errno) << "\n";
-            return false;
-        }
-
-        ::termios raw = orig_;
-        tcflag_t mask = static_cast<tcflag_t>(ICANON) | static_cast<tcflag_t>(ECHO);
-        raw.c_lflag &= ~mask;
-        raw.c_cc[VMIN]  = 0;
-        raw.c_cc[VTIME] = 0;
-
-        if (::tcsetattr(STDIN_FILENO, TCSANOW, &raw) != 0) {
-            std::cerr << "[Teleop] [ERR] tcsetattr(raw) failed: " << std::strerror(errno) << "\n";
-            return false;
-        }
-
-        enabled_ = true;
-        return true;
-    }
-
-    void disable() {
-        if (!enabled_) return;
-        if (::tcsetattr(STDIN_FILENO, TCSANOW, &orig_) != 0) {
-            std::cerr << "[Teleop] [WARN] tcsetattr(restore) failed: " << std::strerror(errno) << "\n";
-        }
-        enabled_ = false;
-    }
-
-    bool enabled() const { return enabled_; }
-
-private:
-    bool      enabled_{false};
-    ::termios orig_{};
-};
-
-TerminalRawGuard g_raw_guard;
-
-} // namespace
+#include "platform/timebase.hpp"
+#include "io/input/control_intent_wire_codec.hpp"  // decode_control_intent
 
 namespace rovctrl::io {
 
 namespace cc = rovctrl::control_core;
+using rovctrl::io::input::decode_control_intent;
 
 bool TeleopInputProvider::init()
 {
     if (initialized_) return true;
 
-    if (!g_raw_guard.enable()) {
-        std::cerr << "[Teleop] [WARN] Terminal raw mode not available; teleop will output empty intent.\n";
-        initialized_ = true;
-        raw_mode_    = false;
+    if (!cfg_.enable) {
+        initialized_ = true; // 依然视作“初始化成功”，但不会输出有效 intent
+        std::cerr << "[TeleopInput] disabled by config.\n";
         return true;
     }
 
-    pwm_teleop_reset();
-    pwm_teleop_print_help();
+    IntentSubscriberShm::Config scfg{};
+    scfg.enable    = true;
+    scfg.shm_name  = (cfg_.shm_name && cfg_.shm_name[0] != '\0')
+                       ? cfg_.shm_name
+                       : "/rovctrl_intent_mux_v1";
+    scfg.lazy_init = cfg_.lazy_init;
+    scfg.shm_size  = 0;  // 0 => 使用默认 sizeof(shared::shm::IntentShmLayout)
 
-    raw_mode_    = true;   // legacy
+    if (!intent_sub_.init(scfg)) {
+        // lazy_init=true 时，这里失败是允许的：等后续 poll() 时再重试
+        std::cerr << "[TeleopInput] [WARN] IntentSubscriberShm init failed; "
+                     "intent will stay empty until SHM is ready.\n";
+    }
+
     initialized_ = true;
-
-    std::cout << "[Teleop] Keyboard teleop ready. Press ESC to quit.\n";
+    std::cout << "[TeleopInput] ready, consuming ControlIntent from SHM '"
+              << scfg.shm_name << "'.\n";
     return true;
 }
 
+// =============================================================================
+// poll: 读取一帧 ControlIntent（若无数据则返回“空 intent + 正常返回”）
+// =============================================================================
 bool TeleopInputProvider::poll(cc::ControlState& state, cc::ControlIntent& intent)
 {
     (void)state;
 
+    // 每个周期都从干净状态开始，避免上一帧遗留
     intent = cc::ControlIntent{};
     intent.clear_payload();
 
-    if (!initialized_) (void)init();
+    if (!initialized_) {
+        (void)init();
+    }
 
-    intent.seq = ++seq_;
-
-    // 1) 先给一个“当前时间戳”，用于本周期判断
-    finalize_intent(intent); // 仅设置 stamp/ttl
-
-    // 非 TTY：无法读键，明确输出“无遥控输入”
-    if (!g_raw_guard.enabled()) {
-        intent.has_teleop_dof = false;
+    // 若配置禁用：只输出带时间戳的“空 intent”
+    if (!cfg_.enable) {
+        intent.cmd_seq = ++seq_;
+        finalize_intent_(intent);
         return true;
     }
 
-    bool got_key_this_cycle = false;
-
-    for (int i = 0; i < kMaxKeysPerPoll; ++i) {
-        const int key = read_key_nonblock();
-        if (key == kNoKey) break;
-
-        got_key_this_cycle = true;
-
-        const int rc = pwm_teleop_handle_key(key);
-
-        if (rc == PWM_TELEOP_EXIT_REQUEST) {
-            intent.request_exit = true;
-            exit_requested_     = true;
-
-            // 关键：立刻恢复终端，避免用户回到 shell 后“看起来卡死”
-            g_raw_guard.disable();
-            break;
-        }
-
-        if (rc < 0) {
-            std::cerr << "[Teleop] [WARN] pwm_teleop_handle_key error rc=" << rc << "\n";
-        }
+    // 从 Intent SHM 拿“最终合成后的 wire intent”
+    std::uint64_t pub_mono_ns = 0;
+    std::uint64_t pub_wall_ns = 0;
+    auto opt = intent_sub_.poll(&pub_mono_ns, &pub_wall_ns);
+    if (!opt) {
+        // SHM 尚未就绪 / 还没有写入：输出一帧“空 intent”，让 Guard 认为“无外部命令”
+        intent.cmd_seq = ++seq_;
+        finalize_intent_(intent);
+        return true;
     }
 
-    // 2) 再刷新一次时间戳，让 now_ns 更接近“处理完按键后的时刻”
-    finalize_intent(intent);
-    const std::uint64_t now_ns = intent.stamp_ns;
-
-    // 只有“确实读到按键”才更新 last_event_ns_
-    if (got_key_this_cycle) {
-        last_event_ns_ = static_cast<std::int64_t>(now_ns);
+    // wire → core 解码
+    const bool dec_ok = decode_control_intent(*opt, intent);
+    if (!dec_ok) {
+        // 版本不匹配或快照损坏：退回到安全的“空 intent”
+        intent = cc::ControlIntent{};
+        intent.clear_payload();
+        intent.cmd_seq = ++seq_;
+        finalize_intent_(intent);
+        return true;
     }
 
-    const std::uint64_t ttl_ns =
-        static_cast<std::uint64_t>(intent.ttl_ms) * 1000000ULL;
-
-    const bool teleop_alive =
-        (last_event_ns_ > 0) &&
-        (now_ns - static_cast<std::uint64_t>(last_event_ns_) <= ttl_ns);
-
-    if (teleop_alive) {
-        pwm_teleop_state_t kstate{};
-        pwm_teleop_get_state(&kstate);
-
-        intent.teleop_dof_cmd.surge = kstate.cmd_surge;
-        intent.teleop_dof_cmd.sway  = kstate.cmd_sway;
-        intent.teleop_dof_cmd.heave = kstate.cmd_heave;
-        intent.teleop_dof_cmd.yaw   = kstate.cmd_yaw;
-        intent.teleop_dof_cmd.roll  = kstate.cmd_roll;
-        intent.teleop_dof_cmd.pitch = kstate.cmd_pitch;
-        intent.has_teleop_dof       = true;
-    } else {
-        intent.teleop_dof_cmd = cc::DofCommand{};
-        intent.has_teleop_dof = false;
+    // 根据配置，若 stamp/ttl 缺失则在本端补齐
+    if ((cfg_.fill_stamp_if_missing && intent.stamp_ns == 0) ||
+        (cfg_.fill_ttl_if_missing   && intent.ttl_ms   == 0))
+    {
+        finalize_intent_(intent);
     }
 
     return true;
@@ -176,36 +105,21 @@ bool TeleopInputProvider::poll(cc::ControlState& state, cc::ControlIntent& inten
 
 void TeleopInputProvider::reset()
 {
-    pwm_teleop_reset();
     exit_requested_ = false;
-
-    // 双保险：恢复终端
-    g_raw_guard.disable();
 }
 
-int TeleopInputProvider::read_key_nonblock()
+void TeleopInputProvider::finalize_intent_(cc::ControlIntent& intent)
 {
-    unsigned char ch = 0;
-    const ssize_t n = ::read(STDIN_FILENO, &ch, 1);
-
-    if (n == 1) return static_cast<int>(ch);
-    if (n == 0) return kNoKey;
-
-    if (errno == EAGAIN || errno == EWOULDBLOCK) return kNoKey;
-
-    std::cerr << "[Teleop] [WARN] read(STDIN) failed: " << std::strerror(errno) << "\n";
-    return kNoKey;
-}
-
-void TeleopInputProvider::finalize_intent(cc::ControlIntent& intent)
-{
-    intent.stamp_ns = static_cast<std::uint64_t>(rovctrl::platform::timebase::now_ns());
-
-    if (intent.ttl_ms == 0) {
-        intent.ttl_ms = 200;
+    // 时间戳填补：使用本进程 steady ns
+    if (intent.stamp_ns == 0) {
+        intent.stamp_ns = static_cast<std::uint64_t>(
+            rovctrl::platform::timebase::now_ns());
     }
 
-    // 关键：不要在这里更新 last_event_ns_
+    // TTL 填补：优先使用 Config 中的 ttl_ms，其次用一个工程默认值
+    if (intent.ttl_ms == 0) {
+        intent.ttl_ms = (cfg_.ttl_ms != 0) ? cfg_.ttl_ms : 200;
+    }
 }
 
 } // namespace rovctrl::io

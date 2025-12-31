@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.o  -o ../bin/gcs_client  ../lib/libgateway_core.a ../lib/libproto_gcs.a -lpthread -lm /usr/lib/x86_64-linux-gnu/librt.so 

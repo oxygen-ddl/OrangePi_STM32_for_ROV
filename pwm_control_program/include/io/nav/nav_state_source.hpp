@@ -12,10 +12,9 @@ public:
 
     virtual bool init() = 0;
     virtual bool ok() const noexcept = 0;
-    virtual bool read_latest(NavStateView& out) = 0;
+    virtual bool read_latest(NavStateView& out) = 0; // struct version
 };
-
 
 } // namespace rovctrl::io
 
-#endif
+#endif // ROVCTRL_IO_NAV_STATE_SOURCE_HPP

@@ -124,30 +124,30 @@ proto_gcs/fast:
 .PHONY : proto_gcs/fast
 
 #=============================================================================
-# Target rules for targets named comm_gcs_test_session
+# Target rules for targets named intentd
 
 # Build rule for target.
-comm_gcs_test_session: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_test_session
-.PHONY : comm_gcs_test_session
+intentd: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 intentd
+.PHONY : intentd
 
 # fast build rule for target.
-comm_gcs_test_session/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_session.dir/build
-.PHONY : comm_gcs_test_session/fast
+intentd/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/intentd.dir/build.make gateway_build/CMakeFiles/intentd.dir/build
+.PHONY : intentd/fast
 
 #=============================================================================
-# Target rules for targets named comm_gcs_test_codec
+# Target rules for targets named nav_view_dump
 
 # Build rule for target.
-comm_gcs_test_codec: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_test_codec
-.PHONY : comm_gcs_test_codec
+nav_view_dump: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nav_view_dump
+.PHONY : nav_view_dump
 
 # fast build rule for target.
-comm_gcs_test_codec/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_test_codec.dir/build
-.PHONY : comm_gcs_test_codec/fast
+nav_view_dump/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/nav_view_dump.dir/build.make gateway_build/CMakeFiles/nav_view_dump.dir/build
+.PHONY : nav_view_dump/fast
 
 #=============================================================================
 # Target rules for targets named gcs_client
@@ -159,8 +159,21 @@ gcs_client: cmake_check_build_system
 
 # fast build rule for target.
 gcs_client/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_client.dir/build.make comm_gcs_build/CMakeFiles/gcs_client.dir/build
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/build
 .PHONY : gcs_client/fast
+
+#=============================================================================
+# Target rules for targets named intent_dump
+
+# Build rule for target.
+intent_dump: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 intent_dump
+.PHONY : intent_dump
+
+# fast build rule for target.
+intent_dump/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/intent_dump.dir/build.make gateway_build/CMakeFiles/intent_dump.dir/build
+.PHONY : intent_dump/fast
 
 #=============================================================================
 # Target rules for targets named gcs_server
@@ -172,34 +185,47 @@ gcs_server: cmake_check_build_system
 
 # fast build rule for target.
 gcs_server/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/gcs_server.dir/build.make comm_gcs_build/CMakeFiles/gcs_server.dir/build
+	$(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/build
 .PHONY : gcs_server/fast
 
 #=============================================================================
-# Target rules for targets named comm_gcs_gcs
+# Target rules for targets named nav_viewd
 
 # Build rule for target.
-comm_gcs_gcs: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs_gcs
-.PHONY : comm_gcs_gcs
+nav_viewd: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 nav_viewd
+.PHONY : nav_viewd
 
 # fast build rule for target.
-comm_gcs_gcs/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs_gcs.dir/build
-.PHONY : comm_gcs_gcs/fast
+nav_viewd/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/nav_viewd.dir/build.make gateway_build/CMakeFiles/nav_viewd.dir/build
+.PHONY : nav_viewd/fast
 
 #=============================================================================
-# Target rules for targets named comm_gcs
+# Target rules for targets named teleop_local
 
 # Build rule for target.
-comm_gcs: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 comm_gcs
-.PHONY : comm_gcs
+teleop_local: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 teleop_local
+.PHONY : teleop_local
 
 # fast build rule for target.
-comm_gcs/fast:
-	$(MAKE) -f comm_gcs_build/CMakeFiles/comm_gcs.dir/build.make comm_gcs_build/CMakeFiles/comm_gcs.dir/build
-.PHONY : comm_gcs/fast
+teleop_local/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/teleop_local.dir/build.make gateway_build/CMakeFiles/teleop_local.dir/build
+.PHONY : teleop_local/fast
+
+#=============================================================================
+# Target rules for targets named gateway_core
+
+# Build rule for target.
+gateway_core: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 gateway_core
+.PHONY : gateway_core
+
+# fast build rule for target.
+gateway_core/fast:
+	$(MAKE) -f gateway_build/CMakeFiles/gateway_core.dir/build.make gateway_build/CMakeFiles/gateway_core.dir/build
+.PHONY : gateway_core/fast
 
 #=============================================================================
 # Target rules for targets named pwm_proto
@@ -249,12 +275,14 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... proto_gcs"
-	@echo "... comm_gcs_test_session"
-	@echo "... comm_gcs_test_codec"
+	@echo "... intentd"
+	@echo "... nav_view_dump"
 	@echo "... gcs_client"
+	@echo "... intent_dump"
 	@echo "... gcs_server"
-	@echo "... comm_gcs_gcs"
-	@echo "... comm_gcs"
+	@echo "... nav_viewd"
+	@echo "... teleop_local"
+	@echo "... gateway_core"
 	@echo "... pwm_proto"
 	@echo "... pwm_host"
 	@echo "... pwm_control_program"

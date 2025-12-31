@@ -1,1 +1,0 @@
-/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/comm_gcs_test_session.dir/tests/test_session.cpp.o  -o comm_gcs_test_session  libcomm_gcs_gcs.a libcomm_gcs.a -lpthread ../proto_gcs_build/libproto_gcs.a 

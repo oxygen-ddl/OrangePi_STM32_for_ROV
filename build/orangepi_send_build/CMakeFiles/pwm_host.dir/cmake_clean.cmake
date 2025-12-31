@@ -1,8 +1,8 @@
 file(REMOVE_RECURSE
+  "../lib/libpwm_host.a"
+  "../lib/libpwm_host.pdb"
   "CMakeFiles/pwm_host.dir/src/libpwm_host.c.o"
   "CMakeFiles/pwm_host.dir/src/pwm_control.c.o"
-  "libpwm_host.a"
-  "libpwm_host.pdb"
 )
 
 # Per-language clean rules from dependency scanning.

@@ -3,34 +3,45 @@
 #define ROVCTRL_IO_NAV_STATE_VIEW_HPP
 
 #include <cstdint>
-#include <type_traits>
+#include "shared/msg/nav_state_view.hpp"
 
 namespace rovctrl::io {
 
 /**
- * @brief Navigation state view for control loop (decoupled from shared memory layout)
+ * @brief Control-side navigation view.
+ *
+ * Design:
+ *  - wire: the exact payload published by gateway (ABI-stable)
+ *  - pub_*: publisher timestamps from SHM header (not part of wire payload)
+ *  - age_ms_local: recomputed by control side based on pub_mono_ns
+ *
+ * Rule of thumb:
+ *  - business/controls should read from this type, not from shared::msg directly.
  */
-struct NavStateView {
-    std::uint64_t t_ns = 0;
+struct NavStateView final {
+    // ---- wire payload (gateway->control ABI) ----
+    shared::msg::NavStateView wire{};
 
-    double pos[3] = {};
-    double vel[3] = {};
-    double rpy[3] = {};
+    // ---- publisher meta (from SHM header) ----
+    std::uint64_t pub_mono_ns = 0;
+    std::uint64_t pub_wall_ns = 0;
 
-    double depth = 0.0;
+    // ---- control-side computed meta ----
+    std::uint32_t age_ms_local = 0;
 
-    double omega_b[3] = {};
-    double acc_b[3]   = {};
-
-    std::uint16_t status_flags = 0;
-    std::uint8_t  health       = 0;
-
-    bool valid = false;
+    const shared::msg::NavStateView& payload() const noexcept { return wire; }
+    shared::msg::NavStateView&       payload() noexcept { return wire; }
 };
-
-static_assert(std::is_trivially_copyable_v<NavStateView>,
-              "NavStateView must be trivially copyable");
 
 } // namespace rovctrl::io
 
-#endif
+// Optional compatibility alias for old namespace usage
+namespace rovctrl::io::nav {
+using NavStateView = rovctrl::io::NavStateView;
+}
+
+#endif // ROVCTRL_IO_NAV_STATE_VIEW_HPP
+/**
+ * @file    control_loop_nav.cpp
+ * @brief   NavSub PIMPL + navigation feedback update (B2: NavStateView)
+ */

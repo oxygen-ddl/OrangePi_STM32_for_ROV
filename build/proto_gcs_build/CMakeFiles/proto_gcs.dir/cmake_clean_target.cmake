@@ -1,3 +1,3 @@
 file(REMOVE_RECURSE
-  "libproto_gcs.a"
+  "../lib/libproto_gcs.a"
 )

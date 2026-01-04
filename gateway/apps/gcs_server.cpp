@@ -413,6 +413,16 @@ int main(int argc, char** argv)
                   << "\n";
 
         auto w = make_set_dof_intent(cmd, intent_ttl_ms);
+        // ★ 调试：确认写入 SHM 的 ControlIntent 里 DOF 是否正确 ★
+        std::cout << "[INTENT_TX] teleop_dof "
+                  << "s="  << w.teleop_dof_cmd.surge
+                  << " sw=" << w.teleop_dof_cmd.sway
+                  << " h="  << w.teleop_dof_cmd.heave
+                  << " r="  << w.teleop_dof_cmd.roll
+                  << " p="  << w.teleop_dof_cmd.pitch
+                  << " y="  << w.teleop_dof_cmd.yaw
+                  << " flags=0x" << std::hex << w.flags << std::dec
+                  << "\n";
         (void)pub.publish(w);
         shm_dump.maybe_dump(pub, "[SHM_HEX][SET_DOF]");
     };

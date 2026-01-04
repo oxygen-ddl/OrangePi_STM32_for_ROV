@@ -16,8 +16,55 @@
 #include <cstdint>
 #include <iostream>
 #include <thread>
+#include <cmath>
+#include <iomanip>
+#include <algorithm>
 
 #include "io/nav/nav_state_view.hpp"   // rovctrl::io::NavStateView
+
+// ==================== 小仪表输出：推进器活动日志 ====================
+namespace {
+
+// ThrusterArray 一般是 std::array<float, 8>，这里用模板支持 N 维兼容。
+// 功能：
+//  1) 如果所有通道都“非常接近 0”，则认为是静止，不打印；
+//  2) 打印节流：至少每 200 ms 才打印一次，避免刷屏；
+//  3) 打印格式：
+//     [ControlLoop] thrusters active: m1=0.32 m2=0.28 ... m8=0.00
+template <std::size_t N>
+void log_thruster_activity(const std::array<float, N>& thr_cmd)
+{
+    // 1) 判断是否“近似静止”
+    constexpr float kEps = 1e-3f;  // 小于这个就视为 0
+    float max_abs = 0.0f;
+    for (float v : thr_cmd) {
+        max_abs = std::max(max_abs, std::fabs(v));
+    }
+    if (max_abs < kEps) {
+        // 所有通道都很小，认为静止，不输出
+        return;
+    }
+
+    // 2) 简单节流：200 ms 以上才打印一次
+    using clock = std::chrono::steady_clock;
+    static clock::time_point last_print_tp = clock::now();
+    const auto now = clock::now();
+    if (now - last_print_tp < std::chrono::milliseconds(200)) {
+        return;
+    }
+    last_print_tp = now;
+
+    // 3) 打印一行当前推进器归一化指令（通常 -1..1 或 0..1）
+    std::cout << "[ControlLoop] thrusters active: ";
+    std::cout << std::fixed << std::setprecision(2);
+    for (std::size_t i = 0; i < N; ++i) {
+        std::cout << "m" << (i + 1) << "=" << thr_cmd[i] << " ";
+    }
+    std::cout << "\n";
+}
+
+} // namespace
+// ================================================================
 
 namespace rovctrl::control_core {
 
@@ -235,6 +282,19 @@ int ControlLoop::run()
             execute_failsafe_(FailsafeAction::kEmergencyStop);
             return -10;
         }
+        // 调试：低频打印 Intent 的 6DOF（只要有 has_teleop_dof）
+        static int intent_debug_counter = 0;
+        if (intent.has_teleop_dof && (++intent_debug_counter % 50 == 0)) {
+            const auto& c = intent.teleop_dof_cmd;
+            std::cout << "[ControlLoop][INTENT] teleop_dof "
+                      << "s="  << c.surge
+                      << " sw=" << c.sway
+                      << " h="  << c.heave
+                      << " r="  << c.roll
+                      << " p="  << c.pitch
+                      << " y="  << c.yaw
+                      << "\n";
+        }
 
         // input 请求退出
         if (intent.request_exit) {
@@ -304,6 +364,9 @@ int ControlLoop::run()
 
         // 单电机测试覆盖逻辑（在所有正常控制输出之后）
         apply_motor_test_override(guard_result_.effective_intent, thr_cmd);
+
+        // <<< 新增：推进器活动小仪表（仅当 thr_cmd 非零且节流满足时打印一行）
+        log_thruster_activity(thr_cmd);
 
         {
             const int rc = pwm_.setTargets(thr_cmd);

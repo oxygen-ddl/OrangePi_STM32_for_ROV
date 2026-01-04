@@ -28,6 +28,7 @@ namespace comm_gcs::ipc::keys {
  *    因此 Press/Repeat 都视为“刷新 hold”的动作。
  *  - 离散命令（E-STOP/ClearEStop/Arm/Disarm/Exit/Center/Help/ThrottleStep/单电机测试）：
  *    默认只在 Press 触发（edge-trigger），避免 Repeat 导致重复触发。
+ *    油门键是“-”和“+”，也视为离散命令以避免长按跑飞。
  *
  * 安全/系统命令：
  *  - Ctrl + Space：E-STOP 请求（真正锁存由 ControlGuard 决定）

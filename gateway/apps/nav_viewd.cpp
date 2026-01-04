@@ -281,7 +281,7 @@ int main(int argc, char** argv)
 
     // from subscriber header (publisher timestamps in nav shm)
     std::uint64_t last_nav_pub_mono_ns = 0;
-    // std::uint64_t last_nav_pub_wall_ns = 0;  // 当前未使用，保留注释说明
+    std::uint64_t last_nav_pub_wall_ns = 0;
 
     // stats
     std::uint64_t cnt_poll = 0, cnt_poll_hit = 0, cnt_no_nav = 0;
@@ -296,7 +296,7 @@ int main(int argc, char** argv)
             ++cnt_poll;
 
             std::uint64_t mono_ns = 0, wall_ns = 0;
-            auto nav_opt = nav_sub.poll(&mono_ns, nullptr);
+            auto nav_opt = nav_sub.poll(&mono_ns, &wall_ns);
 
             if (nav_opt.has_value()) {
                 ++cnt_poll_hit;

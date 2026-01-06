@@ -72,11 +72,11 @@ bool ManualController::compute(const ControlState&     /*state*/,
     //           << "\n";
 
     // 基本防御：确保确实是在用 DOF 参考
-    if (!ref.use_dof_cmd) {
-        std::cerr << "[ManualController] ref.use_dof_cmd == false, nothing to do.\n";
-        out = ControlOutput{};
-        return true;  // 对于手动模式，可以视为“零输出”也是合法
-    }
+    // if (!ref.use_dof_cmd) {
+    //     std::cerr << "[ManualController] ref.use_dof_cmd == false, nothing to do.\n";
+    //     out = ControlOutput{};
+    //     return true;  // 对于手动模式，可以视为“零输出”也是合法
+    // }
 
     out = ControlOutput{};
     out.has_thruster_command = true;
@@ -102,16 +102,16 @@ bool ManualController::compute(const ControlState&     /*state*/,
     rovctrl::control_core::mix_6dof_to_8thrusters(mix_cfg, ref.dof_cmd, u);
 
     // 调试：打印输出 thruster_command
-    std::cout << "[ManualController] thr_cmd "
-              << "u0=" << u[0]
-              << " u1=" << u[1]
-              << " u2=" << u[2]
-              << " u3=" << u[3]
-              << " u4=" << u[4]
-              << " u5=" << u[5]
-              << " u6=" << u[6]
-              << " u7=" << u[7]
-              << "\n";
+    // std::cout << "[ManualController] thr_cmd "
+    //           << "u0=" << u[0]
+    //           << " u1=" << u[1]
+    //           << " u2=" << u[2]
+    //           << " u3=" << u[3]
+    //           << " u4=" << u[4]
+    //           << " u5=" << u[5]
+    //           << " u6=" << u[6]
+    //           << " u7=" << u[7]
+    //           << "\n";
 
     return true;
 }

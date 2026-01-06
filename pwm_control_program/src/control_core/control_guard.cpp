@@ -185,7 +185,7 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
         input_age_ms_        = 0;  // 目前仅用于调试
     }
 
-    // 2) stale 判定
+    // 2) stale 判定（与模式无关，仅用于记录输入是否过期）
     const bool stale = is_intent_stale(now_ns, intent);
     out.input_stale  = stale;
 
@@ -306,7 +306,7 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
         }
     }
 
-    // 6) 模式门控
+    // 6) 模式门控（根据 mode_request + nav 是否可用调整 mode_）
     {
         auto& eff = out.effective_intent;
 
@@ -324,20 +324,41 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
         out.effective_mode = mode_;
     }
 
-    // 7) 数值限幅
+    // 7) 数值限幅（对 teleop / ref_delta 做统一裁剪）
     clamp_teleop(out.effective_intent);
     clamp_ref_delta(out.effective_intent);
 
-    // 8) failsafe 决策
+    // 8) failsafe 决策（按模式区分语义）
+    //
+    // 设计原则：
+    //  - 急停(E-Stop)：跨模式全局生效，直接 EmergencyStop；
+    //  - Auto 模式：输入过期 / 无导航 / 未 ARM → ZeroOutput 保护；
+    //  - Manual 模式：不因 stale/nav_missing 进入 failsafe，仅靠 ARM/E-Stop 约束。
     FailsafeAction fs = FailsafeAction::kNone;
 
     if (estop_latched_) {
-        fs = FailsafeAction::kEmergencyStop;   // 3：急停
-    } else if (stale) {
-        fs = FailsafeAction::kZeroOutput;      // 2：输入过期 → 零输出
-    } else if (!out.armed) {
-        // 未 ARM 时统一 ZeroOutput，确保推进器被拉回中立
-        fs = FailsafeAction::kZeroOutput;
+        // 无论 Manual / Auto，一旦急停锁存，立即进入紧急停机
+        fs = FailsafeAction::kEmergencyStop;
+    } else {
+        const auto mode_eff     = out.effective_mode;
+        const bool nav_missing  = (nav == nullptr);
+        const bool not_armed    = !out.armed;
+
+        if (mode_eff == ControlMode::kAuto) {
+            // 自动模式：对 stale / nav_missing / 未 ARM 进行严格保护
+            if (stale) {
+                fs = FailsafeAction::kZeroOutput;      // 输入过期
+            } else if (nav_missing) {
+                fs = FailsafeAction::kZeroOutput;      // 无导航：自动模式下不允许盲飞
+            } else if (not_armed) {
+                fs = FailsafeAction::kZeroOutput;      // 未 ARM：推力强制归中
+            }
+        } else {
+            // Manual / 其他模式：
+            //  - 不因 stale/nav_missing 自动拉入 failsafe；
+            //  - 是否 ARM 已在第 5 步通过清空 DOF/Ref 约束输出。
+            fs = FailsafeAction::kNone;
+        }
     }
 
     out.failsafe = fs;
@@ -352,12 +373,6 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
 
     const auto& eff = out.effective_intent;
 
-    // 仅关注“关键状态”：
-    //   - armed         : 是否解锁
-    //   - estop_latched : 急停是否锁存
-    //   - mode          : 当前控制模式
-    //   - has_nav       : 是否有导航数据
-    //   - failsafe      : 是否处于失效保护模式
     struct GuardDebugSnapshot {
         std::uint8_t armed;
         std::uint8_t estop_latched;
@@ -399,9 +414,6 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
     }
 
     return out;
-
 }
-
-
 
 } // namespace rovctrl::control_core

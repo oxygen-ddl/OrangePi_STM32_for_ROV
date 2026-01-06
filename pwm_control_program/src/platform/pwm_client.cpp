@@ -4,6 +4,8 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <cmath>
+
 
 // C 接口头文件只在实现层可见
 extern "C" {
@@ -110,6 +112,7 @@ bool PwmClient::init(const PwmClientConfig& cfg)
     }
 
     dummy_ = false;
+    debug_print_targets_ = cfg.debug_print_targets;
 
     // ------------------------------------------------------------------------
     // 1) libpwm_host init (UDP -> STM32)
@@ -281,11 +284,9 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& cmd_norm)
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
-    // Hardware duty semantics (50Hz servo-style):
-    //  5.0% = full reverse, 7.5% = neutral, 10.0% = full forward
-    constexpr float kDutyMin = 5.0f;
-    constexpr float kDutyMid = 7.5f;
-    constexpr float kDutyMax = 10.0f;
+    constexpr float kDutyMin  = 5.0f;
+    constexpr float kDutyMid  = 7.5f;
+    constexpr float kDutyMax  = 10.0f;
     constexpr float kDutySpan = 2.5f; // kDutyMid ± kDutySpan
 
     auto clampf_local = [](float v, float lo, float hi) noexcept {
@@ -298,15 +299,35 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& cmd_norm)
         return clampf_local(kDutyMid + kDutySpan * u, kDutyMin, kDutyMax);
     };
 
-    // Dummy mode: still store mapped duty% so behavior matches real path.
+    // Dummy 模式：直接存 duty%
     if (dummy_) {
         for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
             target_pct_[i] = norm_to_duty(cmd_norm[i]);
         }
+
+        // ★ 调试：dummy 模式下也可以看到 duty 映射
+        if (debug_print_targets_) {
+            static int s_print_counter = 0;
+            ++s_print_counter;
+
+            // 比如每 10 帧打印一次，防刷屏
+            if (s_print_counter >= 10) {
+                s_print_counter = 0;
+
+                std::cout << "[PwmClient][DUMMY_SET] ";
+                for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
+                    std::cout << "ch" << (i + 1)
+                              << "=" << target_pct_[i] << "% ";
+                }
+                std::cout << "\n";
+            }
+        }
+
         clear_error();
         return 0;
     }
 
+    // 真实后端路径
     float arr[PWM_HOST_CH_NUM];
     for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
         arr[i] = kDutyMid; // default neutral for unused channels
@@ -319,7 +340,60 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& cmd_norm)
 
     for (std::size_t i = 0; i < n; ++i) {
         arr[i] = norm_to_duty(cmd_norm[i]);
+        target_pct_[i] = arr[i];  // 同步保存当前 duty%，方便其他地方查
     }
+
+    // ★ 操作员可见：打印“实际下发的 PWM 通道 + 占空比”
+    //
+    // 设计思路：
+    //   - 只要任意通道偏离中立，就以低频打印一行当前 PWM 占空比；
+    //   - 从“有推力”回到“全中立”时，也打印一行，提示已经安全归中；
+    //   - 频率：约每 10 次 setTargets 打印一次（100Hz 控制环路 ≈ 10Hz 日志）。
+    if (debug_print_targets_) {
+        constexpr float kDutyNeutral = 7.5f;
+        constexpr float kActiveDelta = 0.05f;  // 与中立差超过 0.05% 视为“有动作”
+
+        // 1) 判断当前是否存在“非中立”通道
+        bool any_active = false;
+        for (std::size_t i = 0; i < n; ++i) {
+            if (std::fabs(arr[i] - kDutyNeutral) > kActiveDelta) {
+                any_active = true;
+                break;
+            }
+        }
+
+        // 2) 状态机：检测 active ↔ idle 切换，并做节流打印
+        static bool s_last_active    = false;
+        static int  s_print_counter  = 0;
+
+        ++s_print_counter;
+
+        const bool state_changed = (any_active != s_last_active);
+
+        // 打印条件：
+        //   - 状态变化（idle→active 或 active→idle）必打；
+        //   - 处于 active 状态时，每 10 次 setTargets 打印一行；
+        const bool should_print =
+            state_changed ||
+            (any_active && s_print_counter >= 10);
+
+        if (should_print) {
+            s_print_counter = 0;
+            s_last_active   = any_active;
+
+            std::cout << "[PwmClient][SET_TARGETS] "
+                      << (any_active ? "ACTIVE " : "NEUTRAL ")
+                      << "| ";
+
+            for (std::size_t i = 0; i < n; ++i) {
+                std::cout << "PWM" << (i + 1)
+                          << "=" << arr[i] << "% ";
+            }
+            std::cout << "\n";
+        }
+    }
+
+
 
     const int rc = pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, arr);
     if (rc != PWM_CTRL_OK) {
@@ -330,6 +404,15 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& cmd_norm)
     }
 
     clear_error();
+    // ★ 调试：简单版本 —— 只要开了开关，每次都打印一次
+    // if (debug_print_targets_) {
+    //     std::cout << "[PwmClient][SET_TARGETS] ";
+    //     for (std::size_t i = 0; i < n; ++i) {
+    //         std::cout << "PWM" << (i + 1)
+    //                   << "=" << arr[i] << "% ";
+    //     }
+    //     std::cout << "\n";
+    // }
     return rc;
 }
 

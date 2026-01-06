@@ -139,7 +139,7 @@ bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
     }
 
     // 4) 仍然没有任何输出，保留原始告警和 0 推力行为
-    std::cout << "[ControlLoop][ALLOC] no thruster_command and no body_wrench\n";
+    //std::cout << "[ControlLoop][ALLOC] no thruster_command and no body_wrench\n";
     return false;
 }
 

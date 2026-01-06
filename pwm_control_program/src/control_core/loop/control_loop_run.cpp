@@ -55,12 +55,12 @@ void log_thruster_activity(const std::array<float, N>& thr_cmd)
     last_print_tp = now;
 
     // 3) 打印一行当前推进器归一化指令（通常 -1..1 或 0..1）
-    std::cout << "[ControlLoop] thrusters active: ";
-    std::cout << std::fixed << std::setprecision(2);
-    for (std::size_t i = 0; i < N; ++i) {
-        std::cout << "m" << (i + 1) << "=" << thr_cmd[i] << " ";
-    }
-    std::cout << "\n";
+    // std::cout << "[ControlLoop] thrusters active: ";
+    // std::cout << std::fixed << std::setprecision(2);
+    // for (std::size_t i = 0; i < N; ++i) {
+    //     std::cout << "m" << (i + 1) << "=" << thr_cmd[i] << " ";
+    // }
+    // std::cout << "\n";
 }
 
 } // namespace
@@ -442,16 +442,16 @@ int ControlLoop::run()
             return -20;
         }
         // 调试：只在 teleop 有 DOF 时输出一行
-        if (guard_result_.effective_intent.has_teleop_dof) {
-            const auto& st = ctrl_mgr_.status();
-            std::cout << "[ControlLoop][DBG] after compute: "
-                      << "mode=" << static_cast<int>(st.mode)
-                      << " active=" << st.active_controller
-                      << " last_ok=" << st.last_compute_ok
-                      << " has_thr=" << int(output_.has_thruster_command)
-                      << " has_wrench=" << int(output_.has_body_wrench)
-                      << "\n";
-        }
+        // if (guard_result_.effective_intent.has_teleop_dof) {
+        //     const auto& st = ctrl_mgr_.status();
+        //     std::cout << "[ControlLoop][DBG] after compute: "
+        //               << "mode=" << static_cast<int>(st.mode)
+        //               << " active=" << st.active_controller
+        //               << " last_ok=" << st.last_compute_ok
+        //               << " has_thr=" << int(output_.has_thruster_command)
+        //               << " has_wrench=" << int(output_.has_body_wrench)
+        //               << "\n";
+        // }
         // 这里就可以放心使用 has_nav 了
         if (guard_result_.effective_intent.has_teleop_dof &&
             !output_.has_body_wrench &&
@@ -504,16 +504,16 @@ int ControlLoop::run()
 
         // 实际下发到 PWM 客户端
         {
-            std::cout << "[ControlLoop][THR_CMD] "
-                      << "u0=" << thr_cmd[0]
-                      << " u1=" << thr_cmd[1]
-                      << " u2=" << thr_cmd[2]
-                      << " u3=" << thr_cmd[3]
-                      << " u4=" << thr_cmd[4]
-                      << " u5=" << thr_cmd[5]
-                      << " u6=" << thr_cmd[6]
-                      << " u7=" << thr_cmd[7]
-                      << "\n";
+            // std::cout << "[ControlLoop][THR_CMD] "
+            //           << "u0=" << thr_cmd[0]
+            //           << " u1=" << thr_cmd[1]
+            //           << " u2=" << thr_cmd[2]
+            //           << " u3=" << thr_cmd[3]
+            //           << " u4=" << thr_cmd[4]
+            //           << " u5=" << thr_cmd[5]
+            //           << " u6=" << thr_cmd[6]
+            //           << " u7=" << thr_cmd[7]
+            //           << "\n";
 
             const int rc = pwm_.setTargets(thr_cmd);
             if (rc < 0) {

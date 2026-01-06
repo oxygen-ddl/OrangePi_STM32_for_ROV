@@ -30,6 +30,8 @@ struct PwmClientConfig {
     float max_pct = 10.0f;
 
     bool enable_reverse_protection = true; ///< 是否启用“禁止突然反向”保护
+    // 新增：是否打印 setTargets 映射后的 PWM duty
+    bool debug_print_targets = true;
 
     // === 分组（逻辑电机空间掩码） ===
     // bit0→CH1, bit7→CH8
@@ -123,11 +125,15 @@ public:
 
     const PwmClientStatus& status() const { return status_; }
     bool is_ok() const { return status_.ok; }
+     // 运行时开关 PWM 占空比打印
+    void set_debug_print_targets(bool v) noexcept { debug_print_targets_ = v; }
+
+    bool debug_print_targets() const noexcept { return debug_print_targets_; }
 
 private:
     bool            inited_ = false;
     PwmClientConfig cfg_{};
-    PwmClientStatus status_{};
+    PwmClientStatus status_;
 
     void set_error(int err_code, const std::string& msg);
     void clear_error();
@@ -136,6 +142,7 @@ private:
     bool dummy_ = false;
     std::array<float, kNumPwmChannels> target_pct_{};   // dummy: 目标 %
     std::array<float, kNumPwmChannels> current_pct_{};  // dummy: 当前 %
+    bool debug_print_targets_{true};
 };
 
 } // namespace rovctrl::platform

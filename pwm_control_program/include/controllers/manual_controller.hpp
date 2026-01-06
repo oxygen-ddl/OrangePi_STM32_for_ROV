@@ -9,6 +9,8 @@
 #include "controllers/controller_base.hpp"      // IController
 #include "control_core/control_types.hpp"       // ControlState/Reference/Output/DofCommand
 #include "control_core/control_mode.hpp"        // ControlMode
+#include "control_core/teleop_mixer.hpp"
+
 
 namespace rovctrl::controllers {
 
@@ -103,6 +105,7 @@ namespace rovctrl::controllers {
  */
 
 struct ManualControllerConfig {
+
     // ==== 1. DOF 指令缩放（单位：无量纲增益） ====
 
     /// surge DOF 增益，1.0 表示 DofCommand.surge 直接作为归一化 thrust 输入。
@@ -147,7 +150,7 @@ struct ManualControllerConfig {
      *      - output_body_wrench=true  → 填 ref/输出 body_wrench；
      *      - output_body_wrench=false → 直接填 thruster_command。
      */
-    bool output_body_wrench = true;
+    bool output_body_wrench = false;
 
     // ==== 4. 异常输入策略（预留） ====
 
@@ -163,6 +166,10 @@ struct ManualControllerConfig {
      * 上游 Guard / ControlLoop 已经保证在手动模式下填好 DOF。
      */
     bool missing_input_is_error = false;
+    
+    // 新增：键盘 Teleop 混合配置（6DOF → 8 Thrusters）
+    rovctrl::control_core::TeleopMixerConfig teleop_mixer_cfg{};
+
 };
 
 /**
@@ -248,6 +255,7 @@ private:
     /// 对 thruster_command 做统一限幅。
     void clamp_output(rovctrl::control_core::ControlOutput& out) const noexcept;
 };
+   
 
 } // namespace rovctrl::controllers
 

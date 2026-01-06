@@ -109,31 +109,10 @@ bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
     const auto& eff = guard_result_.effective_intent;
 
     if (eff.has_teleop_dof) {
-        rovctrl::control_core::TeleopMixConfig mix_cfg{};
-        mix_cfg.surge_gain  = 1.0;
-        mix_cfg.sway_gain   = 1.0;
-        mix_cfg.heave_gain  = 1.0;
-        mix_cfg.yaw_gain    = 1.0;
-        mix_cfg.roll_gain   = 1.0;
-        mix_cfg.pitch_gain  = 1.0;
-        mix_cfg.max_cmd_abs = 1.0;
-
-        // 注意：这里用 ref_.dof_cmd（build_reference_from_guard_ 已经把 effective_intent 写进去）
-        rovctrl::control_core::mix_6dof_to_8thrusters(mix_cfg,
-                                                      ref_.dof_cmd,
-                                                      thr_out);
-
-        std::cout << "[ControlLoop][ALLOC_FALLBACK] teleop -> thr_cmd "
-                  << "mode=" << static_cast<int>(mode)
-                  << " u0=" << thr_out[0]
-                  << " u1=" << thr_out[1]
-                  << " u2=" << thr_out[2]
-                  << " u3=" << thr_out[3]
-                  << " u4=" << thr_out[4]
-                  << " u5=" << thr_out[5]
-                  << " u6=" << thr_out[6]
-                  << " u7=" << thr_out[7]
-                  << "\n";
+        // 保守策略：什么都不下发，只输出 0 推力。
+        // 如果未来有需要，可以在这里从一个“全局 TeleopMixerConfig”做混合。
+         std::cerr << "[ControlLoop] DOF-only fallback path hit; no thruster_command/body_wrench. "
+                  << "Outputs zero thrust.\n";
 
         return true;
     }

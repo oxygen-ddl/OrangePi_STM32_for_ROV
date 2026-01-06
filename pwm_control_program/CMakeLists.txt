@@ -221,6 +221,8 @@ set(SRC_UTILS
     src/utils/config_loader_pwm_client.cpp
     src/utils/config_loader_alloc.cpp
     src/utils/config_loader_trajectory.cpp
+    src/utils/config_loader_teleop_mixer.cpp
+
 )
 
 set(SRC_IO ${SRC_IO_BASE})

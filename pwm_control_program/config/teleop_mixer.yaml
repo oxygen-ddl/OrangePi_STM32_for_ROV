@@ -1,0 +1,43 @@
+teleop_mixer:
+  enable: true
+
+  # DOF 列顺序固定为: [surge, sway, heave, roll, pitch, yaw]
+  dof_order: [surge, sway, heave, roll, pitch, yaw]   # 仅用于人读，代码可校验
+
+  # 1) 每个 DOF 的增益（键盘输出通常是 [-1,1]）
+  gains:
+    surge:  1.0
+    sway:   1.0
+    heave:  1.0
+    roll:   1.0
+    pitch:  1.0
+    yaw:    1.0
+
+  # 2) 输出限幅（归一化 thruster 指令）
+  output_limit_abs: 1.0
+
+  # 3) 可选：输入死区（键盘抖动/重复键盘事件）
+  input_deadzone: 0.00
+
+  # 4) 8x6 混合矩阵（每行一个推进器；列顺序固定）
+  # 约定：thruster index 0..7 的物理含义由你们自己定义（建议写注释）
+  thrusters:
+    index_note:
+      - "0: left-rear horizontal"
+      - "1: right-rear horizontal"
+      - "2: left-front horizontal"
+      - "3: right-front horizontal"
+      - "4: front-left vertical"
+      - "5: front-right vertical"
+      - "6: rear-left vertical"
+      - "7: rear-right vertical"
+
+  matrix:
+    - [ 1,  1, 0, 0, 0, -1 ]   # thr0
+    - [ 1, -1, 0, 0, 0,  1 ]   # thr1
+    - [ 1, -1, 0, 0, 0, -1 ]   # thr2
+    - [ 1,  1, 0, 0, 0,  1 ]   # thr3
+    - [ 0,  0, 1,-1,-1,  0 ]   # thr4 (FL)
+    - [ 0,  0, 1, 1,-1,  0 ]   # thr5 (FR)
+    - [ 0,  0, 1,-1, 1,  0 ]   # thr6 (RL)
+    - [ 0,  0, 1, 1, 1,  0 ]   # thr7 (RR)

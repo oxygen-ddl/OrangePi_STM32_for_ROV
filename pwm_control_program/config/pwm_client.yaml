@@ -59,7 +59,9 @@ enable_reverse_protection: true
 # ============================================================
 # 4) Grouping policy (A/B)
 # ============================================================
-# Convention: logical 1–4 = horizontal thrusters, logical 5–8 = vertical thrusters
+# Group masks are in LOGICAL motor index space (P1..P8), not physical PWM channel numbers.
+# groupA: P1..P4 (horizontal), groupB: P5..P8 (vertical)
+
 groupA_mask: 0x0F           # CH1-4
 groupB_mask: 0xF0           # CH5-8
 group_mode: 1               # PWM_CTRL_GROUP_MODE_AB_ALTERNATE

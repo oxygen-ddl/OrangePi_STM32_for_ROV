@@ -460,6 +460,19 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_lo
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.s"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_trajectory.cpp -o CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.s
 
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/flags.make
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o: ../pwm_control_program/src/utils/config_loader_teleop_mixer.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build && /usr/lib/ccache/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_teleop_mixer.cpp
+
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.i"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_teleop_mixer.cpp > CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.i
+
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.s"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_teleop_mixer.cpp -o CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.s
+
 # Object files for target pwm_control_program
 pwm_control_program_OBJECTS = \
 "CMakeFiles/pwm_control_program.dir/src/main.cpp.o" \
@@ -492,7 +505,8 @@ pwm_control_program_OBJECTS = \
 "CMakeFiles/pwm_control_program.dir/src/utils/config_loader.cpp.o" \
 "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.o" \
 "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_alloc.cpp.o" \
-"CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o"
+"CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o" \
+"CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o"
 
 # External object files for target pwm_control_program
 pwm_control_program_EXTERNAL_OBJECTS =
@@ -528,6 +542,7 @@ bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_progra
 bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.o
 bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_alloc.cpp.o
 bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o
+bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o
 bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make
 bin/pwm_control_program: /usr/lib/x86_64-linux-gnu/libyaml-cpp.so.0.6.2
 bin/pwm_control_program: lib/libproto_gcs.a
@@ -537,7 +552,7 @@ bin/pwm_control_program: /usr/lib/x86_64-linux-gnu/librt.so
 bin/pwm_control_program: lib/libproto_gcs.a
 bin/pwm_control_program: /usr/lib/x86_64-linux-gnu/librt.so
 bin/pwm_control_program: pwm_control_program_build/CMakeFiles/pwm_control_program.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Linking CXX executable ../bin/pwm_control_program"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Linking CXX executable ../bin/pwm_control_program"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pwm_control_program.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

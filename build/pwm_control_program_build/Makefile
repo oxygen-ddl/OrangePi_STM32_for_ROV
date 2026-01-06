@@ -935,6 +935,33 @@ src/utils/config_loader_pwm_client.cpp.s:
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.s
 .PHONY : src/utils/config_loader_pwm_client.cpp.s
 
+src/utils/config_loader_teleop_mixer.o: src/utils/config_loader_teleop_mixer.cpp.o
+
+.PHONY : src/utils/config_loader_teleop_mixer.o
+
+# target to build an object file
+src/utils/config_loader_teleop_mixer.cpp.o:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o
+.PHONY : src/utils/config_loader_teleop_mixer.cpp.o
+
+src/utils/config_loader_teleop_mixer.i: src/utils/config_loader_teleop_mixer.cpp.i
+
+.PHONY : src/utils/config_loader_teleop_mixer.i
+
+# target to preprocess a source file
+src/utils/config_loader_teleop_mixer.cpp.i:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.i
+.PHONY : src/utils/config_loader_teleop_mixer.cpp.i
+
+src/utils/config_loader_teleop_mixer.s: src/utils/config_loader_teleop_mixer.cpp.s
+
+.PHONY : src/utils/config_loader_teleop_mixer.s
+
+# target to generate assembly for a file
+src/utils/config_loader_teleop_mixer.cpp.s:
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.s
+.PHONY : src/utils/config_loader_teleop_mixer.cpp.s
+
 src/utils/config_loader_trajectory.o: src/utils/config_loader_trajectory.cpp.o
 
 .PHONY : src/utils/config_loader_trajectory.o
@@ -1061,6 +1088,9 @@ help:
 	@echo "... src/utils/config_loader_pwm_client.o"
 	@echo "... src/utils/config_loader_pwm_client.i"
 	@echo "... src/utils/config_loader_pwm_client.s"
+	@echo "... src/utils/config_loader_teleop_mixer.o"
+	@echo "... src/utils/config_loader_teleop_mixer.i"
+	@echo "... src/utils/config_loader_teleop_mixer.s"
 	@echo "... src/utils/config_loader_trajectory.o"
 	@echo "... src/utils/config_loader_trajectory.i"
 	@echo "... src/utils/config_loader_trajectory.s"

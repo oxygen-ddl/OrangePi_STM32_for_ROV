@@ -34,6 +34,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_alloc.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_alloc.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_pwm_client.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.o"
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_teleop_mixer.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/utils/config_loader_trajectory.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")

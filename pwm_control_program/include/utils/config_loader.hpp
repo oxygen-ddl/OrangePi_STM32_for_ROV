@@ -1,6 +1,7 @@
 // pwm_control_program/include/utils/config_loader.hpp
 #pragma once
 
+#include <array>        // <<< NEW: teleop mixer 需要 std::array
 #include <filesystem>
 #include <initializer_list>
 #include <iosfwd>
@@ -10,7 +11,6 @@
 
 namespace rovctrl {
 
-
 namespace control_core {
     // 在 control_core/thruster_allocation.hpp 中定义
     struct ThrusterAllocationConfig;
@@ -18,7 +18,25 @@ namespace control_core {
     // 预留：轨迹配置结构体，暂时只做前向声明
     // 你可以在将来的 trajectory_config.hpp 中给出完整定义
     struct TrajectoryConfig;
-}
+
+    /**
+     * @brief Teleop 混合器配置：6DOF → 8 推进器
+     *
+     * 典型使用场景：
+     *   - 键盘 / GCS 遥控直接输出 6DOF “归一化 wrench” 指令；
+     *   - 本结构体给出将 [surge, sway, heave, roll, pitch, yaw]
+     *     混合到 8 路逻辑推进器指令的线性关系。
+     *
+     * 设计约定：
+     *   - DOF 列顺序固定为： [surge, sway, heave, roll, pitch, yaw]
+     *   - matrix[thruster][dof]，即第 i 行是第 i 个推进器对 6DOF 的响应系数；
+     *   - output_limit_abs 是对混合结果的统一限幅（归一化指令范围）；
+     *   - gains 是对输入 DOF 的一阶缩放，便于现场调敏感度；
+     *   - input_deadzone 用于抑制小抖动（例如键盘重复、漂移等）。
+     */
+    struct TeleopMixerConfig;
+
+} // namespace control_core
 
 } // namespace rovctrl
 
@@ -119,6 +137,23 @@ bool resolve_alloc_config_path(const std::string& cli_opt,
                                std::ostream&      log);
 
 /**
+ * 专门针对 teleop_mixer.yaml（键盘 6DOF → 8 推进器混合矩阵）的路径解析。
+ *
+ * 约定：
+ *   - 命令行参数：--teleop-mixer-config <path>  → 传入 cli_opt
+ *   - 环境变量： ROV_TELEOP_MIXER_CONFIG
+ *   - 相对 exe_dir 的候选路径：
+ *        1) exe_dir / "config/teleop_mixer.yaml"
+ *        2) exe_dir / "../../pwm_control_program/config/teleop_mixer.yaml"
+ *
+ * 注意：这里只负责“定位文件路径”，不解析 YAML。
+ */
+bool resolve_teleop_mixer_config_path(const std::string& cli_opt,   // <<< NEW
+                                      const char*        argv0,
+                                      fs::path&          out_path,
+                                      std::ostream&      log);
+
+/**
  * 从 pwm_client.yaml 加载底层通信 / 安全层配置。
  *
  * 参数：
@@ -142,7 +177,7 @@ bool load_pwm_client_config(const fs::path&                 path,
  *   version: 1
  *   thrusters:
  *     count: 8
- *     order: [P5, P6, ...]
+ *     order: [P1, P2, ...]
  *     allocation_matrix:
  *       rows: [Fx, Fy, Fz, Mx, My, Mz]
  *       data: [[...8...], ...]     # 6 行
@@ -182,5 +217,22 @@ bool load_thruster_allocation_config(
 bool load_trajectory_config(const fs::path&                 path,
                             rovctrl::control_core::TrajectoryConfig& cfg,
                             std::ostream&                   log);
+
+/**
+ * 从 teleop_mixer.yaml 加载键盘混合器配置（6DOF → 8 thrusters）。
+ * 
+ * 校验建议：
+ *   - matrix 必须为 8 行，每行 6 列；
+ *   - output_limit_abs > 0；
+ *   - gains 缺省字段按 1.0 回退；
+ *   - enable=false 时由调用方决定回退策略（例如禁用 teleop）。
+ *
+ * 返回值：
+ *   - true  : 加载成功
+ *   - false : 加载失败（调用方应决定是否退出或回退默认）
+ */
+bool load_teleop_mixer_config(const fs::path&                      path,   // <<< NEW
+                              rovctrl::control_core::TeleopMixerConfig& cfg,
+                              std::ostream&                        log);
 
 } // namespace rovctrl::utils

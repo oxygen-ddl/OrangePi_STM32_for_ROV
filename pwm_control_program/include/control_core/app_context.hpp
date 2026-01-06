@@ -38,6 +38,7 @@ struct AppBuildOptions {
     std::string control_config_cli;
     std::string traj_config_cli;
     std::string alloc_config_cli;
+    std::string teleop_mixer_config_cli; // NEW: --teleop-mixer-config
 
     // inputs
     bool enable_gcs    = true;

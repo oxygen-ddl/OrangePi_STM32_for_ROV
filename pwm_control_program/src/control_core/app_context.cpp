@@ -117,7 +117,7 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     AppBuildResult br{};
     out_ctx.stop_flag = stop_flag;
 
-    // 输入全关：保持旧逻辑一致
+    // ===================== 基础防御：输入源必须至少启用一个 =====================
     if (!opt.enable_gcs && !opt.enable_teleop) {
         br.ok       = false;
         br.err_code = 62;
@@ -127,22 +127,23 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
 
     // ===================== PWM config + PwmClient =====================
     fs::path pwm_cfg_path;
-    (void)rovctrl::utils::resolve_pwm_client_config_path(opt.pwm_config_cli, argv0, pwm_cfg_path, log);
+    (void)rovctrl::utils::resolve_pwm_client_config_path(
+        opt.pwm_config_cli, argv0, pwm_cfg_path, log);
 
     rovctrl::platform::PwmClientConfig pwm_cfg{};
     if (!pwm_cfg_path.empty()) {
         if (!rovctrl::utils::load_pwm_client_config(pwm_cfg_path, pwm_cfg, log)) {
-            log << "[WARN] load_pwm_client_config failed, fallback to defaults.\n";
+            log << "[PwmClient] [WARN] load_pwm_client_config failed, fallback to defaults.\n";
         }
     } else {
-        log << "[WARN] pwm_client.yaml not resolved, using defaults.\n";
+        log << "[PwmClient] [WARN] pwm_client.yaml not resolved, using defaults.\n";
     }
 
     // CLI override（保持旧行为）
-    if (opt.pwm_ctrl_hz > 0.0) pwm_cfg.ctrl_hz = static_cast<float>(opt.pwm_ctrl_hz);
+    if (opt.pwm_ctrl_hz > 0.0)  pwm_cfg.ctrl_hz      = static_cast<float>(opt.pwm_ctrl_hz);
     if (opt.max_step_pct > 0.0) pwm_cfg.max_step_pct = static_cast<float>(opt.max_step_pct);
 
-    // 方式2：显式启用 dummy backend（保持旧行为）
+    // 显式启用 dummy backend（保持旧行为）
     pwm_cfg.dummy_backend      = opt.pwm_dummy;
     pwm_cfg.dummy_print_frames = opt.pwm_dummy_print;
 
@@ -155,7 +156,8 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     if (!out_ctx.pwm_client.init(pwm_cfg)) {
         br.ok       = false;
         br.err_code = 12;
-        br.err_msg  = std::string("PwmClient init failed: ") + out_ctx.pwm_client.status().last_error_msg;
+        br.err_msg  = std::string("PwmClient init failed: ") +
+                      out_ctx.pwm_client.status().last_error_msg;
         out_ctx.shutdown(log, 1.0f);
         return br;
     }
@@ -163,14 +165,16 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     if (out_ctx.pwm_client.setAllMid() < 0) {
         br.ok       = false;
         br.err_code = 13;
-        br.err_msg  = std::string("setAllMid failed: ") + out_ctx.pwm_client.status().last_error_msg;
+        br.err_msg  = std::string("setAllMid failed: ") +
+                      out_ctx.pwm_client.status().last_error_msg;
         out_ctx.shutdown(log, 1.0f);
         return br;
     }
 
     // ===================== alloc.yaml -> thruster allocation =====================
     fs::path alloc_cfg_path;
-    (void)rovctrl::utils::resolve_alloc_config_path(opt.alloc_config_cli, argv0, alloc_cfg_path, log);
+    (void)rovctrl::utils::resolve_alloc_config_path(
+        opt.alloc_config_cli, argv0, alloc_cfg_path, log);
 
     ThrusterAllocationConfig alloc_cfg{};
     if (!load_alloc_yaml_compat(alloc_cfg_path, alloc_cfg, log)) {
@@ -188,7 +192,8 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     rovctrl::control_core::TrajectoryConfig   traj_cfg;
     bool traj_loaded = false;
 
-    if (rovctrl::utils::resolve_trajectory_config_path(opt.traj_config_cli, argv0, traj_cfg_path, log)) {
+    if (rovctrl::utils::resolve_trajectory_config_path(
+            opt.traj_config_cli, argv0, traj_cfg_path, log)) {
         if (!traj_cfg_path.empty() &&
             rovctrl::utils::load_trajectory_config(traj_cfg_path, traj_cfg, log)) {
             traj_tracking.set_trajectory(traj_cfg);
@@ -196,7 +201,7 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
         }
     }
     if (traj_loaded) {
-        log << "[INFO] trajectory loaded (currently NOT wired into ControlLoop).\n";
+        log << "[Traj] [INFO] trajectory loaded (currently NOT wired into ControlLoop).\n";
     }
 
     // ===================== Build InputProvider chain =====================
@@ -208,19 +213,12 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     }
 
     if (opt.enable_gcs) {
-        // NEW: shm-based GCS input (comm_gcs publishes into shm)
+        // shm-based GCS input (comm_gcs publishes into shm)
         rovctrl::io::input::GcsShmInputProvider::Config gcs_cfg{};
         gcs_cfg.enable    = true;
-
-        // Default shm name (as you requested): /rovctrl_gcs_intent_v1
-        // If you already have an opt field, replace this with opt.gcs_shm_name etc.
-        gcs_cfg.shm_name  = "/rovctrl_gcs_intent_v1";
-
-        // 0 => auto / use publisher size
-        gcs_cfg.shm_size  = 0;
-
-        // Allow pwm_control_program start before comm_gcs
-        gcs_cfg.lazy_init = true;
+        gcs_cfg.shm_name  = "/rovctrl_gcs_intent_v1";  // 约定的 shm 名
+        gcs_cfg.shm_size  = 0;                        // 0 => auto / use publisher size
+        gcs_cfg.lazy_init = true;                     // 允许 pwm_control_program 先启动
 
         gcs = std::make_shared<rovctrl::io::input::GcsShmInputProvider>(gcs_cfg);
     }
@@ -228,11 +226,10 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     if (teleop && gcs) {
         rovctrl::io::MultiInputProvider::Config mix_cfg{};
         mix_cfg.gcs_priority   = true;
-
-        // TTL: keep the prior behavior (still useful for Guard staleness judgement)
         mix_cfg.default_ttl_ms = clamp_u32_from_int(opt.gcs_ttl_ms, 200);
 
-        out_ctx.input = std::make_shared<rovctrl::io::MultiInputProvider>(teleop, gcs, mix_cfg);
+        out_ctx.input = std::make_shared<rovctrl::io::MultiInputProvider>(
+            teleop, gcs, mix_cfg);
     } else if (gcs) {
         out_ctx.input = gcs;
     } else {
@@ -242,21 +239,53 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     if (!out_ctx.input) {
         br.ok       = false;
         br.err_code = 62;
-            br.err_msg  = "Input provider not constructed.";
-            out_ctx.shutdown(log, 1.0f);
-            return br;
+        br.err_msg  = "Input provider not constructed.";
+        out_ctx.shutdown(log, 1.0f);
+        return br;
     }
-    // ===================== Manual controller + ControllerManager =====================
-    // 保持旧行为：init_manual_only + 手动模式
-    rovctrl::controllers::ManualControllerConfig mc_cfg{};
-    mc_cfg.surge_gain  = 1.0;
-    mc_cfg.sway_gain   = 1.0;
-    mc_cfg.heave_gain  = 1.0;
-    mc_cfg.yaw_gain    = 1.0;
-    mc_cfg.roll_gain   = 1.0;
-    mc_cfg.pitch_gain  = 1.0;
-    mc_cfg.max_cmd_abs = 1.0;
 
+    // ===================== teleop_mixer.yaml -> ManualController 配置 =====================
+    // 说明：
+    //   - Manual 模式现在通过 TeleopMixerConfig 做 6DOF→8Thrusters 映射；
+    //   - 若 teleop_mixer.yaml 缺失或加载失败，为防止“有输入却没输出”，这里视为致命错误。
+    fs::path teleop_mixer_cfg_path;
+    if (!rovctrl::utils::resolve_teleop_mixer_config_path(
+            opt.teleop_mixer_config_cli,  // 需要你在 AppBuildOptions 中增加该字段
+            argv0,
+            teleop_mixer_cfg_path,
+            log)) {
+        br.ok       = false;
+        br.err_code = 63;
+        br.err_msg  = "teleop_mixer.yaml not found (resolve_teleop_mixer_config_path failed).";
+        out_ctx.shutdown(log, 1.0f);
+        return br;
+    }
+
+
+    rovctrl::controllers::ManualControllerConfig mc_cfg{};
+    mc_cfg.max_cmd_abs = 1.0;  // 总体限幅，可与 TeleopMixerConfig.output_limit_abs 配合使用
+    if (!teleop_mixer_cfg_path.empty()) {
+        if (!rovctrl::utils::load_teleop_mixer_config(
+                teleop_mixer_cfg_path, mc_cfg.teleop_mixer_cfg, log)) {
+            log << "[TeleopMix] [ERR] teleop_mixer.yaml load failed, use default mixer.\n";
+            // 不再把 br.ok 置 false，直接 fall-through，用默认 cfg
+        }
+    } else {
+        log << "[TeleopMix] [WARN] teleop_mixer.yaml not resolved, use default mixer.\n";
+    }
+
+    if (!rovctrl::utils::load_teleop_mixer_config(
+            teleop_mixer_cfg_path, mc_cfg.teleop_mixer_cfg, log)) {
+        br.ok       = false;
+        br.err_code = 63;
+        br.err_msg  = "load_teleop_mixer_config failed.";
+        out_ctx.shutdown(log, 1.0f);
+        return br;
+    }
+
+    log << "[TeleopMixer] loaded and attached to ManualController.\n";
+
+    // ===================== Manual controller + ControllerManager =====================
     rovctrl::control_core::ControllerManagerOptions cm_opt{};
     cm_opt.default_auto_controller = "pid";
     cm_opt.failsafe_zero_output    = true;
@@ -266,7 +295,8 @@ AppBuildResult build_app_context(const AppBuildOptions& opt,
     out_ctx.ctrl_mgr = ControllerManager(cm_opt);
 
     auto manual_ctrl =
-        rovctrl::control_core::ControllerManager::make_controller<rovctrl::controllers::ManualController>(mc_cfg);
+        rovctrl::control_core::ControllerManager::make_controller<
+            rovctrl::controllers::ManualController>(mc_cfg);
 
     if (!out_ctx.ctrl_mgr.init_manual_only(std::move(manual_ctrl))) {
         br.ok       = false;

@@ -4,92 +4,91 @@
 
 #include <array>
 #include <cstddef>
-#include <algorithm>
+#include <cmath>
 
 namespace rovctrl::control_core {
 
-/**
- * @brief 手动遥控 6DOF → 8 推进器指令的混合配置
- *
- * 含义：
- *   - surge/sway/heave/yaw/roll/pitch_gain：对 ref.dof_cmd 的每个分量施加的增益；
- *   - max_cmd_abs：所有通道统一的绝对值上限（类似 ManualControllerConfig.max_cmd_abs）。
- */
-struct TeleopMixConfig {
-    double surge_gain  = 1.0;
-    double sway_gain   = 1.0;
-    double heave_gain  = 1.0;
-    double yaw_gain    = 1.0;
-    double roll_gain   = 1.0;
-    double pitch_gain  = 1.0;
-    double max_cmd_abs = 1.0;
+struct TeleopMixerConfig {
+    static constexpr std::size_t kNumDof        = 6;  // surge,sway,heave,roll,pitch,yaw
+    static constexpr std::size_t kNumThrusters  = 8;  // 8 推进器
+
+    bool   enable           = true;
+    float  input_deadzone   = 0.05f;
+    float  output_limit_abs = 1.0f;
+
+    // mix_matrix[thruster][dof]
+    std::array<std::array<float, kNumDof>, kNumThrusters> mix_matrix{};
+
+    TeleopMixerConfig()
+    {
+        // 对应你原来的硬编码逻辑：
+        // DOF 顺序: [surge, sway, heave, roll, pitch, yaw]
+
+        // 水平推进器 0–3：surge / sway / yaw
+        // 0: 左后, 1: 右后, 2: 左前, 3: 右前
+        mix_matrix[0] = { 1.f,  1.f, 0.f,  0.f,  0.f, -1.f}; // THR0
+        mix_matrix[1] = { 1.f, -1.f, 0.f,  0.f,  0.f,  1.f}; // THR1
+        mix_matrix[2] = { 1.f, -1.f, 0.f,  0.f,  0.f, -1.f}; // THR2
+        mix_matrix[3] = { 1.f,  1.f, 0.f,  0.f,  0.f,  1.f}; // THR3
+
+        // 垂向推进器 4–7：heave / roll / pitch
+        // 4: 前左 FL, 5: 前右 FR, 6: 后左 RL, 7: 后右 RR
+        mix_matrix[4] = { 0.f, 0.f,  1.f, -1.f, -1.f, 0.f}; // FL
+        mix_matrix[5] = { 0.f, 0.f,  1.f,  1.f, -1.f, 0.f}; // FR
+        mix_matrix[6] = { 0.f, 0.f,  1.f, -1.f,  1.f, 0.f}; // RL
+        mix_matrix[7] = { 0.f, 0.f,  1.f,  1.f,  1.f, 0.f}; // RR
+    }
 };
 
 /**
- * @brief 6DOF 遥控指令混合为 8 路推进器命令（与 ManualController 拓扑保持一致）
+ * @brief 将 6-DOF wrench 映射到 8 路推进器（线性混合）
  *
- * 要求 TeleopCmd 类型具有成员：
- *   - surge, sway, heave, roll, pitch, yaw （float/double 皆可）
- *
- * @tparam TeleopCmd  包含 6DOF 字段的类型（如 ControlReference::dof_cmd）
- * @param cfg         混合增益与限幅配置
- * @param cmd         6DOF 遥控指令（通常 ∈ [-1,1]）
- * @param thr_out     输出：8 路归一化推进器指令（会被本函数完全写满）
+ * @param cfg     TeleopMixerConfig（通常由默认值 + YAML 覆盖而来）
+ * @param u_dof   [6] = [surge, sway, heave, roll, pitch, yaw]
+ * @param thr_out [8] 推进器归一化输出 [-1,1]
  */
-template <typename TeleopCmd>
-inline void mix_6dof_to_8thrusters(const TeleopMixConfig&      cfg,
-                                   const TeleopCmd&            cmd,
-                                   std::array<float, 8>&       thr_out) noexcept
+inline void mix_6dof_to_8thrusters(
+    const TeleopMixerConfig&                                           cfg,
+    const std::array<double, TeleopMixerConfig::kNumDof>&              u_dof,
+    std::array<float, TeleopMixerConfig::kNumThrusters>&               thr_out) noexcept
 {
-    const double surge = static_cast<double>(cmd.surge) * cfg.surge_gain;
-    const double sway  = static_cast<double>(cmd.sway)  * cfg.sway_gain;
-    const double heave = static_cast<double>(cmd.heave) * cfg.heave_gain;
-    const double yaw   = static_cast<double>(cmd.yaw)   * cfg.yaw_gain;
-    const double roll  = static_cast<double>(cmd.roll)  * cfg.roll_gain;
-    const double pitch = static_cast<double>(cmd.pitch) * cfg.pitch_gain;
-
     thr_out.fill(0.0f);
 
-    // 水平推进器 0–3：surge / sway / yaw 合成
-    //
-    // 约定（俯视，机体朝上）：
-    //   0: 左后, 1: 右后, 2: 左前, 3: 右前
+    if (!cfg.enable) {
+        return; // mixer 关掉，直接输出 0 → PWM 归中
+    }
 
-    // 1) surge：4 个水平推进器同向
-    thr_out[0] += static_cast<float>(surge);
-    thr_out[1] += static_cast<float>(surge);
-    thr_out[2] += static_cast<float>(surge);
-    thr_out[3] += static_cast<float>(surge);
+    // 1) 输入做死区 + 限幅
+    std::array<double, TeleopMixerConfig::kNumDof> u{};
+    for (std::size_t j = 0; j < TeleopMixerConfig::kNumDof; ++j) {
+        double v = u_dof[j];
+        if (!std::isfinite(v)) {
+            v = 0.0;
+        }
+        if (std::fabs(v) < cfg.input_deadzone) {
+            v = 0.0;
+        }
+        const double lim = (cfg.output_limit_abs > 0.0f)
+                               ? static_cast<double>(cfg.output_limit_abs)
+                               : 1.0;
+        if (v >  lim) v =  lim;
+        if (v < -lim) v = -lim;
+        u[j] = v;
+    }
 
-    // 2) sway：左右差动
-    thr_out[0] += static_cast<float>(sway);
-    thr_out[1] += static_cast<float>(-sway);
-    thr_out[2] += static_cast<float>(-sway);
-    thr_out[3] += static_cast<float>(sway);
+    // 2) 矩阵乘：thr = mix_matrix * u
+    const double lim = (cfg.output_limit_abs > 0.0f)
+                           ? static_cast<double>(cfg.output_limit_abs)
+                           : 1.0;
 
-    // 3) yaw：左右反向产生偏航力矩
-    thr_out[0] += static_cast<float>(-yaw);
-    thr_out[1] += static_cast<float>(+yaw);
-    thr_out[2] += static_cast<float>(-yaw);
-    thr_out[3] += static_cast<float>(+yaw);
-
-    // 垂向推进器 4–7：heave / roll / pitch 合成
-    //
-    // 约定（俯视）：
-    //   4: 前左 FL, 5: 前右 FR, 6: 后左 RL, 7: 后右 RR
-    //
-    // heave：整体上下；roll：左右差动；pitch：前后差动。
-    thr_out[4] += static_cast<float>(heave - roll - pitch); // FL
-    thr_out[5] += static_cast<float>(heave + roll - pitch); // FR
-    thr_out[6] += static_cast<float>(heave - roll + pitch); // RL
-    thr_out[7] += static_cast<float>(heave + roll + pitch); // RR
-
-    // 统一限幅
-    const double limit = (cfg.max_cmd_abs > 0.0) ? cfg.max_cmd_abs : 1.0;
-    for (auto& v : thr_out) {
-        double dv = static_cast<double>(v);
-        dv = std::max(-limit, std::min(limit, dv));
-        v  = static_cast<float>(dv);
+    for (std::size_t i = 0; i < TeleopMixerConfig::kNumThrusters; ++i) {
+        double sum = 0.0;
+        for (std::size_t j = 0; j < TeleopMixerConfig::kNumDof; ++j) {
+            sum += static_cast<double>(cfg.mix_matrix[i][j]) * u[j];
+        }
+        if (sum >  lim) sum =  lim;
+        if (sum < -lim) sum = -lim;
+        thr_out[i] = static_cast<float>(sum);
     }
 }
 

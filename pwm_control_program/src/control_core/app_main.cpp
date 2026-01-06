@@ -29,10 +29,12 @@ struct CmdArgs {
     double pwm_ctrl_hz  = 100.0;
     double max_step_pct = 0.2;
 
-    std::string pwm_config;
-    std::string control_config;
-    std::string traj_config;
-    std::string alloc_config;
+    // 配置文件 CLI 覆盖
+    std::string pwm_config;           // pwm_client.yaml
+    std::string control_config;       // 目前预留（control_params.yaml）
+    std::string traj_config;          // trajectory.yaml
+    std::string alloc_config;         // alloc.yaml
+    std::string teleop_mixer_config;  // NEW: teleop_mixer.yaml
 
     bool enable_gcs    = true;
     bool enable_teleop = true;
@@ -46,18 +48,29 @@ static void print_help()
 {
     std::cout
         << "Usage: pwm_control_program [options]\n"
-        << "  --loop-hz <Hz>           Control loop frequency (default 100)\n"
-        << "  --pwm-hz <Hz>            PWM safety layer frequency (default 100)\n"
-        << "  --max-step <pct>         Max duty step per cycle (default 0.2)\n"
-        << "  --config <file>          pwm_client.yaml path\n"
-        << "  --control-config <file>  control_params.yaml path\n"
-        << "  --alloc-config <file>    alloc.yaml path\n"
-        << "  --traj-config <file>     trajectory.yaml path (optional)\n"
-        << "  --no-gcs                 Disable GCS UDP input\n"
-        << "  --no-teleop              Disable keyboard teleop input\n"
-        << "  --pwm-dummy              Use dummy PWM backend (no STM32 required)\n"
-        << "  --pwm-dummy-print        Print dummy PWM frames/state (debug)\n"
-        << "  -h, --help               Show this help\n";
+        << "\n"
+        << "  Frequency & PWM safety:\n"
+        << "    --loop-hz <Hz>              Control loop frequency (default 100)\n"
+        << "    --pwm-hz <Hz>               PWM safety layer frequency (default 100)\n"
+        << "    --max-step <pct>            Max duty step per cycle (default 0.2)\n"
+        << "\n"
+        << "  Config files:\n"
+        << "    --config <file>             pwm_client.yaml path\n"
+        << "    --alloc-config <file>       alloc.yaml path\n"
+        << "    --traj-config <file>        trajectory.yaml path (optional)\n"
+        << "    --control-config <file>     control_params.yaml path (reserved; not yet used)\n"
+        << "    --teleop-mixer-config <file> teleop_mixer.yaml path (6DOF->8Thr mapping)\n"
+        << "\n"
+        << "  Input sources:\n"
+        << "    --no-gcs                    Disable GCS shared-memory input\n"
+        << "    --no-teleop                 Disable keyboard teleop input\n"
+        << "\n"
+        << "  PWM backend:\n"
+        << "    --pwm-dummy                 Use dummy PWM backend (no STM32 required)\n"
+        << "    --pwm-dummy-print           Print dummy PWM frames/state (debug)\n"
+        << "\n"
+        << "  Misc:\n"
+        << "    -h, --help                  Show this help\n";
 }
 
 static CmdArgs parse_args(int argc, char** argv)
@@ -81,6 +94,8 @@ static CmdArgs parse_args(int argc, char** argv)
             if (const char* v = need_value("--pwm-hz")) args.pwm_ctrl_hz = std::atof(v);
         } else if (a == "--max-step") {
             if (const char* v = need_value("--max-step")) args.max_step_pct = std::atof(v);
+
+        // 配置文件 CLI
         } else if (a == "--config") {
             if (const char* v = need_value("--config")) args.pwm_config = v;
         } else if (a == "--control-config") {
@@ -89,12 +104,16 @@ static CmdArgs parse_args(int argc, char** argv)
             if (const char* v = need_value("--traj-config")) args.traj_config = v;
         } else if (a == "--alloc-config") {
             if (const char* v = need_value("--alloc-config")) args.alloc_config = v;
+        } else if (a == "--teleop-mixer-config") {           // NEW: teleop mixer 配置
+            if (const char* v = need_value("--teleop-mixer-config")) args.teleop_mixer_config = v;
 
+        // 输入源开关
         } else if (a == "--no-gcs") {
             args.enable_gcs = false;
         } else if (a == "--no-teleop") {
             args.enable_teleop = false;
 
+        // PWM backend
         } else if (a == "--pwm-dummy") {
             args.pwm_dummy = true;
         } else if (a == "--pwm-dummy-print") {
@@ -113,7 +132,9 @@ static CmdArgs parse_args(int argc, char** argv)
 // RAII：确保退出时一定 shutdown（包含 emergencyStop + pwm_client.shutdown）
 class AppShutdownGuard {
 public:
-    AppShutdownGuard(rovctrl::control_core::AppContext& ctx, std::ostream& log, float estop_seconds)
+    AppShutdownGuard(rovctrl::control_core::AppContext& ctx,
+                     std::ostream&                      log,
+                     float                              estop_seconds)
         : ctx_(ctx), log_(log), estop_seconds_(estop_seconds) {}
 
     ~AppShutdownGuard()
@@ -126,7 +147,7 @@ public:
         }
     }
 
-    AppShutdownGuard(const AppShutdownGuard&) = delete;
+    AppShutdownGuard(const AppShutdownGuard&)            = delete;
     AppShutdownGuard& operator=(const AppShutdownGuard&) = delete;
 
 private:
@@ -154,11 +175,15 @@ int app_main(int argc, char** argv)
               << "       loop_hz=" << args.loop_hz
               << ", pwm_ctrl_hz=" << args.pwm_ctrl_hz
               << ", max_step_pct=" << args.max_step_pct
-              << ", pwm_config_cli=" << (args.pwm_config.empty() ? "<none>" : args.pwm_config)
+              << "\n"
+              << "       pwm_config_cli=" << (args.pwm_config.empty() ? "<none>" : args.pwm_config)
+              << ", alloc_config_cli=" << (args.alloc_config.empty() ? "<none>" : args.alloc_config)
               << ", traj_config_cli=" << (args.traj_config.empty() ? "<none>" : args.traj_config)
               << ", control_config_cli=" << (args.control_config.empty() ? "<none>" : args.control_config)
-              << ", alloc_config_cli=" << (args.alloc_config.empty() ? "<none>" : args.alloc_config)
-              << ", enable_gcs=" << (args.enable_gcs ? "1" : "0")
+              << ", teleop_mixer_config_cli="
+              << (args.teleop_mixer_config.empty() ? "<none>" : args.teleop_mixer_config)
+              << "\n"
+              << "       enable_gcs=" << (args.enable_gcs ? "1" : "0")
               << ", enable_teleop=" << (args.enable_teleop ? "1" : "0")
               << ", pwm_dummy=" << (args.pwm_dummy ? "1" : "0")
               << ", pwm_dummy_print=" << (args.pwm_dummy_print ? "1" : "0")
@@ -166,27 +191,29 @@ int app_main(int argc, char** argv)
 
     // ---------- Build context ----------
     AppBuildOptions opt{};
-    opt.loop_hz            = args.loop_hz;
-    opt.pwm_ctrl_hz        = args.pwm_ctrl_hz;
-    opt.max_step_pct       = args.max_step_pct;
+    opt.loop_hz      = args.loop_hz;
+    opt.pwm_ctrl_hz  = args.pwm_ctrl_hz;
+    opt.max_step_pct = args.max_step_pct;
 
     opt.pwm_config_cli     = args.pwm_config;
-    opt.control_config_cli = args.control_config;
+    opt.control_config_cli = args.control_config;    // 当前预留（后续可在 build_app_context 中使用）
     opt.traj_config_cli    = args.traj_config;
     opt.alloc_config_cli   = args.alloc_config;
 
-    opt.enable_gcs         = args.enable_gcs;
-    opt.enable_teleop      = args.enable_teleop;
+    opt.teleop_mixer_config_cli = args.teleop_mixer_config;  // NEW: 传入 teleop_mixer.yaml
 
-    opt.pwm_dummy          = args.pwm_dummy;
-    opt.pwm_dummy_print    = args.pwm_dummy_print;
+    opt.enable_gcs    = args.enable_gcs;
+    opt.enable_teleop = args.enable_teleop;
+
+    opt.pwm_dummy       = args.pwm_dummy;
+    opt.pwm_dummy_print = args.pwm_dummy_print;
 
     AppContext ctx;
     const auto br = build_app_context(opt, argv[0], &g_stop_flag, ctx, std::cerr);
     if (!br.ok) {
         std::cerr << "[ERR] build_app_context failed: " << br.err_msg
                   << " (err_code=" << br.err_code << ")\n";
-        // 即使 build 失败，也尽量做停机（你的 shutdown 已经做“尽量做”）
+        // 即使 build 失败，也尽量做停机（shutdown 自身是“尽量做”）
         ctx.shutdown(std::cerr, 1.0f);
         return br.err_code;
     }
@@ -195,27 +222,14 @@ int app_main(int argc, char** argv)
     AppShutdownGuard shutdown_guard(ctx, std::cerr, 1.0f);
 
     // ---------- 强制默认遥控模式 ----------
-    // 你希望“默认遥控模式，其他模式手动切换”——最稳妥的做法：
-    // - app 启动后直接把 ControllerManager 切到 Manual
-    // - 这样即使配置里写错，默认仍是 manual
-    //
-    // 如果你不想强制，改成：只有当当前 mode 是 Unknown/None 时才 set。
+    // 这里的 set_mode 在 build_app_context 之后调用，
+    // 确保即使配置/后续扩展了自动模式，启动时仍默认 Manual。
     try {
         (void)ctx.ctrl_mgr.set_mode(ControlMode::kManual);
     } catch (...) {
-        // 若 set_mode 不抛异常，可删掉 try/catch
+        // 若 set_mode 不抛异常，可以去掉 try/catch
     }
 
-    // ---------- 可选：遥控模式下不要求导航 ----------
-    // 更合理的实现位置在 ControlLoop::run() 中：当 effective_mode==kManual 时，
-    // 直接不检查 nav_missing、也不打印 warning。
-    //
-    // 如果你们 loop_cfg 有类似字段，这里可以做兜底覆盖（否则删掉此块）。
-    //
-    // ctx.loop_cfg.allow_run_without_nav = true;
-    // ctx.loop_cfg.suppress_nav_warn_in_manual = true;
-
-    // ---------- Run loop ----------
     int rc = 0;
     try {
         ControlLoop loop(
@@ -228,18 +242,6 @@ int app_main(int argc, char** argv)
 
         rc = loop.run();
 
-        // 关键：如果 loop 因为 teleop ESC 退出，teleop_input 已经 disable raw mode；
-        // 这里仍可以额外做一次“温和 reset”，确保终端已恢复。
-        //
-        // 注意：InputProviderPtr 的真实类型你们可能是多态接口，未必有 reset()。
-        // 若你们有统一 reset() 接口，就调用；否则删掉这一段。
-        if (ctx.input) {
-            try {
-                ctx.input->reset(); // 如果接口不存在，删掉
-            } catch (...) {
-            }
-        }
-
     } catch (const std::exception& e) {
         std::cerr << "[ERR] Exception in ControlLoop::run(): " << e.what() << "\n";
         rc = static_cast<int>(AppError::ControlLoopException);
@@ -248,7 +250,6 @@ int app_main(int argc, char** argv)
         rc = static_cast<int>(AppError::ControlLoopException);
     }
 
-    // shutdown_guard 会在函数结束时执行 ctx.shutdown()
     std::cout << "[INFO] ControlLoop exited with rc=" << rc << "\n";
     std::cout << "[INFO] program exit.\n";
     return rc;

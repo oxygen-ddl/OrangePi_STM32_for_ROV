@@ -31,6 +31,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_alloc.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_pwm_client.cpp.o"
+  "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_teleop_mixer.cpp.o"
   "CMakeFiles/pwm_control_program.dir/src/utils/config_loader_trajectory.cpp.o"
 )
 

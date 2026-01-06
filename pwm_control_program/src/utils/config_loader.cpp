@@ -126,5 +126,16 @@ bool resolve_alloc_config_path(const std::string& cli_opt,
                                 "../../pwm_control_program/config/alloc.yaml"},
                                out_path, log);
 }
+// 新增：teleop_mixer.yaml 的路径解析
+bool resolve_teleop_mixer_config_path(const std::string& cli_opt,
+                                      const char*        argv0,
+                                      fs::path&          out_path,
+                                      std::ostream&      log)
+{
+    return resolve_config_path(cli_opt, argv0, "ROV_TELEOP_MIXER_CONFIG",
+                               {"config/teleop_mixer.yaml",
+                                "../../pwm_control_program/config/teleop_mixer.yaml"},
+                               out_path, log);
+}
 
 } // namespace rovctrl::utils

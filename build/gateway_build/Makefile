@@ -141,21 +141,6 @@ nav_view_dump/fast:
 .PHONY : nav_view_dump/fast
 
 # Convenience name for target.
-gateway_build/CMakeFiles/gcs_client.dir/rule:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/gcs_client.dir/rule
-.PHONY : gateway_build/CMakeFiles/gcs_client.dir/rule
-
-# Convenience name for target.
-gcs_client: gateway_build/CMakeFiles/gcs_client.dir/rule
-
-.PHONY : gcs_client
-
-# fast build rule for target.
-gcs_client/fast:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/build
-.PHONY : gcs_client/fast
-
-# Convenience name for target.
 gateway_build/CMakeFiles/intent_dump.dir/rule:
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f CMakeFiles/Makefile2 gateway_build/CMakeFiles/intent_dump.dir/rule
 .PHONY : gateway_build/CMakeFiles/intent_dump.dir/rule
@@ -236,7 +221,7 @@ apps/gcs_client.o: apps/gcs_client.cpp.o
 
 # target to build an object file
 apps/gcs_client.cpp.o:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.o
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.o
 .PHONY : apps/gcs_client.cpp.o
 
 apps/gcs_client.i: apps/gcs_client.cpp.i
@@ -245,7 +230,7 @@ apps/gcs_client.i: apps/gcs_client.cpp.i
 
 # target to preprocess a source file
 apps/gcs_client.cpp.i:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.i
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.i
 .PHONY : apps/gcs_client.cpp.i
 
 apps/gcs_client.s: apps/gcs_client.cpp.s
@@ -254,7 +239,7 @@ apps/gcs_client.s: apps/gcs_client.cpp.s
 
 # target to generate assembly for a file
 apps/gcs_client.cpp.s:
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.s
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build && $(MAKE) -f gateway_build/CMakeFiles/gcs_server.dir/build.make gateway_build/CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.s
 .PHONY : apps/gcs_client.cpp.s
 
 apps/gcs_server.o: apps/gcs_server.cpp.o
@@ -806,7 +791,6 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... intentd"
 	@echo "... nav_view_dump"
-	@echo "... gcs_client"
 	@echo "... intent_dump"
 	@echo "... gcs_server"
 	@echo "... edit_cache"

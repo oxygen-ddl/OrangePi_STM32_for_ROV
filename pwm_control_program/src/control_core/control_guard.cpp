@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iostream>   // <<< 新增
+#include <cstring>
+
 
 // 只在 cpp 里依赖 nav_state 的完整定义
 #include "shared/msg/nav_state.hpp"
@@ -157,80 +160,79 @@ bool ControlGuard::is_neutral_for_clear_(const ControlIntent& intent) const noex
 }
 
 GuardResult ControlGuard::step(std::uint64_t now_ns,
-                              const ControlState& /*state*/,
-                              const shared::msg::NavStateView* nav,   // <<< 改这里
-                              const ControlIntent& intent)
+                               const ControlState& /*state*/,
+                               const shared::msg::NavStateView* nav,
+                               const ControlIntent& intent)
 {
     GuardResult out{};
     out.last_intent_ns = last_intent_ns_;
 
-    // 1) 复制 raw intent
+    // 0) 先把原始 intent 拷贝一份作为“可修改的有效意图”
     out.effective_intent = intent;
-    const bool req_exit = intent.request_exit;
+    out.effective_mode   = mode_;
+    out.mode_changed     = false;
+    out.input_stale      = false;
+    out.estop_latched    = estop_latched_;
+    out.armed            = armed_;                 // 真正的值在 ARM 逻辑后统一更新
+    out.failsafe         = FailsafeAction::kNone;
 
-    // 2) 更新“输入新鲜度”状态
-    // - cmd_seq 变化：认为新输入，刷新 last_intent_ns_
-    // - 否则：不主动累加 age（由 is_intent_stale 基于时间戳判定）
+    const bool req_exit = (intent.request_exit != 0);
+
+    // 1) 更新“输入新鲜度”（基于 cmd_seq + stamp_ns）
     if (intent.cmd_seq != 0 && intent.cmd_seq != last_intent_cmd_seq_) {
         last_intent_cmd_seq_ = intent.cmd_seq;
         last_intent_ns_      = (intent.stamp_ns != 0) ? intent.stamp_ns : now_ns;
-        input_age_ms_        = 0; // 保留字段：可用于日志/调试
+        input_age_ms_        = 0;  // 目前仅用于调试
     }
 
-    // 3) stale 判定
+    // 2) stale 判定
     const bool stale = is_intent_stale(now_ns, intent);
-    out.input_stale = stale;
+    out.input_stale  = stale;
 
     if (stale) {
-        out.effective_intent.clear_payload();
-        out.effective_intent.request_exit = req_exit;
-        out.failsafe = FailsafeAction::kZeroOutput;
+        // TTL 过期：保留 request_exit 语义，其它字段后面由 failsafe 统一处理
+        out.effective_intent.request_exit = req_exit ? 1 : 0;
     }
 
-    // 4) 安全仲裁：E-STOP latch (S2: hold-to-clear)
-    // - estop=1  => 立即锁存
-    // - clear_estop=1 + 中立态持续 hold_ms => 才允许解除
+    // 3) E-STOP 锁存与解除（S2：按住中立一段时间才允许解除）
     {
-        const bool has_estop_level = (out.effective_intent.estop != 0);
-        const bool has_clear_req   = (out.effective_intent.clear_estop != 0);
+        auto& eff = out.effective_intent;
 
-        // (A) 任何时刻收到 estop=1：立即锁存，并重置“解除计时”
+        const bool has_estop_level = (eff.estop != 0);
+        const bool has_clear_req   = (eff.clear_estop != 0);
+
         if (has_estop_level) {
-            estop_latched_ = true;
+            // (A) 任何时刻收到 estop=1：立即锁存，并重置“解除计时”
+            estop_latched_       = true;
             clear_hold_start_ns_ = 0;
             clear_hold_ms_       = 0;
-        }
-        // (B) 只有在已锁存时，才考虑解除
-        else if (estop_latched_ && has_clear_req) {
-
-            // 必须“中立态”才允许开始计时
-            if (is_neutral_for_clear_(out.effective_intent)) {
-
-               if (clear_hold_start_ns_ == 0) {
+        } else if (estop_latched_ && has_clear_req) {
+            // (B) 只有在已锁存时，才考虑解除
+            if (is_neutral_for_clear_(eff)) {
+                if (clear_hold_start_ns_ == 0) {
                     clear_hold_start_ns_ = now_ns;
                     clear_hold_ms_       = 0;
                 } else if (now_ns >= clear_hold_start_ns_) {
-                    clear_hold_ms_ =
-                        static_cast<std::uint32_t>((now_ns - clear_hold_start_ns_) / 1000000ull);
+                    clear_hold_ms_ = static_cast<std::uint32_t>(
+                        (now_ns - clear_hold_start_ns_) / 1000000ull
+                    );
                 }
 
-                // 解除门槛：建议 1500~2000ms（你偏 S2，可取更保守一些）
                 const std::uint32_t hold_threshold_ms =
                     (cfg_.estop_clear_hold_ms > 0) ? cfg_.estop_clear_hold_ms : 2000;
 
                 if (clear_hold_ms_ >= hold_threshold_ms) {
-                    estop_latched_ = false;
+                    estop_latched_       = false;
                     clear_hold_start_ns_ = 0;
                     clear_hold_ms_       = 0;
                 }
             } else {
-                // 不满足中立态：解除计时复位（防误解锁）
+                // 不在中立态：重置计时，防误解锁
                 clear_hold_start_ns_ = 0;
                 clear_hold_ms_       = 0;
             }
-        }
-        // (C) 没有 clear 请求 或 未锁存：保持/清零计时
-        else {
+        } else {
+            // (C) 没有 clear 请求或未锁存：计时清零
             clear_hold_start_ns_ = 0;
             clear_hold_ms_       = 0;
         }
@@ -238,51 +240,168 @@ GuardResult ControlGuard::step(std::uint64_t now_ns,
         out.estop_latched = estop_latched_;
     }
 
-    // 5) Arm/Disarm
-    if (out.effective_intent.has_arm_cmd) {
-        if (out.effective_intent.disarm) {
+    // 4) 处理 ARM / DISARM（解锁 / 上锁）
+    //
+    // 说明：
+    //  - 只依赖 effective_intent（经过 TTL / failsafe 基础清洗后的意图）；
+    //  - 有急停锁存时强制上锁，ARM 请求在急停期间无效；
+    //  - 一帧中若 arm 和 disarm 同时为真，则以 disarm 优先（保守策略）。
+    {
+        auto& eff = out.effective_intent;
+
+        const bool has_arm_cmd = eff.has_arm_cmd;   // 来自 core::ControlIntent
+        const bool prev_armed  = armed_;            // 用于检测状态是否变化
+
+        if (estop_latched_) {
+            // 急停锁存：无条件上锁
             armed_ = false;
-        } else if (out.effective_intent.arm) {
-            if (!estop_latched_) {
+        } else if (has_arm_cmd) {
+            const bool req_arm    = (eff.arm    != 0);
+            const bool req_disarm = (eff.disarm != 0);
+
+            // 调试：仅在这一帧确实带 ARM 命令时打印
+            std::cout << "[ControlGuard][ARM] has_arm_cmd=1"
+                      << " estop_latched=" << int(estop_latched_)
+                      << " req_arm="      << int(req_arm)
+                      << " req_disarm="   << int(req_disarm)
+                      << " prev_armed="   << int(prev_armed)
+                      << "\n";
+
+            if (req_disarm) {
+                // 优先 DISARM：一旦收到上锁请求，立即上锁
+                armed_ = false;
+            } else if (req_arm) {
+                // 当前无急停锁存的前提下，可以解锁
                 armed_ = true;
+            }
+            // 若 has_arm_cmd=1 但 arm/disarm 都为 0，则保持原状态不变
+        }
+
+        // 仅在状态真正变化时打印一条变更日志（避免刷屏）
+        if (armed_ != prev_armed) {
+            std::cout << "[ControlGuard][ARM] armed_ changed "
+                      << prev_armed << " -> " << armed_ << "\n";
+        }
+
+        // 内部状态同步到输出
+        out.armed = armed_;
+    }
+
+    // 5) 未解锁时禁止 DOF/Ref 输出（保留 exit / estop / mode 请求）
+    {
+        auto& eff = out.effective_intent;
+
+        if (!out.armed) {
+            if (eff.has_teleop_dof) {
+                eff.teleop_dof_cmd = rovctrl::control_core::DofCommand{};
+                eff.has_teleop_dof = false;
+            }
+
+            if (eff.has_ref) {
+                eff.has_ref = false;
+            }
+            if (eff.has_ref_delta) {
+                eff.has_ref_delta = false;
             }
         }
     }
 
-    out.armed = armed_ && !estop_latched_;
-
-    if (!out.armed) {
-        out.failsafe = estop_latched_ ? FailsafeAction::kEmergencyStop
-                                      : FailsafeAction::kZeroOutput;
-
-        // 失能时：丢弃所有控制 payload（保留 request_exit）
-        out.effective_intent.has_teleop_dof = false;
-        out.effective_intent.has_ref       = false;
-        out.effective_intent.has_ref_delta = false;
-    }
-
     // 6) 模式门控
-    // 说明：ControlMode::kNone 表示“无请求/不改变”，不应触发 mode_changed。
-    if (out.effective_intent.has_mode_request &&
-        out.effective_intent.mode_request != ControlMode::kNone) {
+    {
+        auto& eff = out.effective_intent;
 
-        ControlMode requested = out.effective_intent.mode_request;
+        if (eff.has_mode_request && eff.mode_request != ControlMode::kNone) {
+            ControlMode requested = eff.mode_request;
 
-        if (!nav_ok_for_mode(nav, requested)) {
-            requested = downgrade_mode(requested);
+            if (!nav_ok_for_mode(nav, requested)) {
+                requested = downgrade_mode(requested);
+            }
+
+            out.mode_changed = (requested != mode_);
+            mode_            = requested;
         }
 
-        out.mode_changed = (requested != mode_);
-        mode_ = requested;
+        out.effective_mode = mode_;
     }
 
-    out.effective_mode = mode_;
-
-    // 7) clamp payload
+    // 7) 数值限幅
     clamp_teleop(out.effective_intent);
     clamp_ref_delta(out.effective_intent);
 
+    // 8) failsafe 决策
+    FailsafeAction fs = FailsafeAction::kNone;
+
+    if (estop_latched_) {
+        fs = FailsafeAction::kEmergencyStop;   // 3：急停
+    } else if (stale) {
+        fs = FailsafeAction::kZeroOutput;      // 2：输入过期 → 零输出
+    } else if (!out.armed) {
+        // 未 ARM 时统一 ZeroOutput，确保推进器被拉回中立
+        fs = FailsafeAction::kZeroOutput;
+    }
+
+    out.failsafe = fs;
+
+    // 9) 调试输出：仅在关键状态变化时打印（armed / estop / mode / has_nav / failsafe）
+    std::uint32_t intent_age_ms = 0;
+    if (intent.stamp_ns != 0 && now_ns >= intent.stamp_ns) {
+        intent_age_ms = static_cast<std::uint32_t>(
+            (now_ns - intent.stamp_ns) / 1000000ull
+        );
+    }
+
+    const auto& eff = out.effective_intent;
+
+    // 仅关注“关键状态”：
+    //   - armed         : 是否解锁
+    //   - estop_latched : 急停是否锁存
+    //   - mode          : 当前控制模式
+    //   - has_nav       : 是否有导航数据
+    //   - failsafe      : 是否处于失效保护模式
+    struct GuardDebugSnapshot {
+        std::uint8_t armed;
+        std::uint8_t estop_latched;
+        std::uint8_t mode;
+        std::uint8_t has_nav;
+        std::uint8_t failsafe;
+    };
+
+    GuardDebugSnapshot cur{
+        static_cast<std::uint8_t>(out.armed ? 1 : 0),
+        static_cast<std::uint8_t>(out.estop_latched ? 1 : 0),
+        static_cast<std::uint8_t>(static_cast<int>(out.effective_mode)),
+        static_cast<std::uint8_t>(nav ? 1 : 0),
+        static_cast<std::uint8_t>(static_cast<int>(out.failsafe)),
+    };
+
+    static GuardDebugSnapshot s_last{};
+    static bool s_have_last = false;
+
+    const bool changed = !s_have_last ||
+                         std::memcmp(&cur, &s_last, sizeof(GuardDebugSnapshot)) != 0;
+
+    if (changed) {
+        std::cout << "[ControlGuard][STATE] "
+                  << "armed="            << int(out.armed)
+                  << " estop_latched="   << int(out.estop_latched)
+                  << " mode="            << static_cast<int>(out.effective_mode)
+                  << " has_nav="         << (nav ? 1 : 0)
+                  << " intent_has_dof="  << int(intent.has_teleop_dof)
+                  << " eff_has_dof="     << int(eff.has_teleop_dof)
+                  << " intent_ttl_ms="   << intent.ttl_ms
+                  << " intent_age_ms="   << intent_age_ms
+                  << " stale="           << int(stale)
+                  << " failsafe="        << static_cast<int>(out.failsafe)
+                  << "\n";
+
+        s_last      = cur;
+        s_have_last = true;
+    }
+
     return out;
+
 }
+
+
 
 } // namespace rovctrl::control_core

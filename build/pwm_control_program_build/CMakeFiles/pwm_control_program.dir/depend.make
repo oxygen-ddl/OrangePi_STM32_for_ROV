@@ -687,6 +687,7 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/lo
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/control_loop.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/teleop_mixer.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/control_core/thruster_allocation.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/controllers/controller_manager.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/control_core/loop/control_loop_helpers.cpp.o: ../pwm_control_program/include/io/input/input_provider.hpp
@@ -1790,6 +1791,7 @@ pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/con
 
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/include/control_core/control_mode.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/include/control_core/control_types.hpp
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/include/control_core/teleop_mixer.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/include/controllers/controller_base.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/include/controllers/manual_controller.hpp
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/src/controllers/manual_controller.cpp.o: ../pwm_control_program/src/controllers/manual_controller.cpp

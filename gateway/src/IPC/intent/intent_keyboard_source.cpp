@@ -89,6 +89,18 @@ bool IntentKeyboardSource::init(const Config& cfg)
 
     stats_ = Stats{};
     initialized_ = true;
+
+    // 关键信息：油门与 hold 超时配置，方便后面排障
+    std::cout << "[IntentKeyboardSource] init: enable=" << enabled_
+              << " throttle_range=[" << cfg_.throttle_min
+              << "," << cfg_.throttle_max
+              << "] step=" << cfg_.throttle_step
+              << " hold_timeout_ms=" << cfg_.hold_timeout_ms
+              << " ttl_ms=" << cfg_.ttl_ms
+              << " source_id=" << static_cast<unsigned>(cfg_.source_id)
+              << " source_prio=" << static_cast<unsigned>(cfg_.source_prio)
+              << "\n";
+
     return true;
 }
 
@@ -171,7 +183,7 @@ void IntentKeyboardSource::clear_pulses_() noexcept
     intent_.arm          = 0;
     intent_.disarm       = 0;
 
-    // mode_request：按“按键触发一次请求”的脉冲语义处理（你们当前设计就是这个）
+    // mode_request：按“按键触发一次请求”的脉冲语义处理
     intent_.mode_request = shared::msg::ControlMode::kNone;
 
     // flags 每 tick 由 update_flags_() 重算
@@ -184,13 +196,11 @@ inline void keep_only(std::uint64_t last[kNumDof], double dir[kNumDof], std::siz
     }
 }
 
-
 void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
-                                        std::uint64_t now_mono_ns) noexcept
+                                         std::uint64_t now_mono_ns) noexcept
 {
     using comm_gcs::ipc::keys::TeleopAction;
 
-    // 若你 mapper 实现不是这个函数名，把这一行替换为你实际接口即可：
     const TeleopAction a =
         comm_gcs::ipc::keys::map_key_event_to_action(ev, cfg_.mapper_cfg);
 
@@ -201,7 +211,8 @@ void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
         // -------- discrete commands (pulse fields) --------
         case TeleopAction::Exit:
             intent_.request_exit = 1;
-            intent_.estop        = 1;   // 关键：退出前先触发停机脉冲
+            intent_.estop        = 1;   // 退出前先触发停机脉冲
+            std::cerr << "[KeyboardIntent] Exit + EStop pulse\n";
             return;
 
         case TeleopAction::Help:
@@ -221,41 +232,46 @@ void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
         case TeleopAction::Center:
             zero_dirs(dir_);
             for (std::size_t i = 0; i < kNumDof; ++i) last_refresh_ns_[i] = 0;
+            std::cerr << "[KeyboardIntent] Center: all DOF zero\n";
             return;
 
         case TeleopAction::EStop:
-            intent_.estop = 1;
+            intent_.estop       = 1;
+            intent_.clear_estop = 0;
+            std::cerr << "[KeyboardIntent] EStop pulse\n";
             return;
 
         case TeleopAction::ClearEStop:
             intent_.clear_estop = 1;
+            intent_.estop       = 0;
+            std::cerr << "[KeyboardIntent] ClearEStop pulse\n";
             return;
 
         case TeleopAction::Arm:
             intent_.arm = 1;
+            std::cerr << "[KeyboardIntent] ARM pulse\n";
             return;
 
         case TeleopAction::Disarm:
             intent_.disarm = 1;
+            std::cerr << "[KeyboardIntent] DISARM pulse\n";
             return;
 
         case TeleopAction::ThrottleUp:
             throttle_cmd_ = clampd(throttle_cmd_ + static_cast<double>(cfg_.throttle_step),
                                    static_cast<double>(cfg_.throttle_min),
                                    static_cast<double>(cfg_.throttle_max));
+            std::cerr << "[KeyboardIntent] ThrottleUp -> " << throttle_cmd_ << "\n";
             return;
 
         case TeleopAction::ThrottleDown:
             throttle_cmd_ = clampd(throttle_cmd_ - static_cast<double>(cfg_.throttle_step),
                                    static_cast<double>(cfg_.throttle_min),
                                    static_cast<double>(cfg_.throttle_max));
+            std::cerr << "[KeyboardIntent] ThrottleDown -> " << throttle_cmd_ << "\n";
             return;
 
         // -------- single-motor test (discrete, pulse-to-executor) --------
-        // Semantics:
-        // - Key press triggers a motor test request.
-        // - Execution (2s hold + auto-center) is done by upper layer (arbiter/executor),
-        //   NOT by blocking the keyboard handler thread.
         case TeleopAction::MotorTest1:
         case TeleopAction::MotorTest2:
         case TeleopAction::MotorTest3:
@@ -264,11 +280,9 @@ void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
         case TeleopAction::MotorTest6:
         case TeleopAction::MotorTest7:
         case TeleopAction::MotorTest8: {
-            // Recommended: during motor test request, clear DOF refresh to keep the frame unambiguous.
             zero_dirs(dir_);
             for (std::size_t i = 0; i < kNumDof; ++i) last_refresh_ns_[i] = 0;
 
-            // Map action -> motor_id
             std::uint8_t motor_id = 0;
             switch (a) {
                 case TeleopAction::MotorTest1: motor_id = 1; break;
@@ -283,31 +297,35 @@ void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
             }
             if (motor_id == 0) return;
 
-            // Build MotorTest command:
-            intent_.motor_test.enable = 1;
-            intent_.motor_test.motor_id = motor_id;
-            intent_.motor_test.mode = 0;                 // 0=neutral+delta (recommended)
-            intent_.motor_test.value = 0.6f;             // default normalized thrust, tune later
-            intent_.motor_test.duration_ms = 2000;       // your requirement: 2s then auto stop/center
-            intent_.motor_test.cmd_id = ++motor_test_cmd_seq_; // add a member seq counter
+            intent_.motor_test.enable      = 1;
+            intent_.motor_test.motor_id    = motor_id;
+            intent_.motor_test.mode        = 0;      // 0 = neutral+delta
+            intent_.motor_test.value       = 0.6f;
+            intent_.motor_test.duration_ms = 2000;
+            intent_.motor_test.cmd_id      = ++motor_test_cmd_seq_;
 
-            intent_.flags |= shared::msg::kHasMotorTest;
+            std::cerr << "[KeyboardIntent] MotorTest request motor="
+                      << static_cast<int>(motor_id)
+                      << " value=" << intent_.motor_test.value
+                      << " dur_ms=" << intent_.motor_test.duration_ms
+                      << "\n";
+            // flags 统一由 update_flags_() 计算，这里不直接改 intent_.flags
             return;
         }
 
         case TeleopAction::MotorTestStop: {
-            // Stop request: upper layer should immediately center the motor(s) / exit test mode.
-            intent_.motor_test.enable = 0;
-            intent_.motor_test.motor_id = 0;
-            intent_.motor_test.mode = 0;
-            intent_.motor_test.value = 0.0f;
+            intent_.motor_test.enable      = 0;
+            intent_.motor_test.motor_id    = 0;
+            intent_.motor_test.mode        = 0;
+            intent_.motor_test.value       = 0.0f;
             intent_.motor_test.duration_ms = 0;
-            intent_.motor_test.cmd_id = ++motor_test_cmd_seq_;
+            intent_.motor_test.cmd_id      = ++motor_test_cmd_seq_;
 
-            intent_.flags |= shared::msg::kHasMotorTest;
+            std::cerr << "[KeyboardIntent] MotorTest STOP\n";
+            // flags 统一由 update_flags_() 计算
             return;
         }
- 
+
         // -------- continuous DOF (hold refresh) --------
         case TeleopAction::SurgePos:
             dir_[kSurge] = +1.0;
@@ -350,7 +368,7 @@ void IntentKeyboardSource::handle_event_(const shared::msg::KeyEvent& ev,
             last_refresh_ns_[kRoll] = now_mono_ns;
             zero_except(dir_, kRoll);   // legacy: roll clears other DOF
             return;
-            
+
         case TeleopAction::RollNeg:
             dir_[kRoll] = -1.0;
             last_refresh_ns_[kRoll] = now_mono_ns;
@@ -432,8 +450,12 @@ void IntentKeyboardSource::update_flags_() noexcept
         f |= kHasTeleopDof;
     }
 
+    // ----- MotorTest（state/pulse，由上层解释）-----
+    if (intent_.motor_test.enable != 0) {
+        f |= kHasMotorTest;
+    }
+
     intent_.flags = f;
 }
-
 
 } // namespace comm_gcs::ipc::intent

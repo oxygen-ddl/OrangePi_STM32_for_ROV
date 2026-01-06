@@ -4,10 +4,14 @@
  */
 
 #include "control_core/control_loop.hpp"
+#include "control_core/control_mode.hpp"  // 若本文件还没 include 这个，需要补上
+#include "control_core/teleop_mixer.hpp"
+
 
 #include <array>
 #include <cstdint>
 #include <cstddef>
+#include <iostream>  // ← 新增这一行
 
 // 兜底：若 ControllerManager 析构仍需完整类型
 //#include "controllers/controller_base.hpp"
@@ -77,11 +81,13 @@ void ControlLoop::apply_motor_test_override(
 
 bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
 {
+    // 1) 控制器直接给了 thruster_command：优先使用
     if (output_.has_thruster_command) {
         thr_out = output_.thruster_command;
         return true;
     }
 
+    // 2) 控制器给了 body_wrench：走分配矩阵
     if (output_.has_body_wrench) {
         std::array<double, 6> wrench{};
         for (std::size_t i = 0; i < 6; ++i) {
@@ -90,6 +96,7 @@ bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
 
         std::array<float, 8> thr{};
         if (!allocator_.allocate(wrench, thr)) {
+            std::cerr << "[ControlLoop][ALLOC] allocator_.allocate() failed.\n";
             return false;
         }
 
@@ -97,8 +104,45 @@ bool ControlLoop::build_thruster_command_(ThrusterArray& thr_out)
         return true;
     }
 
+    // 3) 遥控兜底：只要有 teleop DOF，就直接按 6DOF → 8 推进器混配
+    const auto mode = ctrl_mgr_.mode();
+    const auto& eff = guard_result_.effective_intent;
+
+    if (eff.has_teleop_dof) {
+        rovctrl::control_core::TeleopMixConfig mix_cfg{};
+        mix_cfg.surge_gain  = 1.0;
+        mix_cfg.sway_gain   = 1.0;
+        mix_cfg.heave_gain  = 1.0;
+        mix_cfg.yaw_gain    = 1.0;
+        mix_cfg.roll_gain   = 1.0;
+        mix_cfg.pitch_gain  = 1.0;
+        mix_cfg.max_cmd_abs = 1.0;
+
+        // 注意：这里用 ref_.dof_cmd（build_reference_from_guard_ 已经把 effective_intent 写进去）
+        rovctrl::control_core::mix_6dof_to_8thrusters(mix_cfg,
+                                                      ref_.dof_cmd,
+                                                      thr_out);
+
+        std::cout << "[ControlLoop][ALLOC_FALLBACK] teleop -> thr_cmd "
+                  << "mode=" << static_cast<int>(mode)
+                  << " u0=" << thr_out[0]
+                  << " u1=" << thr_out[1]
+                  << " u2=" << thr_out[2]
+                  << " u3=" << thr_out[3]
+                  << " u4=" << thr_out[4]
+                  << " u5=" << thr_out[5]
+                  << " u6=" << thr_out[6]
+                  << " u7=" << thr_out[7]
+                  << "\n";
+
+        return true;
+    }
+
+    // 4) 仍然没有任何输出，保留原始告警和 0 推力行为
+    std::cout << "[ControlLoop][ALLOC] no thruster_command and no body_wrench\n";
     return false;
 }
+
 
 // ============================================================================
 // 执行 failsafe（Guard 只建议，ControlLoop 执行）
@@ -136,6 +180,19 @@ void ControlLoop::build_reference_from_guard_()
         ref_.dof_cmd     = eff.teleop_dof_cmd;
         ref_.use_dof_cmd = true;
     }
+    // 调试：看写进 ref_ 之后的 DOF
+    // if (ref_.use_dof_cmd) {
+    //     std::cout << "[ControlLoop][REF] use_dof_cmd=1 "
+    //               << "s=" << ref_.dof_cmd.surge
+    //               << " sw=" << ref_.dof_cmd.sway
+    //               << " h=" << ref_.dof_cmd.heave
+    //               << " r=" << ref_.dof_cmd.roll
+    //               << " p=" << ref_.dof_cmd.pitch
+    //               << " y=" << ref_.dof_cmd.yaw
+    //               << "\n";
+    // } else {
+    //     std::cout << "[ControlLoop][REF] use_dof_cmd=0\n";
+    // }
 
     // ref_delta 如需叠加，可后续扩展；此处保持原逻辑
 }

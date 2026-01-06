@@ -6,6 +6,22 @@
 
 #IncludeRegexTransform: 
 
+../gateway/include/gateway/apps/gcs_client.hpp
+chrono
+-
+vector
+-
+gateway/intent_publisher_shm.hpp
+../gateway/include/gateway/apps/gateway/intent_publisher_shm.hpp
+gateway/session/gcs_session.hpp
+../gateway/include/gateway/apps/gateway/session/gcs_session.hpp
+proto_gcs/gcs_protocol.hpp
+../gateway/include/gateway/apps/proto_gcs/gcs_protocol.hpp
+gateway/codec/gcs_codec.hpp
+../gateway/include/gateway/apps/gateway/codec/gcs_codec.hpp
+shared/msg/control_intent.hpp
+../gateway/include/gateway/apps/shared/msg/control_intent.hpp
+
 ../gateway/include/gateway/bytes.hpp
 cstdint
 -
@@ -30,6 +46,8 @@ type_traits
 vector
 -
 chrono
+-
+string_view
 -
 gateway/bytes.hpp
 ../gateway/include/gateway/codec/gateway/bytes.hpp
@@ -112,12 +130,12 @@ string_view
 type_traits
 -
 
-/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_server.cpp
-atomic
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp
+gateway/apps/gcs_client.hpp
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gateway/apps/gcs_client.hpp
+cstddef
 -
-chrono
--
-csignal
+cstdio
 -
 cstring
 -
@@ -127,15 +145,21 @@ iostream
 -
 string
 -
-thread
--
-vector
--
-cstddef
--
-cstdio
--
 type_traits
+-
+
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_server.cpp
+atomic
+-
+chrono
+-
+csignal
+-
+iostream
+-
+string
+-
+thread
 -
 gateway/udp/udp_server.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gateway/udp/udp_server.hpp
@@ -149,6 +173,8 @@ proto_gcs/gcs_protocol.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/proto_gcs/gcs_protocol.hpp
 gateway/codec/gcs_codec.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gateway/codec/gcs_codec.hpp
+gateway/apps/gcs_client.hpp
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gateway/apps/gcs_client.hpp
 
 /home/wys/orangepi/UnderwaterRobotSystem/shared/msg/control_intent.hpp
 cstdint

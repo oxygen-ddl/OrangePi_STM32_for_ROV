@@ -7,12 +7,14 @@
 #include <type_traits>
 #include <vector>
 #include <chrono>
+#include <string_view>
 
 #include "gateway/bytes.hpp"
 #include "proto_gcs/gcs_protocol.hpp"
 
 namespace comm_gcs::codec {
 
+// 引入 GCS 协议基础类型
 using rovctrl::io::gcs::PacketHeader;
 using rovctrl::io::gcs::MsgType;
 using rovctrl::io::gcs::AckCode;

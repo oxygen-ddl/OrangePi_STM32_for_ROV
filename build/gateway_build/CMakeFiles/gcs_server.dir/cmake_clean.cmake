@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
   "../bin/gcs_server"
   "../bin/gcs_server.pdb"
+  "CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.o"
   "CMakeFiles/gcs_server.dir/apps/gcs_server.cpp.o"
 )
 

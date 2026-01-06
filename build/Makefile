@@ -150,19 +150,6 @@ nav_view_dump/fast:
 .PHONY : nav_view_dump/fast
 
 #=============================================================================
-# Target rules for targets named gcs_client
-
-# Build rule for target.
-gcs_client: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 gcs_client
-.PHONY : gcs_client
-
-# fast build rule for target.
-gcs_client/fast:
-	$(MAKE) -f gateway_build/CMakeFiles/gcs_client.dir/build.make gateway_build/CMakeFiles/gcs_client.dir/build
-.PHONY : gcs_client/fast
-
-#=============================================================================
 # Target rules for targets named intent_dump
 
 # Build rule for target.
@@ -277,7 +264,6 @@ help:
 	@echo "... proto_gcs"
 	@echo "... intentd"
 	@echo "... nav_view_dump"
-	@echo "... gcs_client"
 	@echo "... intent_dump"
 	@echo "... gcs_server"
 	@echo "... nav_viewd"

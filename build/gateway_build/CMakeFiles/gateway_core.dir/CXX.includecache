@@ -139,6 +139,8 @@ vector
 -
 chrono
 -
+string_view
+-
 gateway/bytes.hpp
 ../gateway/include/gateway/codec/gateway/bytes.hpp
 proto_gcs/gcs_protocol.hpp

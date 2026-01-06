@@ -3,13 +3,44 @@
 #include <math.h>
 #include <time.h>
 #include <errno.h>
+#include <stdio.h>   /* fprintf */
+#include <stdarg.h>  /* va_list */
 
 #ifndef UNUSED
 #define UNUSED(x) (void)(x)
 #endif
 
 /* ====================================================================== */
-/*                         内部状态                                      */
+/*                         安全层增强：策略与阈值                         */
+/* ====================================================================== */
+
+/* -------- 输入越界处理策略 --------
+ * 你的推进器占空比语义：5% 反转最大，7.5% 中位，10% 正转最大。
+ *
+ * 原实现的 clamp_pct() 会把越界值“饱和到 5 或 10”，
+ * 这在上层 bug（例如误传 0/100）时非常危险：可能把多电机推到极限。
+ *
+ * 新策略：若输入超出 [min_pct, max_pct]，或出现 NaN/Inf：
+ *   -> 逐通道强制归中（mid_pct），并输出告警（带节流）
+ */
+#define PWM_SAFETY_OOR_TO_MID 1
+
+/* -------- “多电机长时间一起运行”风险提示 --------
+ * 由于此层没有电流传感器输入，我们只能用“输出占空比偏离 mid 的程度 + 同时活跃通道数 + 持续时间”
+ * 来提示潜在大电流/发热风险。
+ *
+ * 判定逻辑（基于安全层 next_pct / current_pct）：
+ *   - active: |pct - mid| >= ACTIVE_DELTA_PCT
+ *   - 若 active_count >= ACTIVE_COUNT_THRESHOLD 且连续持续 >= ACTIVE_TIME_S
+ *     则打印告警（节流）。
+ */
+#define PWM_SAFETY_ACTIVE_DELTA_PCT      (0.80f)   /* 偏离中位 >= 0.8% 视为“有推力” */
+#define PWM_SAFETY_ACTIVE_COUNT_THRESHOLD (4)      /* 同时≥4路有推力，提示风险 */
+#define PWM_SAFETY_ACTIVE_TIME_S         (3.0f)    /* 持续 3 秒以上提示 */
+#define PWM_SAFETY_WARN_PERIOD_S         (1.0f)    /* 告警节流：至少 1 秒一条 */
+
+/* ====================================================================== */
+/*                         内部状态                                       */
 /* ====================================================================== */
 
 static int               s_inited      = 0;
@@ -30,9 +61,39 @@ static int               s_group_toggle = 0;            /* AB 交替：0->A,1->B
 static int               s_motor_to_pwm[PWM_HOST_CH_NUM];   /* 逻辑电机 -> 物理 PWM 通道 (1-based) */
 static uint8_t           s_motor_reverse[PWM_HOST_CH_NUM];  /* 每个逻辑电机是否反向 */
 
+/* 安全监测：多电机持续高负载统计 */
+static int               s_hi_load_run_steps = 0;  /* 连续满足“多通道活跃”的步数 */
+static uint64_t          s_last_warn_ns       = 0; /* 告警节流 */
+
 /* ====================================================================== */
-/*                         内部工具函数                                  */
+/*                         内部工具函数                                   */
 /* ====================================================================== */
+
+static uint64_t mono_time_ns(void)
+{
+    struct timespec ts;
+    /* 使用单调时钟做节流与持续时间统计 */
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * (uint64_t)1000000000ull + (uint64_t)ts.tv_nsec;
+}
+
+static void warn_rate_limited(const char* fmt, ...)
+{
+    const uint64_t now = mono_time_ns();
+    const uint64_t period_ns = (uint64_t)(PWM_SAFETY_WARN_PERIOD_S * 1e9);
+
+    if (s_last_warn_ns != 0 && (now - s_last_warn_ns) < period_ns) {
+        return; /* 节流：避免刷屏 */
+    }
+    s_last_warn_ns = now;
+
+    va_list ap;
+    va_start(ap, fmt);
+    fprintf(stderr, "[PWM_SAFETY][WARN] ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+}
 
 static void sleep_ms(double ms)
 {
@@ -103,7 +164,9 @@ static pwm_channel_mask_t active_mask_for_this_step(void)
     }
 }
 
-/* 按当前配置的范围裁剪占空比（min_pct ~ max_pct） */
+/* 按当前配置的范围裁剪占空比（min_pct ~ max_pct）
+ * 注意：该函数是“范围裁剪”，不负责处理非法输入策略。
+ */
 static float clamp_pct(float pct)
 {
     float minp = (s_cfg.min_pct > 0.0f) ? s_cfg.min_pct : PWM_HOST_PCT_MIN;
@@ -112,6 +175,43 @@ static float clamp_pct(float pct)
     if (pct < minp) pct = minp;
     if (pct > maxp) pct = maxp;
     return pct;
+}
+
+/* 安全地处理“外部传入的占空比目标”：
+ * - p < 0: 兼容旧语义：负值视为“归中”
+ * - NaN/Inf: 判定为非法，归中并告警
+ * - 超出 [min,max]: 默认归中并告警（避免饱和到极值）
+ * - 合法：再做一次 clamp 防御
+ *
+ * 参数说明：
+ * - ch_idx: 逻辑电机索引 0..N-1（用于打印）
+ */
+static float sanitize_pct_input(float p, int ch_idx)
+{
+    float minp = (s_cfg.min_pct > 0.0f) ? s_cfg.min_pct : PWM_HOST_PCT_MIN;
+    float midp = (s_cfg.mid_pct > 0.0f) ? s_cfg.mid_pct : PWM_HOST_PCT_MID;
+    float maxp = (s_cfg.max_pct > 0.0f) ? s_cfg.max_pct : PWM_HOST_PCT_MAX;
+
+    if (p < 0.0f) {
+        /* 兼容：负值视为中位 */
+        return midp;
+    }
+
+    if (!isfinite(p)) {
+        warn_rate_limited("invalid pct (NaN/Inf) on ch=%d -> force MID=%.3f",
+                          ch_idx + 1, midp);
+        return midp;
+    }
+
+#if PWM_SAFETY_OOR_TO_MID
+    if (p < minp || p > maxp) {
+        warn_rate_limited("out-of-range pct=%.3f on ch=%d (range[%.3f,%.3f]) -> force MID=%.3f",
+                          p, ch_idx + 1, minp, maxp, midp);
+        return midp;
+    }
+#endif
+
+    return clamp_pct(p);
 }
 
 /* 初始化 current/target：全部设为中位（逻辑电机空间） */
@@ -123,8 +223,10 @@ static void init_state_to_mid(void)
         s_current_pct[i] = mid;
         s_target_pct [i] = mid;
     }
-    s_step_count   = 0;
-    s_group_toggle = 0;
+    s_step_count       = 0;
+    s_group_toggle     = 0;
+    s_hi_load_run_steps = 0;
+    s_last_warn_ns      = 0;
 }
 
 /* 配置默认值与安全收敛（不处理映射部分） */
@@ -240,7 +342,7 @@ static void init_motor_mapping_from_cfg(void)
 
 /* 将“按逻辑电机排列”的占空比，映射成“按物理 PWM 通道排列”的占空比 */
 static void build_hw_frame_from_motor_pct(const float motor_pct[PWM_HOST_CH_NUM],
-                                          float hw_pct_out[PWM_HOST_CH_NUM])
+                                         float hw_pct_out[PWM_HOST_CH_NUM])
 {
     float minp = (s_cfg.min_pct > 0.0f) ? s_cfg.min_pct : PWM_HOST_PCT_MIN;
     float midp = (s_cfg.mid_pct > 0.0f) ? s_cfg.mid_pct : PWM_HOST_PCT_MID;
@@ -265,7 +367,7 @@ static void build_hw_frame_from_motor_pct(const float motor_pct[PWM_HOST_CH_NUM]
             p = minp + maxp - p;
         }
 
-        /* 再次裁剪到合法范围内 */
+        /* 再次裁剪到合法范围内（防御性） */
         if (p < minp) p = minp;
         if (p > maxp) p = maxp;
 
@@ -274,7 +376,7 @@ static void build_hw_frame_from_motor_pct(const float motor_pct[PWM_HOST_CH_NUM]
 }
 
 /* ====================================================================== */
-/*                         接口实现：生命周期                             */
+/*                         接口实现：生命周期                              */
 /* ====================================================================== */
 
 int pwm_ctrl_init(const pwm_ctrl_config_t* cfg)
@@ -308,6 +410,7 @@ void pwm_ctrl_deinit(void)
     s_inited = 0;
     /* 不关闭 libpwm_host，由上层统一管理 */
 }
+
 /**
  * @brief 获取控制层状态快照
  *
@@ -328,7 +431,7 @@ void pwm_ctrl_get_state(pwm_ctrl_state_t* out_state)
 }
 
 /* ====================================================================== */
-/*                         目标设置接口                                   */
+/*                         目标设置接口                                    */
 /* ====================================================================== */
 
 int pwm_ctrl_set_target_pct(int ch, float pct)
@@ -336,10 +439,8 @@ int pwm_ctrl_set_target_pct(int ch, float pct)
     if (!s_inited) return PWM_CTRL_ERR_NOT_INIT;
     if (ch < 1 || ch > PWM_HOST_CH_NUM) return PWM_CTRL_ERR_INVALID_ARG;
 
-    if (pct < 0.0f) pct = s_cfg.mid_pct;   /* 负值视为中位 */
-    pct = clamp_pct(pct);
-
-    s_target_pct[ch - 1] = pct;
+    /* 安全输入处理：非法/越界 -> 归中（而不是饱和到极值） */
+    s_target_pct[ch - 1] = sanitize_pct_input(pct, ch - 1);
     return PWM_CTRL_OK;
 }
 
@@ -353,9 +454,8 @@ int pwm_ctrl_set_targets_mask(pwm_channel_mask_t mask,
         int ch = i + 1;
         if (!ch_in_mask(ch, mask)) continue;
 
-        float p = pct[i];
-        if (p < 0.0f) p = s_cfg.mid_pct;
-        s_target_pct[i] = clamp_pct(p);
+        /* 安全输入处理：非法/越界 -> 归中 */
+        s_target_pct[i] = sanitize_pct_input(pct[i], i);
     }
     return PWM_CTRL_OK;
 }
@@ -394,8 +494,8 @@ int pwm_ctrl_set_targets_from_dof4(const pwm_ctrl_dof4_cmd_t* cmd)
     }
 
     /* 经验系数：当前 Teleop 水平增量约 1.5%，对应 0.6 * 2.5% */
-    const float H_GAIN = 0.6f;   /* 水平 DOF 利用 60% 的可用行程 */
-    const float V_GAIN = 0.6f;   /* 垂向同理，可独立调整 */
+    const float H_GAIN = 0.8f;   /* 水平 DOF 利用 60% 的可用行程 */
+    const float V_GAIN = 0.8f;   /* 垂向同理，可独立调整 */
 
     float delta_h = H_GAIN * span;
     float delta_v = V_GAIN * span;
@@ -449,8 +549,46 @@ int pwm_ctrl_set_targets_from_dof4(const pwm_ctrl_dof4_cmd_t* cmd)
 }
 
 /* ====================================================================== */
-/*                         核心 step 下发                                 */
+/*                         核心 step 下发                                  */
 /* ====================================================================== */
+
+/* 计算“本步输出是否存在多电机持续运行风险”，并给出提示。
+ * 注意：这是“风险提示”，非强制停机（因为缺少电流反馈）。
+ * 若你希望强制停机，可以在触发时调用 pwm_ctrl_set_all_target_mid() 或直接返回错误码。
+ */
+static void check_hi_load_risk_and_warn(const float next_pct[PWM_HOST_CH_NUM])
+{
+    const float mid = s_cfg.mid_pct;
+    int active_count = 0;
+
+    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
+        float dev = fabsf(next_pct[i] - mid);
+        if (dev >= PWM_SAFETY_ACTIVE_DELTA_PCT) {
+            ++active_count;
+        }
+    }
+
+    /* 连续判定 */
+    if (active_count >= PWM_SAFETY_ACTIVE_COUNT_THRESHOLD) {
+        s_hi_load_run_steps++;
+    } else {
+        s_hi_load_run_steps = 0;
+    }
+
+    /* 达到持续时间阈值则告警 */
+    const float hz = (s_cfg.ctrl_hz > 0.0f) ? s_cfg.ctrl_hz : 50.0f;
+    const int steps_thresh = (int)(PWM_SAFETY_ACTIVE_TIME_S * hz + 0.5f);
+
+    if (steps_thresh > 0 && s_hi_load_run_steps >= steps_thresh) {
+        warn_rate_limited("potential high-current risk: active_motors=%d (>= %d) lasting=%.2fs (>= %.2fs). "
+                          "Consider reducing throttle or enforcing a safety policy.",
+                          active_count,
+                          PWM_SAFETY_ACTIVE_COUNT_THRESHOLD,
+                          (double)s_hi_load_run_steps / (double)hz,
+                          PWM_SAFETY_ACTIVE_TIME_S);
+        /* 不清零计数，允许持续提示（但已节流） */
+    }
+}
 
 int pwm_ctrl_step(void)
 {
@@ -501,6 +639,9 @@ int pwm_ctrl_step(void)
         next_pct[i] = clamp_pct(np);
     }
 
+    /* 高负载风险监测（基于 next_pct：安全层将要下发的“逻辑电机空间”输出） */
+    check_hi_load_risk_and_warn(next_pct);
+
     /* 逻辑电机空间 → 物理 PWM 通道空间，并下发完整 8 通道一帧 */
     float hw_pct[PWM_HOST_CH_NUM];
     build_hw_frame_from_motor_pct(next_pct, hw_pct);
@@ -520,7 +661,7 @@ int pwm_ctrl_step(void)
 }
 
 /* ====================================================================== */
-/*                         工程便利函数                                   */
+/*                         工程便利函数                                    */
 /* ====================================================================== */
 
 int pwm_ctrl_hold_pct_blocking(int ch, float pct, float seconds)
@@ -593,7 +734,7 @@ int pwm_ctrl_emergency_stop(float seconds)
 }
 
 /* ====================================================================== */
-/*                         电机反向运行时开关                             */
+/*                         电机反向运行时开关                              */
 /* ====================================================================== */
 
 int pwm_ctrl_set_motor_reverse(int motor_id, int enable)

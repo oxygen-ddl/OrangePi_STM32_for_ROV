@@ -1,6 +1,7 @@
 #include "io/input/control_intent_wire_codec.hpp"
 
 #include <cstdint>
+#include <iostream>
 
 namespace rovctrl::io::input {
 
@@ -69,6 +70,20 @@ bool decode_control_intent(const shared::msg::ControlIntent& w,
                            rovctrl::control_core::ControlIntent& c) noexcept
 {
     // 0) Wire version gate
+    if (w.version != shared::msg::kControlIntentWireVersion) {
+        c.clear_all();
+        return false;
+    }
+    //打印输出调试信息
+    // std::cout << "[decode][ARM] version=" << w.version
+    //           << " flags=0x" << std::hex << w.flags
+    //           << " mask_arm=0x"
+    //           << static_cast<std::uint32_t>(shared::msg::IntentFlags::kHasArmCmd)
+    //           << std::dec
+    //           << " arm="    << int(w.arm)
+    //           << " disarm=" << int(w.disarm)
+    //           << "\n";
+
     if (w.version != shared::msg::kControlIntentWireVersion) {
         c.clear_all();
         return false;

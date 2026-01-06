@@ -4,6 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+  "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build/CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.o"
   "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_server.cpp" "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build/CMakeFiles/gcs_server.dir/apps/gcs_server.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")

@@ -70,22 +70,9 @@ gateway_build/CMakeFiles/gateway_core.dir/src/intent_publisher_shm.cpp.s: cmake_
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/gateway_core.dir/src/intent_publisher_shm.cpp.s"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/intent_publisher_shm.cpp -o CMakeFiles/gateway_core.dir/src/intent_publisher_shm.cpp.s
 
-gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o: gateway_build/CMakeFiles/gateway_core.dir/flags.make
-gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o: ../gateway/src/IPC/intent_subscriber_shm.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o"
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp
-
-gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i"
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp > CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i
-
-gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s"
-	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s
-
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o: gateway_build/CMakeFiles/gateway_core.dir/flags.make
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o: ../gateway/src/IPC/intent/intent_arbiter.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_arbiter.cpp
 
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.i: cmake_force
@@ -98,7 +85,7 @@ gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.s: c
 
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o: gateway_build/CMakeFiles/gateway_core.dir/flags.make
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o: ../gateway/src/IPC/intent/intent_mux.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_mux.cpp
 
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.i: cmake_force
@@ -108,6 +95,19 @@ gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.i: cmake
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.s"
 	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_mux.cpp -o CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.s
+
+gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o: gateway_build/CMakeFiles/gateway_core.dir/flags.make
+gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o: ../gateway/src/IPC/intent_subscriber_shm.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp
+
+gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp > CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.i
+
+gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s"
+	cd /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build && /usr/lib/ccache/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.s
 
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_publisher_shm.cpp.o: gateway_build/CMakeFiles/gateway_core.dir/flags.make
 gateway_build/CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_publisher_shm.cpp.o: ../gateway/src/IPC/keys/key_event_publisher_shm.cpp
@@ -242,9 +242,9 @@ gateway_build/CMakeFiles/gateway_core.dir/src/session/gcs_session.cpp.s: cmake_f
 # Object files for target gateway_core
 gateway_core_OBJECTS = \
 "CMakeFiles/gateway_core.dir/src/intent_publisher_shm.cpp.o" \
-"CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o" \
 "CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o" \
 "CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o" \
+"CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o" \
 "CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_publisher_shm.cpp.o" \
 "CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_subscriber_shm.cpp.o" \
 "CMakeFiles/gateway_core.dir/src/IPC/nav/nav_state_subscriber.cpp.o" \
@@ -260,9 +260,9 @@ gateway_core_OBJECTS = \
 gateway_core_EXTERNAL_OBJECTS =
 
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/intent_publisher_shm.cpp.o
-lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o
+lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_publisher_shm.cpp.o
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/keys/key_event_subscriber_shm.cpp.o
 lib/libgateway_core.a: gateway_build/CMakeFiles/gateway_core.dir/src/IPC/nav/nav_state_subscriber.cpp.o

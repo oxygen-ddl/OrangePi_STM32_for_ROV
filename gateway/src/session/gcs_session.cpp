@@ -242,6 +242,40 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
         ack_ok_if_req();
         return out;
     }
+        case MsgType::ARM: {
+        // 1) 会话检查：如果要求有有效会话，但当前未建立，则直接回 ACK 错误
+        if (cfg_.require_session_for_commands && !st_.established) {
+            if (auto ack = make_ack_if_req_(h, AckCode::INVALID_SESSION)) {
+                out.emplace_back(std::move(*ack));
+            }
+            return out;
+        }
+
+        // 2) 载荷长度检查：必须恰好等于 ArmCmd 的大小
+        if (!comm_gcs::codec::payload_size_is(pp.payload, sizeof(ArmCmd))) {
+            if (auto ack = make_ack_if_req_(h, AckCode::BAD_FORMAT)) {
+                out.emplace_back(std::move(*ack));
+            }
+            return out;
+        }
+
+        // 3) 解析载荷为 ArmCmd（按结构体字节拷贝）
+        ArmCmd cmd{};
+        std::memcpy(&cmd, pp.payload.data, sizeof(cmd));
+
+        // 如果你有 st_.armed 一类的状态，可以在这里顺手更新：
+        // st_.armed = (cmd.enable != 0);
+
+        // 4) 触发上层回调，让 gateway 应用层去做真正的解锁/上锁逻辑
+        if (ev_.on_arm) {
+            ev_.on_arm(cmd);
+        }
+
+        // 5) 如果需要 ACK，则回一个 OK
+        ack_ok_if_req();
+        return out;
+    }
+
 
     case MsgType::SET_MODE: {
         if (cfg_.require_session_for_commands && !st_.established) {
@@ -270,6 +304,11 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
             if (auto ack = make_ack_if_req_(h, AckCode::INVALID_SESSION)) {
                 out.emplace_back(std::move(*ack));
             }
+            return out;
+        }
+        // ★ 新增：未 ARM 时，不接受 DOF 命令（可选：回 ACK_DENIED）
+        if (!ev_.on_arm) {
+            // TODO(kcg): 若未来协议扩展 AckCode，可在此返回 ACK_NOT_ARMED 等专用码
             return out;
         }
         if (!comm_gcs::codec::payload_size_is(pp.payload, sizeof(SetDofCmd))) {

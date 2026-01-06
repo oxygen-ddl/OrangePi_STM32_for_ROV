@@ -47,6 +47,7 @@ enum class MsgType : std::uint8_t {
     SET_MODE        = 20,
     SET_DOF_CMD     = 21,
     ESTOP           = 22,
+    ARM             = 23,   // ★ 新增：Arm / Disarm 命令
 
     // telemetry (ROV -> GCS)
     STATUS          = 40,
@@ -133,6 +134,11 @@ struct SetModeCmd final {
     std::uint16_t reserved1 = 0;
 
     char auto_controller[kAutoNameMaxLen]{}; // null-terminated, zero padded
+};
+
+struct ArmCmd {
+    std::uint8_t enable = 0;    // 1 => Arm, 0 => Disarm
+    std::uint8_t reserved[3] {0, 0, 0}; // 对齐 & 预留
 };
 
 struct SetDofCmd final {
@@ -244,6 +250,7 @@ inline bool msg_type_known(std::uint8_t mt) noexcept
     case MsgType::ESTOP:
     case MsgType::STATUS:
     case MsgType::ACK:
+    case MsgType::ARM:      // ★ 新增：Arm / Disarm 命令
         return true;
     default:
         return false;

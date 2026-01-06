@@ -51,4 +51,8 @@ time.h
 -
 errno.h
 -
+stdio.h
+-
+stdarg.h
+-
 

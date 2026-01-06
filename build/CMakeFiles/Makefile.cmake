@@ -141,7 +141,6 @@ set(CMAKE_DEPEND_INFO_FILES
   "proto_gcs_build/CMakeFiles/proto_gcs.dir/DependInfo.cmake"
   "gateway_build/CMakeFiles/intentd.dir/DependInfo.cmake"
   "gateway_build/CMakeFiles/nav_view_dump.dir/DependInfo.cmake"
-  "gateway_build/CMakeFiles/gcs_client.dir/DependInfo.cmake"
   "gateway_build/CMakeFiles/intent_dump.dir/DependInfo.cmake"
   "gateway_build/CMakeFiles/gcs_server.dir/DependInfo.cmake"
   "gateway_build/CMakeFiles/nav_viewd.dir/DependInfo.cmake"

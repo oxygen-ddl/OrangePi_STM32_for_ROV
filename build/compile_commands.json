@@ -11,11 +11,6 @@
 },
 {
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
-  "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIE   -Wall -Wextra -std=c++17 -o CMakeFiles/gcs_client.dir/apps/gcs_client.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp",
-  "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp"
-},
-{
-  "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
   "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIE   -Wall -Wextra -std=c++17 -o CMakeFiles/intent_dump.dir/apps/intent_dump.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/intent_dump.cpp",
   "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/intent_dump.cpp"
 },
@@ -23,6 +18,11 @@
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
   "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIE   -Wall -Wextra -std=c++17 -o CMakeFiles/gcs_server.dir/apps/gcs_server.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_server.cpp",
   "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_server.cpp"
+},
+{
+  "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
+  "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIE   -Wall -Wextra -std=c++17 -o CMakeFiles/gcs_server.dir/apps/gcs_client.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp",
+  "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/apps/gcs_client.cpp"
 },
 {
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
@@ -41,11 +41,6 @@
 },
 {
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
-  "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIC   -Wall -Wextra -std=c++17 -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp",
-  "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp"
-},
-{
-  "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
   "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIC   -Wall -Wextra -std=c++17 -o CMakeFiles/gateway_core.dir/src/IPC/intent/intent_arbiter.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_arbiter.cpp",
   "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_arbiter.cpp"
 },
@@ -53,6 +48,11 @@
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
   "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIC   -Wall -Wextra -std=c++17 -o CMakeFiles/gateway_core.dir/src/IPC/intent/intent_mux.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_mux.cpp",
   "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent/intent_mux.cpp"
+},
+{
+  "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",
+  "command": "/usr/lib/ccache/c++   -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/include -I/home/wys/orangepi/UnderwaterRobotSystem -I/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/proto_gcs/include  -O2 -g -DNDEBUG -fPIC   -Wall -Wextra -std=c++17 -o CMakeFiles/gateway_core.dir/src/IPC/intent_subscriber_shm.cpp.o -c /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp",
+  "file": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/gateway/src/IPC/intent_subscriber_shm.cpp"
 },
 {
   "directory": "/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/build/gateway_build",

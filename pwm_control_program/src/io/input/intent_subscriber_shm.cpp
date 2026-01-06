@@ -238,24 +238,24 @@ std::optional<shared::msg::ControlIntent> IntentSubscriberShm::poll(std::uint64_
     }
     
     // ===== 在这里插入调试代码（BEGIN） =====
-    static int dbg_cnt = 0;
-    if (++dbg_cnt % 20 == 0) {  // 每 20 次 poll 打一条，避免刷屏
-        if (snap.flags & shared::msg::kHasTeleopDof) {
-            const auto& c = snap.teleop_dof_cmd;
-            std::cerr << "[IntentSubscriberShm][POLL] teleop_dof"
-                      << " s="  << c.surge
-                      << " sw=" << c.sway
-                      << " h="  << c.heave
-                      << " r="  << c.roll
-                      << " p="  << c.pitch
-                      << " y="  << c.yaw
-                      << " flags=0x" << std::hex << snap.flags << std::dec
-                      << "\n";
-        } else {
-            std::cerr << "[IntentSubscriberShm][POLL] no teleop_dof, flags=0x"
-                      << std::hex << snap.flags << std::dec << "\n";
-        }
-    }
+    // static int dbg_cnt = 0;
+    // if (++dbg_cnt % 20 == 0) {  // 每 20 次 poll 打一条，避免刷屏
+    //     if (snap.flags & shared::msg::kHasTeleopDof) {
+    //         const auto& c = snap.teleop_dof_cmd;
+    //         std::cerr << "[IntentSubscriberShm][POLL] teleop_dof"
+    //                   << " s="  << c.surge
+    //                   << " sw=" << c.sway
+    //                   << " h="  << c.heave
+    //                   << " r="  << c.roll
+    //                   << " p="  << c.pitch
+    //                   << " y="  << c.yaw
+    //                   << " flags=0x" << std::hex << snap.flags << std::dec
+    //                   << "\n";
+    //     } else {
+    //         std::cerr << "[IntentSubscriberShm][POLL] no teleop_dof, flags=0x"
+    //                   << std::hex << snap.flags << std::dec << "\n";
+    //     }
+    // }
     // ===== 调试代码（END） =====
 
     return snap;

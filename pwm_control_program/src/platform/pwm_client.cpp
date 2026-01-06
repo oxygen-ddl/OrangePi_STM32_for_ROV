@@ -274,23 +274,43 @@ int PwmClient::setTarget(int ch, float pct)
     return rc;
 }
 
-int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct)
+int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& cmd_norm)
 {
     if (!inited_) {
         set_error(PWM_CTRL_ERR_NOT_INIT, "[PwmClient] setTargets: not initialized");
         return PWM_CTRL_ERR_NOT_INIT;
     }
 
+    // Hardware duty semantics (50Hz servo-style):
+    //  5.0% = full reverse, 7.5% = neutral, 10.0% = full forward
+    constexpr float kDutyMin = 5.0f;
+    constexpr float kDutyMid = 7.5f;
+    constexpr float kDutyMax = 10.0f;
+    constexpr float kDutySpan = 2.5f; // kDutyMid ± kDutySpan
+
+    auto clampf_local = [](float v, float lo, float hi) noexcept {
+        return (v < lo) ? lo : (v > hi ? hi : v);
+    };
+
+    auto norm_to_duty = [&](float u) noexcept -> float {
+        // u in [-1, 1]
+        u = clampf_local(u, -1.0f, 1.0f);
+        return clampf_local(kDutyMid + kDutySpan * u, kDutyMin, kDutyMax);
+    };
+
+    // Dummy mode: still store mapped duty% so behavior matches real path.
     if (dummy_) {
         for (std::size_t i = 0; i < kNumPwmChannels; ++i) {
-            target_pct_[i] = clampf(pct[i], cfg_.min_pct, cfg_.max_pct);
+            target_pct_[i] = norm_to_duty(cmd_norm[i]);
         }
         clear_error();
         return 0;
     }
 
     float arr[PWM_HOST_CH_NUM];
-    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) arr[i] = cfg_.mid_pct;
+    for (int i = 0; i < PWM_HOST_CH_NUM; ++i) {
+        arr[i] = kDutyMid; // default neutral for unused channels
+    }
 
     const std::size_t n =
         (kNumPwmChannels < static_cast<std::size_t>(PWM_HOST_CH_NUM))
@@ -298,7 +318,7 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct)
             : static_cast<std::size_t>(PWM_HOST_CH_NUM);
 
     for (std::size_t i = 0; i < n; ++i) {
-        arr[i] = pct[i];
+        arr[i] = norm_to_duty(cmd_norm[i]);
     }
 
     const int rc = pwm_ctrl_set_targets_mask(PWM_CH_MASK_ALL, arr);
@@ -312,6 +332,7 @@ int PwmClient::setTargets(const std::array<float, kNumPwmChannels>& pct)
     clear_error();
     return rc;
 }
+
 
 // ============================================================================
 // step / emergencyStop / 反向开关

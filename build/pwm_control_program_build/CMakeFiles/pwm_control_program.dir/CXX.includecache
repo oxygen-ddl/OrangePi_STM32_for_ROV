@@ -114,6 +114,14 @@ type_traits
 tuple
 -
 
+../pwm_control_program/include/control_core/teleop_mixer.hpp
+array
+-
+cstddef
+-
+algorithm
+-
+
 ../pwm_control_program/include/control_core/thruster_allocation.hpp
 array
 -
@@ -439,6 +447,10 @@ algorithm
 -
 cstdint
 -
+iostream
+-
+cstring
+-
 shared/msg/nav_state.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/shared/msg/nav_state.hpp
 control_core/control_intent.hpp
@@ -455,11 +467,17 @@ utility
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_loop_helpers.cpp
 control_core/control_loop.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_core/control_loop.hpp
+control_core/control_mode.hpp
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_core/control_mode.hpp
+control_core/teleop_mixer.hpp
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/control_core/teleop_mixer.hpp
 array
 -
 cstdint
 -
 cstddef
+-
+iostream
 -
 platform/timebase.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/control_core/loop/platform/timebase.hpp
@@ -553,6 +571,8 @@ controllers/controller_base.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/controllers/manual_controller.cpp
 controllers/manual_controller.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/controllers/controllers/manual_controller.hpp
+control_core/teleop_mixer.hpp
+/home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/controllers/control_core/teleop_mixer.hpp
 algorithm
 -
 iostream
@@ -582,6 +602,8 @@ cstdint
 io/input/control_intent_wire_codec.hpp
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/io/input/control_intent_wire_codec.hpp
 cstdint
+-
+iostream
 -
 
 /home/wys/orangepi/UnderwaterRobotSystem/OrangePi_STM32_for_ROV/pwm_control_program/src/io/input/gcs_shm_input_provider.cpp

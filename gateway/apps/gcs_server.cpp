@@ -83,6 +83,21 @@ int main(int argc, char** argv)
         } else if (a == "--dbg-shm-max" && i + 1 < argc) {
             dbg_shm_hex_max = std::stoi(argv[++i]);
         }
+        if (a == "--help" || a == "-h") {
+            std::cout <<
+              "Usage: gcs_server [options]\n"
+              "  --ip <addr>\n"
+              "  --port <port>\n"
+              "  --telem-hz <hz>\n"
+              "  --intent-shm <name>\n"
+              "  --intent-ttl-ms <ms>\n"
+              "  --dbg-layout\n"
+              "  --dbg-shm\n"
+              "  --dbg-shm-every-ms <ms>\n"
+              "  --dbg-shm-max <n>\n";
+            return 0;
+        }
+
     }
 
     if (telem_hz <= 0) telem_hz = 10;
@@ -100,9 +115,17 @@ int main(int argc, char** argv)
         comm_gcs::IntentPublisherShm::Config pcfg{};
         pcfg.enable   = true;
         pcfg.shm_name = intent_shm;
-        pcfg.shm_size = 0; // 0 => sizeof(shared::shm::IntentShmLayout)
+        pcfg.shm_size = 4096; // 0 => sizeof(shared::shm::IntentShmLayout)
         if (!pub.init(pcfg)) {
             std::cerr << "[ERR] IntentPublisherShm init failed.\n";
+            return 3;
+        }
+        const std::size_t sz = pub.debug_size();
+        std::cout << "[DBG] pub.debug_size=" << sz << "\n";
+
+        if (sz < 512) { // 先用保守阈值，后续再换成 sizeof(真实布局)
+            std::cerr << "[FATAL] SHM size too small: " << sz
+                      << " bytes, will likely crash on publish.\n";
             return 3;
         }
     }
@@ -124,12 +147,22 @@ int main(int argc, char** argv)
     comm_gcs::session::GcsSessionEvents sev{};
 
     // 把“GCS 报文 → ControlIntent SHM”的业务回调统一挂上
-    gateway::app::IntentContext ictx{
+    
+     gateway::app::IntentContext ictx{
         .pub           = pub,
-        .shm_dump      = &shm_dump,
+        .shm_dump      = dbg_shm_hex ? &shm_dump : nullptr,
         .intent_ttl_ms = intent_ttl_ms,
+        .armed         = false,
+        .arm_log_enable = true,   // 或按你自己的习惯
     };
+    std::cout << "[DBG] dbg_shm_hex=" << (dbg_shm_hex ? 1 : 0) << "\n";
+
+    // ARM 状态变化日志开关（旧代码用的是 g_arm_log_enable 全局，这里不强行改动原语义）
+    // 如果你未来要把它做成配置项，可以在这里同步：
+    // ictx.arm_log_enable = true;
+
     gateway::app::attach_default_events(sev, ictx);
+
 
     comm_gcs::session::GcsSession sess(scfg, sev);
 

@@ -202,6 +202,28 @@ bool IntentSubscriberShm::read_consistent_(shared::msg::ControlIntent& out,
 
         // payload copy (plain struct)
         out = shm_->intent;
+         // ===== 调试：直接看 SHM 里的 intent（只在前几次打印，避免刷屏） =====
+        // static int dbg_raw_cnt = 0;
+        // if (dbg_raw_cnt < 50) { // 只打印前 5 次成功读取的 snapshot
+        //     ++dbg_raw_cnt;
+        //     const auto& raw = shm_->intent;
+        //     if (raw.flags & shared::msg::kHasTeleopDof) {
+        //         const auto& c = raw.teleop_dof_cmd;
+        //         std::cerr << "[IntentSubscriberShm][RAW_SHM] teleop_dof"
+        //                   << " s="  << c.surge
+        //                   << " sw=" << c.sway
+        //                   << " h="  << c.heave
+        //                   << " r="  << c.roll
+        //                   << " p="  << c.pitch
+        //                   << " y="  << c.yaw
+        //                   << " flags=0x" << std::hex << raw.flags << std::dec
+        //                   << "\n";
+        //     } else {
+        //         std::cerr << "[IntentSubscriberShm][RAW_SHM] no teleop_dof, flags=0x"
+        //                   << std::hex << raw.flags << std::dec << "\n";
+        //     }
+        // }
+        // ===== 调试结束 =====
 
         const std::uint64_t s1 = shm_->hdr.seqlock.load(std::memory_order_acquire);
         if (s0 == s1 && ((s1 & 1ULL) == 0)) {

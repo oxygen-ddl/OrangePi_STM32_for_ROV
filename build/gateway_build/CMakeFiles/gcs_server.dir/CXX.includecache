@@ -11,6 +11,10 @@ chrono
 -
 vector
 -
+functional
+-
+optional
+-
 gateway/intent_publisher_shm.hpp
 ../gateway/include/gateway/apps/gateway/intent_publisher_shm.hpp
 gateway/session/gcs_session.hpp

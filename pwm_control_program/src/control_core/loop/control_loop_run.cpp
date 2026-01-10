@@ -404,30 +404,30 @@ int ControlLoop::run()
         build_reference_from_guard_();
 
         // 调试：低频打印 Effective Intent 的 6DOF（只要有 has_teleop_dof）
-        // const auto& eff = guard_result_.effective_intent;
+        const auto& eff = guard_result_.effective_intent;
 
         // 调试：打印 guard 之后“生效的 Intent”
-        // if (eff.has_teleop_dof) {
-        //     std::cout << "[ControlLoop][INTENT_EFF] teleop_dof "
-        //               << "s=" << eff.teleop_dof_cmd.surge
-        //               << " sw=" << eff.teleop_dof_cmd.sway
-        //               << " h=" << eff.teleop_dof_cmd.heave
-        //               << " r=" << eff.teleop_dof_cmd.roll
-        //               << " p=" << eff.teleop_dof_cmd.pitch
-        //               << " y=" << eff.teleop_dof_cmd.yaw
-        //               << " | has_ref=" << eff.has_ref
-        //               << " has_ref_delta=" << eff.has_ref_delta
-        //               << " has_motor_test=" << eff.has_motor_test
-        //               << " request_exit=" << eff.request_exit
-        //               << "\n";
-        // } else {
-        //     std::cout << "[ControlLoop][INTENT_EFF] has_teleop_dof=0"
-        //               << " | has_ref=" << eff.has_ref
-        //               << " has_ref_delta=" << eff.has_ref_delta
-        //               << " has_motor_test=" << eff.has_motor_test
-        //               << " request_exit=" << eff.request_exit
-        //               << "\n";
-        // }       
+        if (eff.has_teleop_dof) {
+            std::cout << "[ControlLoop][INTENT_EFF] teleop_dof "
+                      << "s=" << eff.teleop_dof_cmd.surge
+                      << " sw=" << eff.teleop_dof_cmd.sway
+                      << " h=" << eff.teleop_dof_cmd.heave
+                      << " r=" << eff.teleop_dof_cmd.roll
+                      << " p=" << eff.teleop_dof_cmd.pitch
+                      << " y=" << eff.teleop_dof_cmd.yaw
+                      << " | has_ref=" << eff.has_ref
+                      << " has_ref_delta=" << eff.has_ref_delta
+                      << " has_motor_test=" << eff.has_motor_test
+                      << " request_exit=" << eff.request_exit
+                      << "\n";
+        } else {
+            std::cout << "[ControlLoop][INTENT_EFF] has_teleop_dof=0"
+                      << " | has_ref=" << eff.has_ref
+                      << " has_ref_delta=" << eff.has_ref_delta
+                      << " has_motor_test=" << eff.has_motor_test
+                      << " request_exit=" << eff.request_exit
+                      << "\n";
+        }       
 
         // ---------------- controller compute ----------------
         output_ = ControlOutput{};
@@ -504,16 +504,16 @@ int ControlLoop::run()
 
         // 实际下发到 PWM 客户端
         {
-            // std::cout << "[ControlLoop][THR_CMD] "
-            //           << "u0=" << thr_cmd[0]
-            //           << " u1=" << thr_cmd[1]
-            //           << " u2=" << thr_cmd[2]
-            //           << " u3=" << thr_cmd[3]
-            //           << " u4=" << thr_cmd[4]
-            //           << " u5=" << thr_cmd[5]
-            //           << " u6=" << thr_cmd[6]
-            //           << " u7=" << thr_cmd[7]
-            //           << "\n";
+            std::cout << "[ControlLoop][THR_CMD] "
+                      << "u0=" << thr_cmd[0]
+                      << " u1=" << thr_cmd[1]
+                      << " u2=" << thr_cmd[2]
+                      << " u3=" << thr_cmd[3]
+                      << " u4=" << thr_cmd[4]
+                      << " u5=" << thr_cmd[5]
+                      << " u6=" << thr_cmd[6]
+                      << " u7=" << thr_cmd[7]
+                      << "\n";
 
             const int rc = pwm_.setTargets(thr_cmd);
             if (rc < 0) {

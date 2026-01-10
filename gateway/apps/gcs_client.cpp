@@ -327,13 +327,21 @@ void dump_rx_msg_type(const comm_gcs::BytesView& payload)
 // =============================
 // 事件绑定实现
 // =============================
-
 void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
                            const IntentContext& ictx)
 {
-    auto& pub   = ictx.pub;
-    auto* dump  = ictx.shm_dump;
+    auto& pub = ictx.pub;
     const int ttl_ms = ictx.intent_ttl_ms;
+
+    // 统一 dump 入口：简单指针判空
+    auto maybe_dump = [&](const char* tag) {
+        ShmHexDumper* dump = ictx.shm_dump;
+        if (!dump) {
+            return;
+        }
+        dump->maybe_dump(pub, tag);
+    };
+
 
     // 会话建立
     sev.on_session_established = [&](std::uint64_t sid, const comm_gcs::UdpAddress& peer){
@@ -346,7 +354,7 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
         std::cout << "[SESSION] lost/reset\n";
         auto w = make_session_reset_intent(ttl_ms);
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][SESSION_LOST]");
+        // maybe_dump("[SHM_HEX][SESSION_LOST]");
     };
 
     // 急停
@@ -354,7 +362,7 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
         std::cout << "[ESTOP] enable=" << int(cmd.enable) << "\n";
         auto w = make_estop_intent(cmd, ttl_ms);
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][ESTOP]");
+        // maybe_dump("[SHM_HEX][ESTOP]");
     };
 
     // ARM / DISARM
@@ -382,7 +390,7 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
                   << "\n";
 
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][ARM]");
+        // maybe_dump("[SHM_HEX][ARM]");
     };
 
     // 模式切换（不再隐含 ARM 语义）
@@ -392,12 +400,11 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
 
         auto w = make_set_mode_intent(cmd, ttl_ms);
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][SET_MODE]");
+        // maybe_dump("[SHM_HEX][SET_MODE]");
     };
 
     // 6DOF 手动控制
     sev.on_set_dof = [&](const SetDofCmd& cmd){
-
         std::cout << "[SET_DOF] "
                   << "surge=" << cmd.dof[0]
                   << " sway="  << cmd.dof[1]
@@ -409,9 +416,18 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
 
         auto w = make_set_dof_intent(cmd, ttl_ms);
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][SET_DOF]");
-    };
+                 // ★ 新增：看 Intent 里到底写了什么
+        std::cout << "[INTENT_TX][SET_DOF] teleop_dof s=" << w.teleop_dof_cmd.surge
+                  << " sw=" << w.teleop_dof_cmd.sway
+                  << " h="  << w.teleop_dof_cmd.heave
+                  << " r="  << w.teleop_dof_cmd.roll
+                  << " p="  << w.teleop_dof_cmd.pitch
+                  << " y="  << w.teleop_dof_cmd.yaw
+                  << " flags=0x" << std::hex << w.flags << std::dec
+                  << "\n";
 
+        // maybe_dump("[SHM_HEX][SET_DOF]");
+    };
 
     // 单电机测试
     sev.on_motor_test = [&](const MotorTestCmd& cmd){
@@ -425,8 +441,9 @@ void attach_default_events(comm_gcs::session::GcsSessionEvents& sev,
 
         auto w = make_motor_test_intent(cmd, ttl_ms);
         (void)pub.publish(w);
-        if (dump) dump->maybe_dump(pub, "[SHM_HEX][MOTOR_TEST]");
+        // maybe_dump("[SHM_HEX][MOTOR_TEST]");
     };
 }
+
 
 } // namespace gateway::app

@@ -463,8 +463,8 @@ orangepi_send_build/CMakeFiles/pwm_host.dir/clean:
 # Target rules for target pwm_control_program_build/CMakeFiles/pwm_control_program.dir
 
 # All Build rule for target.
-pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: orangepi_send_build/CMakeFiles/pwm_host.dir/all
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: gateway_build/CMakeFiles/gateway_core.dir/all
+pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: orangepi_send_build/CMakeFiles/pwm_host.dir/all
 pwm_control_program_build/CMakeFiles/pwm_control_program.dir/all: proto_gcs_build/CMakeFiles/proto_gcs.dir/all
 	$(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/depend
 	$(MAKE) -f pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build.make pwm_control_program_build/CMakeFiles/pwm_control_program.dir/build

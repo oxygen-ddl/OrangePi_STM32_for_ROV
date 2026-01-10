@@ -136,23 +136,45 @@ bool IntentPublisherShm::publish(const shared::msg::ControlIntent& intent)
     if (!initialized_ || error_flag_ || !shm_ptr_) return false;
 
     auto* layout = static_cast<ShmLayout*>(shm_ptr_);
-    auto& hdr = layout->hdr;
+    auto& hdr    = layout->hdr;
 
-    // begin write: make it odd
+    // ---- seqlock: begin write（置奇数，表示正在写）----
     const std::uint64_t s0 = hdr.seqlock.load(std::memory_order_relaxed);
     hdr.seqlock.store(s0 + 1, std::memory_order_release);
 
+    // 时间戳更新
     hdr.mono_ns = now_mono_ns();
     hdr.wall_ns = now_wall_ns();
-    // magic/layout_ver/payload_* 通常在 init 时写死，这里写不写都行
+    // magic / layout_ver 等在 init 时已写好，这里不动
 
-    std::memcpy(&layout->intent, &intent, sizeof(intent));
+    // ---- 关键：整结构赋值，避免 memcpy + sizeof 带来的 ABI/对齐问题 ----
+    layout->intent = intent;
 
-    // end write: even
+    // ---- seqlock: end write（置偶数，表示写完）----
     hdr.seqlock.store(s0 + 2, std::memory_order_release);
+
+    // ---- 调试：直接打印 SHM 里落盘后的内容 ----
+    // const auto& snap = layout->intent;
+
+    // if (snap.flags & shared::msg::kHasTeleopDof) {
+    //     const auto& c = snap.teleop_dof_cmd;
+    //     std::cerr << "[IntentPublisherShm][RAW_AFTER_WRITE] teleop_dof"
+    //               << " s="  << c.surge
+    //               << " sw=" << c.sway
+    //               << " h="  << c.heave
+    //               << " r="  << c.roll
+    //               << " p="  << c.pitch
+    //               << " y="  << c.yaw
+    //               << " flags=0x" << std::hex << snap.flags << std::dec
+    //               << "\n";
+    // } else {
+    //     std::cerr << "[IntentPublisherShm][RAW_AFTER_WRITE] no teleop_dof, flags=0x"
+    //               << std::hex << snap.flags << std::dec
+    //               << "\n";
+    // }
+
     return true;
 }
-
 
 // -----------------------------------------------------------------------------
 // Shared memory init

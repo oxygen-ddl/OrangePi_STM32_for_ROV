@@ -169,13 +169,13 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
     }
 
     case MsgType::CONNECT_CONFIRM: {
-        //临时DEBUG
+        // 临时 DEBUG
         std::cerr << "[RX_CONFIRM] from=" << from.ip << ":" << from.port
-          << " seq=" << h.seq
-          << " sid=" << h.session_id
-          << " flags=0x" << std::hex << int(h.flags) << std::dec
-          << " plen=" << h.payload_len
-          << "\n";
+                  << " seq=" << h.seq
+                  << " sid=" << h.session_id
+                  << " flags=0x" << std::hex << int(h.flags) << std::dec
+                  << " plen=" << h.payload_len
+                  << "\n";
 
         // 1) session id 必须匹配
         if (!session_id_valid_(h.session_id)) {
@@ -198,7 +198,7 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
             out.emplace_back(build_ack(h.seq, AckCode::BAD_FORMAT));
             return out;
         }
-    
+
         // 4) 状态更新
         const bool was_established = st_.established;
         st_.established = true;
@@ -242,8 +242,8 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
         ack_ok_if_req();
         return out;
     }
-        case MsgType::ARM: {
-        // 1) 会话检查：如果要求有有效会话，但当前未建立，则直接回 ACK 错误
+
+    case MsgType::ARM: {
         if (cfg_.require_session_for_commands && !st_.established) {
             if (auto ack = make_ack_if_req_(h, AckCode::INVALID_SESSION)) {
                 out.emplace_back(std::move(*ack));
@@ -251,7 +251,6 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
             return out;
         }
 
-        // 2) 载荷长度检查：必须恰好等于 ArmCmd 的大小
         if (!comm_gcs::codec::payload_size_is(pp.payload, sizeof(ArmCmd))) {
             if (auto ack = make_ack_if_req_(h, AckCode::BAD_FORMAT)) {
                 out.emplace_back(std::move(*ack));
@@ -259,23 +258,16 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
             return out;
         }
 
-        // 3) 解析载荷为 ArmCmd（按结构体字节拷贝）
         ArmCmd cmd{};
         std::memcpy(&cmd, pp.payload.data, sizeof(cmd));
 
-        // 如果你有 st_.armed 一类的状态，可以在这里顺手更新：
-        // st_.armed = (cmd.enable != 0);
-
-        // 4) 触发上层回调，让 gateway 应用层去做真正的解锁/上锁逻辑
         if (ev_.on_arm) {
             ev_.on_arm(cmd);
         }
 
-        // 5) 如果需要 ACK，则回一个 OK
         ack_ok_if_req();
         return out;
     }
-
 
     case MsgType::SET_MODE: {
         if (cfg_.require_session_for_commands && !st_.established) {
@@ -306,11 +298,7 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
             }
             return out;
         }
-        // ★ 新增：未 ARM 时，不接受 DOF 命令（可选：回 ACK_DENIED）
-        if (!ev_.on_arm) {
-            // TODO(kcg): 若未来协议扩展 AckCode，可在此返回 ACK_NOT_ARMED 等专用码
-            return out;
-        }
+
         if (!comm_gcs::codec::payload_size_is(pp.payload, sizeof(SetDofCmd))) {
             if (auto ack = make_ack_if_req_(h, AckCode::BAD_FORMAT)) {
                 out.emplace_back(std::move(*ack));
@@ -321,35 +309,45 @@ GcsSession::PacketVec GcsSession::handle_parsed_(const comm_gcs::UdpAddress& fro
         SetDofCmd cmd{};
         std::memcpy(&cmd, pp.payload.data, sizeof(cmd));
 
-        if (ev_.on_set_dof) ev_.on_set_dof(cmd);
+        if (ev_.on_set_dof) {
+            ev_.on_set_dof(cmd);
+        }
+
         ack_ok_if_req();
         return out;
     }
 
-    case MsgType::STATUS:
+    case MsgType::STATUS: {
         // Usually ROV->GCS, server side ignore
         if (auto ack = make_ack_if_req_(h, AckCode::NOT_SUPPORTED)) {
             out.emplace_back(std::move(*ack));
         }
         return out;
+    }
 
-    case MsgType::ACK:
+    case MsgType::ACK: {
         // Server side ignore, or you can add RTT tracking later.
         return out;
+    }
 
-    case MsgType::CONNECT_ACK:
+    case MsgType::CONNECT_ACK: {
         // Not expected on server side
         if (auto ack = make_ack_if_req_(h, AckCode::NOT_SUPPORTED)) {
             out.emplace_back(std::move(*ack));
         }
         return out;
+    }
 
-    default:
+    default: {
         if (auto ack = make_ack_if_req_(h, AckCode::NOT_SUPPORTED)) {
             out.emplace_back(std::move(*ack));
         }
         return out;
     }
+    } // end switch
+
+    // 理论上不会到这里
+    return out;
 }
 
 bool GcsSession::session_id_valid_(std::uint64_t sid) const noexcept
@@ -418,15 +416,7 @@ GcsSession::ByteVec GcsSession::make_connect_ack_(std::uint32_t seq_tx, const co
         fprintf(stderr, "%02X", (unsigned)pkt[i]);
     }
     std::cerr << "\n";
-
     return pkt;
-    std::cerr << "[DBG][TX_CONNECT_ACK] head12=";
-    for (size_t i = 0; i < std::min<size_t>(12, pkt.size()); ++i) {
-        fprintf(stderr, "%02X", (unsigned)pkt[i]);
-    }
-    std::cerr << "\n";
-
-    return comm_gcs::codec::build_packet(hh, comm_gcs::BytesView{payload.data(), payload.size()});
 }
 
 std::optional<GcsSession::ByteVec>

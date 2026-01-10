@@ -144,6 +144,12 @@ struct ArmCmd {
 struct SetDofCmd final {
     float dof[6]{};
 };
+// 确保线上的 DOF 命令就是 6 个 float32 = 24 bytes
+static_assert(sizeof(rovctrl::io::gcs::SetDofCmd) == 24,
+              "SetDofCmd must be 24 bytes");
+// 不再检查 alignof，避免不同 ABI 下对齐策略差异带来的问题
+// static_assert(alignof(rovctrl::io::gcs::SetDofCmd) == alignof(float), "unexpected alignment");
+
 
 struct EstopCmd final {
     std::uint8_t  enable    = 0;

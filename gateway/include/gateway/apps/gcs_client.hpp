@@ -51,6 +51,8 @@
 
 #include <chrono>
 #include <vector>
+#include <functional>
+#include <optional>
 
 #include "gateway/intent_publisher_shm.hpp"
 #include "gateway/session/gcs_session.hpp"
@@ -101,13 +103,14 @@ struct ShmHexDumper {
  *   - armed / arm_log_enable：网关侧对 ARM 状态的本地视角。
  */
 struct IntentContext {
-    comm_gcs::IntentPublisherShm& pub;  ///< SHM publisher（由 gcs_server.cpp 创建并持有）
-    ShmHexDumper*                shm_dump;  ///< 可为 nullptr，如不需要 hex dump
-    int                          intent_ttl_ms; ///< ControlIntent.ttl_ms 默认值（工程级统一配置）
+    comm_gcs::IntentPublisherShm& pub;   ///< SHM publisher（由 gcs_server.cpp 创建并持有）
+    ShmHexDumper* shm_dump = nullptr;    ///< 可选 SHM 十六进制调试器（nullptr 表示不用）
+
+    int  intent_ttl_ms = 200;            ///< ControlIntent.ttl_ms 默认值（工程级统一配置）
 
     // === ARM 状态（网关本地视角）===
-    bool armed          = false; ///< 网关认为当前 ROV 是否已解锁（初始为未解锁）
-    bool arm_log_enable = false; ///< 是否打印 ARM 状态变化日志（避免刷屏）
+    bool armed          = false;         ///< 网关认为当前 ROV 是否已解锁（初始为未解锁）
+    bool arm_log_enable = false;         ///< 是否打印 ARM 状态变化日志（避免刷屏）
 };
 
 /**

@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/intentd.dir/apps/intentd.cpp.o  -o ../bin/intentd  ../lib/libgateway_core.a ../lib/libproto_gcs.a -lpthread -lm /usr/lib/x86_64-linux-gnu/librt.so 

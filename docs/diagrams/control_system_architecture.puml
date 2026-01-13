@@ -1,0 +1,85 @@
+@startuml
+title ROV 控制系统整体架构图（OrangePi + STM32）
+
+skinparam componentStyle rectangle
+
+' ================= 顶层：操作者 & 上位系统 =================
+actor Operator as op
+rectangle "上位机/桌面环境\n(开发/调试端)" as host {
+  component "终端/SSH\n(运行 pwm_control_program)" as ssh
+}
+
+' ================= OrangePi 控制程序 =================
+node "OrangePi 控制机" as opi {
+  package "pwm_control_program" as pwm_app {
+    component "app_main\n(main.cpp)" as app_main
+    component "ControlLoop\n(control_loop.hpp/cpp)" as loop
+    package "controllers" {
+      component "ManualController\n(manual_controller)" as manual_ctrl
+      component "其他控制器\n(PID/MPC/SMC...)" as other_ctrl
+    }
+    package "io" {
+      component "TeleopInputProvider\n(键盘输入)" as teleop
+      component "其他输入源\n(上位机命令/轨迹)" as other_input
+      component "PwmLogger\n(pwm_logger)" as pwm_logger
+    }
+    package "platform" {
+      component "PwmClient\n(pwm_client.hpp/cpp)" as pwm_client
+    }
+  }
+
+  package "orangepi_send" as orangepi_send {
+    component "libpwm_host\n(C 静态库)" as libpwm
+    component "UDP Sender\n(内部封装)" as udp_sender
+  }
+
+  package "导航进程\n(示意)" as nav_core {
+    component "nav_core 守护进程\n(IMU+DVL+ESKF)" as navd
+    component "状态共享接口\n(UDP/SHM/管道…)" as nav_iface
+  }
+}
+
+' ================== STM32 侧 ====================
+node "STM32 控制板" as stm32 {
+  component "UDP 接收 + 协议解析\n(通信任务)" as stm32_comm
+  component "PWM 输出任务\n(TIM/中断)" as stm32_pwm
+}
+
+' ================== 物理执行层 ====================
+node "执行层" as exec {
+  component "ESC x 8" as esc
+  component "Thrusters x 8\n(推进器)" as thrusters
+}
+
+' ================== 连接关系 ====================
+op --> ssh : 通过键盘操作\n(SSH/串口终端)
+
+ssh --> app_main : 启动 pwm_control_program
+
+' 控制程序内部
+app_main --> loop : 创建并启动\nControlLoop
+loop --> teleop : 键盘/Teleop 输入\npoll()
+loop --> other_input : 未来可扩展\n(上位机命令/轨迹等)
+
+loop --> manual_ctrl : 传入 state/ref\ncompute()
+loop --> other_ctrl : (其他模式时)
+
+loop --> pwm_client : setTargets() / step()
+pwm_client --> libpwm : pwm_host_set_all_pct()\n轮询心跳/错误状态
+libpwm --> udp_sender : 发送 UDP 帧
+
+' 日志
+loop --> pwm_logger : log(t, thruster_cmd[8])
+
+' 导航数据（未来）
+navd --> nav_iface
+nav_iface --> loop : ControlState\n(位置/姿态/速度)
+
+' UDP 链路
+udp_sender --> stm32_comm : UDP 帧\n(PWM 控制 + 心跳)
+
+stm32_comm --> stm32_pwm : 解析/更新目标 PWM
+stm32_pwm --> esc : 8 路 PWM 信号
+esc --> thrusters : 驱动推进器
+
+@enduml

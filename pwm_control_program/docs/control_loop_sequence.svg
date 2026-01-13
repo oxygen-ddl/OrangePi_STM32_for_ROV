@@ -1,0 +1,55 @@
+<svg width="1100" height="760" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .lifeline { stroke:#888; stroke-width:2; stroke-dasharray:6,4; }
+    .box { fill:#eef4ff; stroke:#4a6fa5; stroke-width:2; rx:10; ry:10; }
+    .title { font-size:20px; font-weight:bold; fill:#1a3d6d; }
+    .label { font-size:14px; fill:#111; }
+    .arrow { stroke:#000; stroke-width:2; marker-end:url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#000"/>
+    </marker>
+  </defs>
+
+  <!-- Titles -->
+  <text x="90" y="40" class="title">InputProvider</text>
+  <text x="340" y="40" class="title">ControlLoop</text>
+  <text x="600" y="40" class="title">IController</text>
+  <text x="850" y="40" class="title">PwmClient</text>
+
+  <!-- Lifelines -->
+  <line x1="120" y1="70" x2="120" y2="730" class="lifeline"/>
+  <line x1="370" y1="70" x2="370" y2="730" class="lifeline"/>
+  <line x1="630" y1="70" x2="630" y2="730" class="lifeline"/>
+  <line x1="880" y1="70" x2="880" y2="730" class="lifeline"/>
+
+  <!-- Sequence Steps -->
+
+  <!-- poll -->
+  <line x1="370" y1="150" x2="120" y2="150" class="arrow"/>
+  <text x="150" y="140" class="label">poll(state, ref)</text>
+
+  <!-- compute -->
+  <line x1="370" y1="250" x2="630" y2="250" class="arrow"/>
+  <text x="430" y="240" class="label">compute(state, ref → output)</text>
+
+  <!-- setTargets -->
+  <line x1="370" y1="350" x2="880" y2="350" class="arrow"/>
+  <text x="420" y="340" class="label">setTargets(output.thruster_command)</text>
+
+  <!-- step -->
+  <line x1="370" y1="450" x2="880" y2="450" class="arrow"/>
+  <text x="430" y="440" class="label">step()  // 限斜率 + 氛围切换 + UDP</text>
+
+  <!-- log -->
+  <rect x="330" y="510" width="120" height="60" class="box"/>
+  <text x="345" y="535" class="label">PwmLogger</text>
+  <text x="345" y="555" class="label">log(t, pwm[8])</text>
+  <line x1="370" y1="510" x2="370" y2="450" class="arrow"/>
+
+  <!-- next frame -->
+  <text x="340" y="620" class="label">wait until next tick (10 ms)</text>
+  <line x1="370" y1="640" x2="370" y2="710" class="arrow"/>
+</svg>

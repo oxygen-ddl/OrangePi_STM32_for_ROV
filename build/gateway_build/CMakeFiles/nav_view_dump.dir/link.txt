@@ -1,0 +1,1 @@
+/usr/lib/ccache/c++  -O2 -g -DNDEBUG   CMakeFiles/nav_view_dump.dir/apps/nav_view_dump.cpp.o  -o ../bin/nav_view_dump  ../lib/libgateway_core.a ../lib/libproto_gcs.a -lpthread -lm /usr/lib/x86_64-linux-gnu/librt.so 
